@@ -1,0 +1,72 @@
+[
+    {
+      "product_code": "01",
+      "product_name": "ទឹកកកដើមធំ",
+      "product_category": "ទឹកកកដើម",
+      "price": 15000,
+      "unit": "ដើម",
+      "color": "#ECAD4B",
+      "photo": "/files/block_ice.jpg",
+      "multiplier": 1,
+      "allow_sum_qty": 1,
+      "allow_split_bill": 1,
+      "default_sale_transaction_type": "Sale"
+    },
+    {
+      "product_code": "02",
+      "product_name": "ទឹកកកដើមតូច",
+      "product_category": "ទឹកកកដើម",
+      "price": 13500,
+      "unit": "ដើម",
+      "color": "#ECAD4B",
+      "photo": null,
+      "multiplier": 1,
+      "allow_sum_qty": 1,
+      "allow_split_bill": 1,
+      "default_sale_transaction_type": "Sale"
+    },
+    {
+      "product_code": "03",
+      "product_name": "ទឹកកកអនាម័យគ្រាប់តូច",
+      "product_category": "ទឹកកកអនាម័យ",
+      "price": 250,
+      "unit": "ដើម",
+      "color": "#EC864B",
+      "photo": null,
+      "multiplier": 1,
+      "allow_sum_qty": 1,
+      "allow_split_bill": 1,
+      "default_sale_transaction_type": "Sale"
+    },
+    {
+      "product_code": "04",
+      "product_name": "ទឹកកកអនាម័យគ្រាប់ធំ",
+      "product_category": "ទឹកកកអនាម័យ",
+      "price": 350,
+      "unit": "ដើម",
+      "color": "#EC864B",
+      "photo": null,
+      "multiplier": 1,
+      "allow_sum_qty": 1,
+      "allow_split_bill": 1,
+      "default_sale_transaction_type": "Sale",
+      "product_units": [
+        {
+          "product_code": "04",
+          "unit": "ការ៉ុង",
+          "price": 3500,
+          "multiplier": 25,
+          "base_product_unit": 0,
+          "photo": null
+        },
+        {
+          "product_code": "04",
+          "unit": "ថង",
+          "price": 700,
+          "multiplier": 6,
+          "base_product_unit": 0,
+          "photo": null
+        }
+      ]
+    }
+  ]

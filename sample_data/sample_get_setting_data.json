@@ -1,0 +1,36 @@
+{
+    "address": "ភូមិចុងកៅស៊ូ សង្កាត់ស្លរក្រាម ក្រុងសៀមរាប ខេត្តសៀមរាប",
+    "base_exchange_currency": "USD",
+    "business_name_en": "Heang Hok Kheang I",
+    "business_name_kh": "រោងចក្រទឹកកក ហ៊ាងហុកឃាង",
+    "closed_doctypes": [],
+    "currency_format": "#,###,##0 ៛",
+    "currency_symbol": "៛",
+    "default_currency": "KHR",
+    "docstatus": 0,
+    "doctype": "Business Information",
+    "idx": "0",
+    "modified": "2026-08-15 10:54:29.317787",
+    "modified_by": "Administrator",
+    "name": "Business Information",
+    "owner": "Administrator",
+    "phone_number_1": "0125457774",
+    "photo": "/files/hhklogo.jpg",
+    "property_code": "P0001",
+    "second_currency": "USD",
+    "can_login_multi_site": null,
+    "outlet": "ទឹកកកដើម",
+    "default_unit": "ដើម",
+    "default_stock_location": "ទឹកកកដើម",
+    "currency": "KHR",
+    "second_currency_symbol": "$",
+    "payment_types": [
+      {
+        "name": "Riel",
+        "currency": "KHR",
+        "exchange_rate": 1
+      }
+    ],
+    "exchange_rate": 1,
+    "exchange_rate_display": 1
+  }
