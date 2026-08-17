@@ -28,6 +28,8 @@ void main() {
       ),
     );
 
+    expect(find.text('លក់'), findsOneWidget);
+
     await tester.tap(find.byKey(const ValueKey('edit-sale-return-quantity')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('clear-number')));
@@ -68,5 +70,45 @@ void main() {
           .onPressed,
       isNotNull,
     );
+  });
+
+  testWidgets('Borrow status disables price editing', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light,
+        home: const Scaffold(
+          body: EditSaleOrderWidget(
+            saleProduct: SaleProduct(
+              productCode: 'BORROW-001',
+              productName: 'Borrow Product',
+              productCategory: 'Test',
+              unit: 'Unit',
+              price: 0,
+              productPrice: 1000,
+              saleTransactionType: 'Borrow',
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('ខ្ចី'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('edit-sale-transaction-status')),
+      findsOneWidget,
+    );
+    final priceInkWell = tester.widget<InkWell>(
+      find.descendant(
+        of: find.byKey(const ValueKey('edit-sale-price')),
+        matching: find.byType(InkWell),
+      ),
+    );
+    expect(priceInkWell.onTap, isNull);
+    expect(find.byIcon(Icons.lock_outline_rounded), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('edit-sale-price')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('quantity-input')), findsNothing);
   });
 }

@@ -56,6 +56,16 @@ void main() {
       color: '#1677FF',
       photo: '',
     );
+    const borrowProduct = Product(
+      code: '01',
+      name: 'Borrow ice',
+      category: 'ទឹកកកដើម',
+      unit: 'ដើម',
+      price: 15000,
+      color: '#F79009',
+      photo: '',
+      saleTransactionType: 'Borrow',
+    );
     const customer = Customer(name: 'C457', customerName: 'Customer 457');
 
     expect(controller.addProduct(product, quantity: 2), isTrue);
@@ -65,6 +75,11 @@ void main() {
 
     expect(requestedCustomer, 'C457');
     expect(controller.saleProducts.single.price, 12500);
+    expect(controller.saleProducts.single.productPrice, 15000);
+
+    controller.clearCart();
+    expect(controller.addProduct(borrowProduct), isTrue);
+    expect(controller.saleProducts.single.price, 0);
     expect(controller.saleProducts.single.productPrice, 15000);
 
     controller.clearCart();

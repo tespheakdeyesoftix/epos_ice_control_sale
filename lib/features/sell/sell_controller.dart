@@ -246,7 +246,7 @@ class SellController extends GetxController {
       unit: saleProduct.unit,
     );
     saleProducts.add(
-      customerPrice == null
+      saleProduct.isBorrow || customerPrice == null
           ? saleProduct
           : saleProduct.copyWith(price: customerPrice.price),
     );
@@ -271,7 +271,9 @@ class SellController extends GetxController {
             unit: item.unit,
           );
           return item.copyWith(
-            price: customerPrice?.price ?? item.productPrice ?? item.price,
+            price: item.isBorrow
+                ? 0
+                : customerPrice?.price ?? item.productPrice ?? item.price,
           );
         })
         .toList(growable: false);

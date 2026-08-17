@@ -60,9 +60,13 @@ void main() {
     expect(saleProduct.revenueGroup, 'ចំណូលទឹកកកដើម');
     expect(saleProduct.allowSumQuantity, isTrue);
     expect(saleProduct.saleTransactionType, 'Borrow');
+    expect(saleProduct.price, 0);
+    expect(saleProduct.productPrice, 15000);
     expect(saleProduct.toJson()['photo'], '/files/block_ice.jpg');
     expect(saleProduct.toJson()['revenue_group'], 'ចំណូលទឹកកកដើម');
     expect(saleProduct.toJson()['allow_sum_qty'], 1);
     expect(saleProduct.toJson()['sale_transaction_type'], 'Borrow');
+    expect(saleProduct.toJson()['price'], 0);
+    expect(saleProduct.toJson()['product_price'], 15000);
   });
 }

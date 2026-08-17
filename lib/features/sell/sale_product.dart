@@ -38,13 +38,15 @@ class SaleProduct {
     required String outlet,
     double quantity = 1,
   }) {
+    final isBorrow =
+        product.saleTransactionType.trim().toLowerCase() == 'borrow';
     return SaleProduct(
       productCode: product.code,
       productName: product.name,
       productCategory: product.category,
       unit: product.unit,
       baseUnit: product.unit,
-      price: product.price,
+      price: isBorrow ? 0 : product.price,
       productPrice: product.price,
       outlet: outlet,
       photo: product.photo,
@@ -122,6 +124,8 @@ class SaleProduct {
   /// Local display color from Product; not part of the Sale Products doctype.
   final String color;
 
+  bool get isBorrow => saleTransactionType.trim().toLowerCase() == 'borrow';
+
   double get totalSaleQuantity =>
       math.max(0, quantity - freeQuantity - returnQuantity - splitQuantity);
   double get subTotal => quantity * price;
@@ -151,7 +155,7 @@ class SaleProduct {
       allowSumQuantity: allowSumQuantity,
       isInventoryProduct: isInventoryProduct,
       quantity: quantity ?? this.quantity,
-      price: price ?? this.price,
+      price: isBorrow ? 0 : price ?? this.price,
       productPrice: productPrice,
       freeQuantity: freeQuantity ?? this.freeQuantity,
       returnQuantity: returnQuantity ?? this.returnQuantity,

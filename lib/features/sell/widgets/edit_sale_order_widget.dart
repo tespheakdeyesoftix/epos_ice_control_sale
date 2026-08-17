@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../app/app_theme.dart';
 import '../../../shared/input_number_dialog_widget.dart';
 import '../../../utils/helpers.dart';
 import '../sale_product.dart';
@@ -131,13 +132,23 @@ class _EditSaleOrderWidgetState extends State<EditSaleOrderWidget> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Text(
-                      widget.saleProduct.productName,
-                      style: TextStyle(
-                        color: colors.onSurface,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                      ),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            widget.saleProduct.productName,
+                            style: TextStyle(
+                              color: colors.onSurface,
+                              fontSize: 18,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        _TransactionStatusChip(
+                          isBorrow: widget.saleProduct.isBorrow,
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 16),
                     GridView.count(
@@ -164,11 +175,13 @@ class _EditSaleOrderWidgetState extends State<EditSaleOrderWidget> {
                           icon: Icons.payments_outlined,
                           label: 'តម្លៃ',
                           value: formatMoney(_price),
-                          onTap: () => _editNumber(
-                            value: _price,
-                            allowZero: false,
-                            onChanged: (value) => _price = value,
-                          ),
+                          onTap: widget.saleProduct.isBorrow
+                              ? null
+                              : () => _editNumber(
+                                  value: _price,
+                                  allowZero: false,
+                                  onChanged: (value) => _price = value,
+                                ),
                         ),
                         _EditOptionCard(
                           key: const ValueKey('edit-sale-return-quantity'),
@@ -337,11 +350,12 @@ class _EditOptionCard extends StatelessWidget {
   final IconData icon;
   final String label;
   final String value;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
+    final isEnabled = onTap != null;
     return Material(
       color: colors.surfaceContainerLow,
       shape: RoundedRectangleBorder(
@@ -362,7 +376,13 @@ class _EditOptionCard extends StatelessWidget {
                   color: colors.primaryContainer,
                   borderRadius: BorderRadius.circular(11),
                 ),
-                child: Icon(icon, color: colors.onPrimaryContainer, size: 21),
+                child: Icon(
+                  icon,
+                  color: isEnabled
+                      ? colors.onPrimaryContainer
+                      : colors.onSurfaceVariant.withValues(alpha: 0.5),
+                  size: 21,
+                ),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -391,10 +411,44 @@ class _EditOptionCard extends StatelessWidget {
                   ],
                 ),
               ),
-              Icon(Icons.chevron_right_rounded, color: colors.onSurfaceVariant),
+              Icon(
+                isEnabled
+                    ? Icons.chevron_right_rounded
+                    : Icons.lock_outline_rounded,
+                color: isEnabled
+                    ? colors.onSurfaceVariant
+                    : colors.onSurfaceVariant.withValues(alpha: 0.5),
+              ),
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _TransactionStatusChip extends StatelessWidget {
+  const _TransactionStatusChip({required this.isBorrow});
+
+  final bool isBorrow;
+
+  @override
+  Widget build(BuildContext context) {
+    final semanticColors = AppSemanticColors.of(context);
+    final backgroundColor = isBorrow
+        ? const Color(0xFFF79009)
+        : semanticColors.success;
+    final foregroundColor = isBorrow ? Colors.white : semanticColors.onSuccess;
+    return Container(
+      key: const ValueKey('edit-sale-transaction-status'),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Text(
+        isBorrow ? 'ខ្ចី' : 'លក់',
+        style: TextStyle(color: foregroundColor, fontWeight: FontWeight.w700),
       ),
     );
   }
