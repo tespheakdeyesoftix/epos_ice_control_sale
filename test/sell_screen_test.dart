@@ -10,6 +10,9 @@ import 'package:ice_control_sale/app/app_setting.dart';
 import 'package:ice_control_sale/app/app_setting_controller.dart';
 import 'package:ice_control_sale/app/theme_controller.dart';
 import 'package:ice_control_sale/features/login/login_controller.dart';
+import 'package:ice_control_sale/features/navigation/app_destination.dart';
+import 'package:ice_control_sale/features/navigation/app_shell_controller.dart';
+import 'package:ice_control_sale/features/navigation/app_shell_screen.dart';
 import 'package:ice_control_sale/features/sell/sell_controller.dart';
 import 'package:ice_control_sale/features/sell/sell_screen.dart';
 import 'package:ice_control_sale/services/customer_service.dart';
@@ -226,16 +229,33 @@ void main() {
       ),
     );
     Get.put<SellController>(sellController);
+    final shellController = AppShellController(sellController: sellController);
+    Get.put<AppShellController>(shellController);
 
     await tester.pumpWidget(
       GetMaterialApp(
         theme: AppTheme.light,
         darkTheme: AppTheme.dark,
         themeMode: themeController.themeMode,
-        home: const SellScreen(),
+        home: const AppShellScreen(),
       ),
     );
     await tester.pumpAndSettle();
+
+    expect(
+      tester.getSize(find.byKey(const ValueKey('app-navigation-rail'))).width,
+      64,
+    );
+    final railLogo = tester.widget<Container>(
+      find.byKey(const ValueKey('rail-company-logo')),
+    );
+    expect((railLogo.decoration! as BoxDecoration).shape, BoxShape.circle);
+    for (final destination in AppDestination.values) {
+      final tooltip = tester.widget<Tooltip>(
+        find.byKey(ValueKey('nav-destination-${destination.name}')),
+      );
+      expect(tooltip.message, destination.label);
+    }
 
     expect(find.text('ទឹកកកដើមធំ'), findsOneWidget);
     expect(find.byKey(const ValueKey('product-category-all')), findsOneWidget);
@@ -349,7 +369,7 @@ void main() {
     expect(find.text('អ្នកបើកបរ'), findsOneWidget);
     expect(find.text('ជ្រើសរើសអ្នកបើកបរ'), findsOneWidget);
     expect(find.text('ប្រភេទការលក់'), findsNothing);
-    expect(find.text('សង្ខេបការលក់'), findsNothing);
+    expect(find.text('សង្ខេបការលក់'), findsOneWidget);
     expect(
       tester.getSize(find.byKey(const ValueKey('payment-button'))).width,
       tester.getSize(find.byKey(const ValueKey('customer-card'))).width,

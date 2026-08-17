@@ -9,7 +9,8 @@ import 'app/app_theme.dart';
 import 'app/theme_controller.dart';
 import 'features/login/login_controller.dart';
 import 'features/login/login_screen.dart';
-import 'features/sell/sell_screen.dart';
+import 'features/navigation/app_shell_controller.dart';
+import 'features/navigation/app_shell_screen.dart';
 import 'features/sell/sell_controller.dart';
 import 'services/frappe_auth_service.dart';
 import 'services/frappe_session_client.dart';
@@ -88,8 +89,8 @@ class IceSaleApp extends StatelessWidget {
       getPages: [
         GetPage(name: AppRoutes.login, page: () => const LoginScreen()),
         GetPage(
-          name: AppRoutes.sell,
-          page: () => const SellScreen(),
+          name: AppRoutes.authenticated,
+          page: () => const AppShellScreen(),
           binding: BindingsBuilder(() {
             final appConfig = config;
             if (appConfig != null) {
@@ -110,6 +111,11 @@ class IceSaleApp extends StatelessWidget {
                   outletName: appConfig.outletName,
                   stationName: appConfig.stationName,
                   appSettingController: globalSettingController,
+                ),
+              );
+              Get.lazyPut<AppShellController>(
+                () => AppShellController(
+                  sellController: Get.find<SellController>(),
                 ),
               );
             }

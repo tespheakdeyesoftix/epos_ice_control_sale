@@ -63,7 +63,7 @@ class LoginController extends GetxController {
           : session.fullName;
       currentUserImageUrl.value = session.userImageUrl;
       passwordController.clear();
-      Get.offAllNamed(AppRoutes.sell);
+      Get.offAllNamed(AppRoutes.authenticated);
     } on TimeoutException {
       errorMessage.value = 'ការតភ្ជាប់ម៉ាស៊ីនមេអស់ពេល។ សូមព្យាយាមម្តងទៀត។';
     } on FrappeServerMessageException {

@@ -1,4 +1,5 @@
 abstract final class AppRoutes {
   static const login = '/login';
-  static const sell = '/sell';
+  static const authenticated = '/app';
+  static const sell = authenticated;
 }

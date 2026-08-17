@@ -1,0 +1,387 @@
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+
+import '../../app/app_setting_controller.dart';
+import '../../services/frappe_response_handler.dart';
+import '../../shared/network_image.dart';
+import '../../shared/select_customer_dialog_widget.dart';
+import '../closed_sales/closed_sale_list_screen.dart';
+import '../pending_sales/pending_sale_list_screen.dart';
+import '../report/report_screen.dart';
+import '../sale_summary/sale_summary_screen.dart';
+import '../sell/customer.dart';
+import '../sell/sell_screen.dart';
+import '../sell/widgets/save_order_success_widget.dart';
+import 'app_destination.dart';
+import 'app_shell_controller.dart';
+
+enum _SaleLeaveAction { close, hold, clear, continueSale }
+
+class AppShellScreen extends GetView<AppShellController> {
+  const AppShellScreen({super.key});
+
+  Future<void> _navigate(
+    BuildContext context,
+    AppDestination destination,
+  ) async {
+    await controller.navigateTo(
+      destination,
+      resolveUnfinishedSale: () => _resolveUnfinishedSale(context),
+    );
+  }
+
+  Future<bool> _resolveUnfinishedSale(BuildContext context) async {
+    final action = await showDialog<_SaleLeaveAction>(
+      context: context,
+      builder: (dialogContext) => Dialog(
+        key: const ValueKey('unfinished-sale-navigation-dialog'),
+        insetPadding: const EdgeInsets.all(24),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 500),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(22, 22, 22, 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  'មានការលក់មិនទាន់បានរក្សាទុក',
+                  style: Theme.of(
+                    dialogContext,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'សូមជ្រើសរើសរបៀបដោះស្រាយការលក់បច្ចុប្បន្ន មុនពេលចាកចេញពីផ្ទាំងលក់។',
+                  style: TextStyle(
+                    color: Theme.of(dialogContext).colorScheme.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(height: 18),
+                _LeaveActionTile(
+                  key: const ValueKey('leave-sale-close'),
+                  icon: Icons.save_outlined,
+                  title: 'បិទការលក់',
+                  subtitle: 'រក្សាទុកការលក់ជាស្ថានភាពបានបិទ',
+                  onTap: () =>
+                      Navigator.of(dialogContext).pop(_SaleLeaveAction.close),
+                ),
+                const SizedBox(height: 8),
+                _LeaveActionTile(
+                  key: const ValueKey('leave-sale-hold'),
+                  icon: Icons.pause_circle_outline_rounded,
+                  title: 'ផ្អាកការលក់',
+                  subtitle: 'រក្សាទុកការលក់ជាព្រាងសម្រាប់បន្តពេលក្រោយ',
+                  onTap: () =>
+                      Navigator.of(dialogContext).pop(_SaleLeaveAction.hold),
+                ),
+                const SizedBox(height: 8),
+                _LeaveActionTile(
+                  key: const ValueKey('leave-sale-clear'),
+                  icon: Icons.delete_outline_rounded,
+                  title: 'សម្អាត ហើយបន្ត',
+                  subtitle: 'លុបការលក់បច្ចុប្បន្ន ហើយបន្តទៅផ្ទាំងថ្មី',
+                  isDestructive: true,
+                  onTap: () =>
+                      Navigator.of(dialogContext).pop(_SaleLeaveAction.clear),
+                ),
+                const SizedBox(height: 12),
+                TextButton.icon(
+                  key: const ValueKey('leave-sale-continue'),
+                  onPressed: () => Navigator.of(
+                    dialogContext,
+                  ).pop(_SaleLeaveAction.continueSale),
+                  icon: const Icon(Icons.arrow_back_rounded),
+                  label: const Text('បន្តការលក់'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+    if (action == null || action == _SaleLeaveAction.continueSale) return false;
+
+    final sell = controller.sellController;
+    if (action == _SaleLeaveAction.clear) {
+      sell.startNewSale();
+      return true;
+    }
+
+    try {
+      if (action == _SaleLeaveAction.close && !sell.hasSelectedCustomer) {
+        if (!context.mounted) return false;
+        final customer = await showSelectCustomerDialog(
+          context,
+          customerService: sell.customerService,
+          selectionType: CustomerSelectionType.customer,
+        );
+        if (customer == null) return false;
+        await sell.selectCustomer(customer);
+      }
+      if (!context.mounted) return false;
+
+      final savedOrder = action == _SaleLeaveAction.close
+          ? await sell.saveOrder()
+          : await sell.pauseSale();
+      sell.startNewSale();
+      if (!context.mounted) return false;
+      await showSaveOrderSuccessDialog(
+        context,
+        savedOrder: savedOrder,
+        title: action == _SaleLeaveAction.close
+            ? 'រក្សាទុកការលក់បានជោគជ័យ'
+            : 'ផ្អាកការលក់បានជោគជ័យ',
+      );
+      return context.mounted;
+    } on FrappeServerMessageException {
+      return false;
+    } on Exception {
+      if (context.mounted) _showNavigationError(context);
+      return false;
+    }
+  }
+
+  void _showNavigationError(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    Get.rawSnackbar(
+      messageText: Text(
+        'មិនអាចរក្សាទុកការលក់បានទេ។ សូមព្យាយាមម្តងទៀត។',
+        style: TextStyle(color: colors.onError, fontWeight: FontWeight.w600),
+      ),
+      icon: Icon(Icons.error_outline_rounded, color: colors.onError),
+      snackPosition: SnackPosition.TOP,
+      snackStyle: SnackStyle.FLOATING,
+      maxWidth: 540,
+      margin: const EdgeInsets.only(top: 18),
+      borderRadius: 12,
+      backgroundColor: colors.error,
+      duration: const Duration(seconds: 4),
+    );
+  }
+
+  Widget _screenFor(AppDestination destination) {
+    return switch (destination) {
+      AppDestination.sale => const SellScreen(),
+      AppDestination.saleSummary => const SaleSummaryScreen(),
+      AppDestination.closedSales => const ClosedSaleListScreen(),
+      AppDestination.pendingSales => const PendingSaleListScreen(),
+      AppDestination.report => const ReportScreen(),
+    };
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final settingController = Get.isRegistered<AppSettingController>()
+        ? Get.find<AppSettingController>()
+        : null;
+    return Scaffold(
+      body: SafeArea(
+        child: Obx(() {
+          final selected = controller.selectedDestination.value;
+          final visited = controller.visitedDestinations.toSet();
+          return Row(
+            children: [
+              Container(
+                key: const ValueKey('app-navigation-rail'),
+                width: 64,
+                decoration: BoxDecoration(
+                  color: colors.surface,
+                  border: Border(
+                    right: BorderSide(color: colors.outlineVariant),
+                  ),
+                ),
+                child: NavigationRail(
+                  minWidth: 64,
+                  selectedIndex: selected.index,
+                  labelType: NavigationRailLabelType.none,
+                  groupAlignment: -0.8,
+                  backgroundColor: colors.surface,
+                  indicatorColor: colors.primaryContainer,
+                  useIndicator: true,
+                  leading: Padding(
+                    padding: const EdgeInsets.only(top: 10, bottom: 18),
+                    child: _RailCompanyAvatar(
+                      settingController: settingController,
+                    ),
+                  ),
+                  onDestinationSelected: controller.isNavigating.value
+                      ? null
+                      : (index) =>
+                            _navigate(context, AppDestination.values[index]),
+                  destinations: AppDestination.values
+                      .map(
+                        (destination) => NavigationRailDestination(
+                          icon: Tooltip(
+                            key: ValueKey(
+                              'nav-destination-${destination.name}',
+                            ),
+                            message: destination.label,
+                            child: Icon(destination.icon),
+                          ),
+                          label: Text(destination.label),
+                        ),
+                      )
+                      .toList(growable: false),
+                ),
+              ),
+              Expanded(
+                child: IndexedStack(
+                  index: selected.index,
+                  children: AppDestination.values
+                      .map(
+                        (destination) => visited.contains(destination)
+                            ? KeyedSubtree(
+                                key: ValueKey(
+                                  'destination-screen-${destination.name}',
+                                ),
+                                child: _screenFor(destination),
+                              )
+                            : const SizedBox.shrink(),
+                      )
+                      .toList(growable: false),
+                ),
+              ),
+            ],
+          );
+        }),
+      ),
+    );
+  }
+}
+
+class _RailCompanyAvatar extends StatelessWidget {
+  const _RailCompanyAvatar({required this.settingController});
+
+  final AppSettingController? settingController;
+
+  @override
+  Widget build(BuildContext context) {
+    final controller = settingController;
+    if (controller == null) return const _RailLogoAvatar(imageUri: null);
+    return Obx(() => _RailLogoAvatar(imageUri: controller.logoUri));
+  }
+}
+
+class _RailLogoAvatar extends StatelessWidget {
+  const _RailLogoAvatar({required this.imageUri});
+
+  final Uri? imageUri;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    const fallback = _RailLogoFallback();
+    return Tooltip(
+      message: 'ស្លាកសញ្ញាក្រុមហ៊ុន',
+      child: Container(
+        key: const ValueKey('rail-company-logo'),
+        width: 44,
+        height: 44,
+        padding: const EdgeInsets.all(2),
+        decoration: BoxDecoration(
+          color: colors.surface,
+          shape: BoxShape.circle,
+          border: Border.all(color: colors.outlineVariant),
+        ),
+        child: ClipOval(
+          child: imageUri == null
+              ? fallback
+              : AppNetworkImage(
+                  key: const ValueKey('rail-company-logo-image'),
+                  imageUrl: imageUri.toString(),
+                  width: 40,
+                  height: 40,
+                  fit: BoxFit.cover,
+                  memCacheWidth: 96,
+                  memCacheHeight: 96,
+                  maxWidthDiskCache: 192,
+                  maxHeightDiskCache: 192,
+                  placeholder: fallback,
+                  errorWidget: fallback,
+                ),
+        ),
+      ),
+    );
+  }
+}
+
+class _RailLogoFallback extends StatelessWidget {
+  const _RailLogoFallback();
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return ColoredBox(
+      color: colors.surfaceContainer,
+      child: Icon(Icons.ac_unit_rounded, color: colors.primary, size: 22),
+    );
+  }
+}
+
+class _LeaveActionTile extends StatelessWidget {
+  const _LeaveActionTile({
+    super.key,
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+    this.isDestructive = false,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+  final bool isDestructive;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final foreground = isDestructive ? colors.error : colors.onSurface;
+    return Material(
+      color: isDestructive
+          ? colors.errorContainer.withValues(alpha: 0.45)
+          : colors.surfaceContainerLow,
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+          child: Row(
+            children: [
+              Icon(icon, color: foreground),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: TextStyle(
+                        color: foreground,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        color: colors.onSurfaceVariant,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(Icons.chevron_right_rounded, color: foreground),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
