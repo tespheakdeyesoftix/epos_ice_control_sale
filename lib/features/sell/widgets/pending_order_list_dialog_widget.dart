@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../../../services/frappe_response_handler.dart';
 import '../../../services/sale_service.dart';
 import '../../../shared/select_date_dialog_widget.dart';
 import '../../../utils/helpers.dart';
@@ -82,6 +83,8 @@ class _PendingOrderListDialogWidgetState
         _orders.addAll(page.items);
         _hasMore = page.hasMore;
       });
+    } on FrappeServerMessageException {
+      // The shared API client already displayed the server message.
     } on Exception {
       if (!mounted) return;
       setState(() {

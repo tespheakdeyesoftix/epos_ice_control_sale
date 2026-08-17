@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../app/theme_controller.dart';
+import '../../services/frappe_response_handler.dart';
 import '../../shared/input_number_dialog_widget.dart';
 import '../../shared/select_customer_dialog_widget.dart';
 import '../../shared/select_date_dialog_widget.dart';
@@ -275,6 +276,8 @@ class _TopBar extends StatelessWidget {
                       backgroundColor: context.colors.inverseSurface,
                       duration: const Duration(seconds: 4),
                     );
+                  } on FrappeServerMessageException {
+                    // The shared API client already displayed the server message.
                   } on Exception {
                     if (!context.mounted) return;
                     Get.rawSnackbar(
@@ -531,7 +534,7 @@ class _CheckoutPanel extends StatelessWidget {
         customerService: controller.customerService,
         selectionType: CustomerSelectionType.customer,
       );
-      if (selected != null) controller.selectCustomer(selected);
+      if (selected != null) await controller.selectCustomer(selected);
       return;
     }
 
@@ -561,6 +564,8 @@ class _CheckoutPanel extends StatelessWidget {
       controller.startNewSale();
       if (!context.mounted) return;
       await showSaveOrderSuccessDialog(context, savedOrder: savedOrder);
+    } on FrappeServerMessageException {
+      // The shared API client already displayed the server message.
     } on Exception {
       if (!context.mounted) return;
       Get.rawSnackbar(
@@ -611,7 +616,7 @@ class _CheckoutPanel extends StatelessWidget {
                 customerService: controller.customerService,
                 selectionType: CustomerSelectionType.customer,
               );
-              if (selected != null) controller.selectCustomer(selected);
+              if (selected != null) await controller.selectCustomer(selected);
             },
           );
         }),
@@ -831,6 +836,8 @@ class _BottomBar extends StatelessWidget {
         savedOrder: savedOrder,
         title: 'ផ្អាកការលក់បានជោគជ័យ',
       );
+    } on FrappeServerMessageException {
+      // The shared API client already displayed the server message.
     } on Exception {
       if (!context.mounted) return;
       Get.rawSnackbar(

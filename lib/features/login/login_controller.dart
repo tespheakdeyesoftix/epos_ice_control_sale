@@ -6,6 +6,7 @@ import 'package:get/get.dart';
 import '../../app/app_routes.dart';
 import '../../app/app_setting_controller.dart';
 import '../../services/frappe_auth_service.dart';
+import '../../services/frappe_response_handler.dart';
 
 class LoginController extends GetxController {
   LoginController({
@@ -65,6 +66,8 @@ class LoginController extends GetxController {
       Get.offAllNamed(AppRoutes.sell);
     } on TimeoutException {
       errorMessage.value = 'ការតភ្ជាប់ម៉ាស៊ីនមេអស់ពេល។ សូមព្យាយាមម្តងទៀត។';
+    } on FrappeServerMessageException {
+      // The shared API client already displayed the server message.
     } on AuthException catch (error) {
       errorMessage.value = error.message;
     } on Exception {

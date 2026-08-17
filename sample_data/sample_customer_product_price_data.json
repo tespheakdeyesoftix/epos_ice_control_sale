@@ -1,0 +1,17 @@
+[
+    {
+      "product_code": "01",
+      "unit": "ដើម",
+      "price": 15500
+    },
+    {
+      "product_code": "02",
+      "unit": "ដើម",
+      "price": 2500
+    },
+    {
+      "product_code": "03",
+      "unit": "គីឡូ",
+      "price": 1500
+    }
+  ]

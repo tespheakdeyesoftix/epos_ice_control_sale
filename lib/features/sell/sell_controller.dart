@@ -1,10 +1,12 @@
 import 'package:get/get.dart';
 
 import '../../app/app_setting_controller.dart';
-import '../../services/product_service.dart';
 import '../../services/customer_service.dart';
+import '../../services/frappe_response_handler.dart';
+import '../../services/product_service.dart';
 import '../../services/sale_service.dart';
 import 'customer.dart';
+import 'customer_product_price.dart';
 import 'product.dart';
 import 'sale.dart';
 import 'sale_product.dart';
@@ -32,6 +34,8 @@ class SellController extends GetxController {
   final searchQuery = ''.obs;
   final selectedProductCategory = ''.obs;
   final selectedCustomer = Rxn<Customer>();
+  final customerProductPrices = <CustomerProductPrice>[].obs;
+  final isLoadingCustomerProductPrices = false.obs;
   final selectedDriver = Rxn<Customer>();
   final openedSale = Rxn<Sale>();
   final plateNumber = ''.obs;
@@ -163,6 +167,8 @@ class SellController extends GetxController {
       if (!productCategories.contains(selectedProductCategory.value)) {
         selectedProductCategory.value = '';
       }
+    } on FrappeServerMessageException {
+      // The shared API client already displayed the server message.
     } on Exception {
       errorMessage.value = 'មិនអាចទាញយកបញ្ជីទំនិញបានទេ។';
     } finally {
@@ -176,7 +182,26 @@ class SellController extends GetxController {
     selectedProductCategory.value = category.trim();
   }
 
-  void selectCustomer(Customer customer) => selectedCustomer.value = customer;
+  Future<void> selectCustomer(Customer customer) async {
+    selectedCustomer.value = customer;
+    customerProductPrices.clear();
+    _applyCustomerPrices();
+    isLoadingCustomerProductPrices.value = true;
+    try {
+      final prices = await customerService.getCustomerProductPrices(
+        customer.name,
+      );
+      if (selectedCustomer.value?.name != customer.name) return;
+      customerProductPrices.assignAll(prices);
+      _applyCustomerPrices();
+    } on Exception {
+      // Keep original product prices when customer pricing is unavailable.
+    } finally {
+      if (selectedCustomer.value?.name == customer.name) {
+        isLoadingCustomerProductPrices.value = false;
+      }
+    }
+  }
 
   void selectDriver(Customer driver) {
     selectedDriver.value = driver;
@@ -211,10 +236,46 @@ class SellController extends GetxController {
 
   bool addProduct(Product product, {double quantity = 1}) {
     if (quantity <= 0 || hasProduct(product)) return false;
+    final saleProduct = SaleProduct.fromProduct(
+      product,
+      outlet: outletName,
+      quantity: quantity,
+    );
+    final customerPrice = _customerPriceFor(
+      productCode: saleProduct.productCode,
+      unit: saleProduct.unit,
+    );
     saleProducts.add(
-      SaleProduct.fromProduct(product, outlet: outletName, quantity: quantity),
+      customerPrice == null
+          ? saleProduct
+          : saleProduct.copyWith(price: customerPrice.price),
     );
     return true;
+  }
+
+  CustomerProductPrice? _customerPriceFor({
+    required String productCode,
+    required String unit,
+  }) {
+    for (final price in customerProductPrices) {
+      if (price.matches(productCode: productCode, unit: unit)) return price;
+    }
+    return null;
+  }
+
+  void _applyCustomerPrices() {
+    final repricedProducts = saleProducts
+        .map((item) {
+          final customerPrice = _customerPriceFor(
+            productCode: item.productCode,
+            unit: item.unit,
+          );
+          return item.copyWith(
+            price: customerPrice?.price ?? item.productPrice ?? item.price,
+          );
+        })
+        .toList(growable: false);
+    saleProducts.assignAll(repricedProducts);
   }
 
   void remove(SaleProduct item) => saleProducts.removeWhere(
@@ -269,6 +330,7 @@ class SellController extends GetxController {
             photo: sale.driverPhoto,
           );
     plateNumber.value = sale.plateNumber;
+    customerProductPrices.clear();
   }
 
   Future<Map<String, dynamic>> saveOrder() async {
@@ -306,6 +368,8 @@ class SellController extends GetxController {
     openedSale.value = null;
     saleProducts.clear();
     selectedCustomer.value = null;
+    customerProductPrices.clear();
+    isLoadingCustomerProductPrices.value = false;
     selectedDriver.value = null;
     plateNumber.value = '';
     postingDate.value = _dateOnly(DateTime.now());

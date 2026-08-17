@@ -1,5 +1,6 @@
 import 'package:get/get.dart';
 
+import '../services/frappe_response_handler.dart';
 import '../services/setting_service.dart';
 import 'app_setting.dart';
 
@@ -43,6 +44,8 @@ class AppSettingController extends GetxController {
     errorMessage.value = null;
     try {
       setting.value = await service.getSetting(stationName);
+    } on FrappeServerMessageException {
+      // The shared API client already displayed the server message.
     } on Exception {
       errorMessage.value = 'មិនអាចទាញយកការកំណត់កម្មវិធីបានទេ។';
     } finally {

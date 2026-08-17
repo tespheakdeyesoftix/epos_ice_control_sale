@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 
 import '../app/api_endpoint.dart';
 import '../features/sell/customer.dart';
+import '../features/sell/customer_product_price.dart';
 
 class CustomerPage {
   const CustomerPage({required this.items, required this.hasMore});
@@ -94,6 +95,41 @@ class CustomerService {
         .where((customer) => customer.name.isNotEmpty)
         .toList();
     return CustomerPage(items: customers, hasMore: rows.length == limit);
+  }
+
+  Future<List<CustomerProductPrice>> getCustomerProductPrices(
+    String customer,
+  ) async {
+    final endpoint = baseUri.resolve(ApiEndpoint.customerProductPrices);
+    final response = await _client
+        .get(
+          endpoint.replace(queryParameters: {'customer': customer.trim()}),
+          headers: const {'Accept': 'application/json'},
+        )
+        .timeout(const Duration(seconds: 20));
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw CustomerServiceException(response.statusCode);
+    }
+
+    dynamic payload = jsonDecode(response.body);
+    if (payload is Map && payload.containsKey('message')) {
+      payload = payload['message'];
+    }
+    if (payload is String) payload = jsonDecode(payload);
+    final rows = payload is List
+        ? payload
+        : payload is Map && payload['data'] is List
+        ? payload['data'] as List
+        : const <dynamic>[];
+    return rows
+        .whereType<Map>()
+        .map(
+          (row) =>
+              CustomerProductPrice.fromJson(Map<String, dynamic>.from(row)),
+        )
+        .where((item) => item.productCode.isNotEmpty && item.unit.isNotEmpty)
+        .toList(growable: false);
   }
 
   Uri? customerImage(Customer customer) {

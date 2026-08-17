@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 
 import '../features/sell/customer.dart';
 import '../services/customer_service.dart';
+import '../services/frappe_response_handler.dart';
 import 'network_image.dart';
 
 Future<Customer?> showSelectCustomerDialog(
@@ -150,6 +151,9 @@ class _SelectCustomerDialogWidgetState
         _hasMore = page.hasMore;
         _isLoading = false;
       });
+    } on FrappeServerMessageException {
+      if (!mounted || generation != _generation) return;
+      setState(() => _isLoading = false);
     } on Exception {
       if (!mounted || generation != _generation) return;
       setState(() {

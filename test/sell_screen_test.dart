@@ -34,7 +34,20 @@ void main() {
     var pendingOrderCount = 3;
     var pendingOrderRequestCount = 0;
     var pendingOrderListRequestCount = 0;
+    var customerProductPriceRequestCount = 0;
     final client = MockClient((request) async {
+      if (request.url.path ==
+          '/api/method/ice_control.api.v1.customer.get_customer_product_prices') {
+        customerProductPriceRequestCount++;
+        expect(request.url.queryParameters['customer'], 'CU.0001');
+        return http.Response(
+          jsonEncode([
+            {'product_code': '01', 'unit': 'ដើម', 'price': 15000},
+          ]),
+          200,
+          headers: {'content-type': 'application/json; charset=utf-8'},
+        );
+      }
       if (request.url.path == '/api/resource/Customer') {
         return http.Response(
           jsonEncode({
@@ -429,6 +442,7 @@ void main() {
     expect(sellController.currentSale.canEditBill, isTrue);
     expect(sellController.currentSale.canShowPrice, isTrue);
     expect(sellController.currentSale.canSplitBill, isFalse);
+    expect(customerProductPriceRequestCount, 1);
 
     await tester.tap(find.text('អ្នកបើកបរ'));
     await tester.pumpAndSettle();
