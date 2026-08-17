@@ -1,17 +1,21 @@
 import 'package:flutter/material.dart';
 
+import 'network_image.dart';
+
 enum _UserMenuAction { theme, more, logout }
 
 class UserProfileWidget extends StatelessWidget {
   const UserProfileWidget({
     super.key,
     required this.username,
+    this.userImageUrl = '',
     required this.isDark,
     required this.onThemeToggle,
     required this.onLogout,
   });
 
   final String username;
+  final String userImageUrl;
   final bool isDark;
   final VoidCallback onThemeToggle;
   final VoidCallback onLogout;
@@ -85,13 +89,37 @@ class UserProfileWidget extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            CircleAvatar(
-              radius: 20,
-              backgroundColor: colors.primary,
-              foregroundColor: colors.onPrimary,
-              child: Text(
-                displayName.characters.first.toUpperCase(),
-                style: const TextStyle(fontWeight: FontWeight.w700),
+            ClipOval(
+              child: SizedBox(
+                width: 40,
+                height: 40,
+                child: userImageUrl.trim().isEmpty
+                    ? _ProfileImageFallback(
+                        displayName: displayName,
+                        backgroundColor: colors.primary,
+                        foregroundColor: colors.onPrimary,
+                      )
+                    : AppNetworkImage(
+                        key: const ValueKey('user-profile-image'),
+                        imageUrl: userImageUrl,
+                        width: 40,
+                        height: 40,
+                        fit: BoxFit.cover,
+                        memCacheWidth: 96,
+                        memCacheHeight: 96,
+                        maxWidthDiskCache: 192,
+                        maxHeightDiskCache: 192,
+                        placeholder: _ProfileImageFallback(
+                          displayName: displayName,
+                          backgroundColor: colors.primary,
+                          foregroundColor: colors.onPrimary,
+                        ),
+                        errorWidget: _ProfileImageFallback(
+                          displayName: displayName,
+                          backgroundColor: colors.primary,
+                          foregroundColor: colors.onPrimary,
+                        ),
+                      ),
               ),
             ),
             const SizedBox(width: 9),
@@ -114,6 +142,31 @@ class UserProfileWidget extends StatelessWidget {
               color: colors.onSurfaceVariant,
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ProfileImageFallback extends StatelessWidget {
+  const _ProfileImageFallback({
+    required this.displayName,
+    required this.backgroundColor,
+    required this.foregroundColor,
+  });
+
+  final String displayName;
+  final Color backgroundColor;
+  final Color foregroundColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return ColoredBox(
+      color: backgroundColor,
+      child: Center(
+        child: Text(
+          displayName.characters.first.toUpperCase(),
+          style: TextStyle(color: foregroundColor, fontWeight: FontWeight.w700),
         ),
       ),
     );

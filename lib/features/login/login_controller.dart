@@ -25,6 +25,8 @@ class LoginController extends GetxController {
   final obscurePassword = true.obs;
   final errorMessage = RxnString();
   final currentUsername = ''.obs;
+  final currentUserImageUrl = ''.obs;
+  final currentSession = Rxn<AuthSession>();
 
   Future<void> login() async {
     FocusManager.instance.primaryFocus?.unfocus();
@@ -44,11 +46,21 @@ class LoginController extends GetxController {
 
     isLoading.value = true;
     try {
-      await authService!.login(username: username, password: password);
+      final session = await authService!.login(
+        username: username,
+        password: password,
+        outlet: outletName,
+      );
       if (Get.isRegistered<AppSettingController>()) {
         unawaited(AppSettingController.to.load());
       }
-      currentUsername.value = username;
+      currentSession.value = session;
+      currentUsername.value = session.fullName.isEmpty
+          ? session.user.isEmpty
+                ? username
+                : session.user
+          : session.fullName;
+      currentUserImageUrl.value = session.userImageUrl;
       passwordController.clear();
       Get.offAllNamed(AppRoutes.sell);
     } on TimeoutException {
@@ -71,6 +83,8 @@ class LoginController extends GetxController {
       // The local session is still cleared when the server is unavailable.
     }
     currentUsername.value = '';
+    currentUserImageUrl.value = '';
+    currentSession.value = null;
     usernameController.clear();
     passwordController.clear();
     errorMessage.value = null;

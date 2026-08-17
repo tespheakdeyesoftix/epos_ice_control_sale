@@ -303,6 +303,7 @@ class _TopBar extends StatelessWidget {
           Obx(
             () => UserProfileWidget(
               username: login.currentUsername.value,
+              userImageUrl: login.currentUserImageUrl.value,
               isDark: themeController.isDark.value,
               onThemeToggle: themeController.toggleTheme,
               onLogout: login.logout,

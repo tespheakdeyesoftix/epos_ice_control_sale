@@ -1,5 +1,5 @@
 abstract final class ApiEndpoint {
-  static const login = 'api/method/login';
+  static const login = 'api/method/ice_control.api.v1.auth.login';
   static const logout = 'api/method/logout';
   static const products = 'api/method/ice_control.api.v1.product.get_products';
   static const customers = 'api/resource/Customer';
