@@ -3,7 +3,7 @@ import 'package:ice_control_sale/features/sell/sale.dart';
 import 'package:ice_control_sale/features/sell/sale_product.dart';
 
 void main() {
-  test('គណនាបរិមាណលក់ពិតតាម Sale Products metadata', () {
+  test('គណនាចំនួនលក់ពិតតាម Sale Products metadata', () {
     const item = SaleProduct(
       productCode: '01',
       productName: 'ទឹកកកដើមធំ',

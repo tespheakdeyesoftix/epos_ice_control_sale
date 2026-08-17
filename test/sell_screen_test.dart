@@ -33,6 +33,7 @@ void main() {
     var productRequestCount = 0;
     var pendingOrderCount = 3;
     var pendingOrderRequestCount = 0;
+    var pendingOrderListRequestCount = 0;
     final client = MockClient((request) async {
       if (request.url.path == '/api/resource/Customer') {
         return http.Response(
@@ -50,6 +51,37 @@ void main() {
                 'can_edit_bill': 1,
                 'can_show_price': 1,
                 'can_split_bill': 0,
+              },
+            ],
+          }),
+          200,
+          headers: {'content-type': 'application/json; charset=utf-8'},
+        );
+      }
+      if (request.url.path == '/api/resource/Sale') {
+        pendingOrderListRequestCount++;
+        return http.Response(
+          jsonEncode({
+            'data': [
+              {
+                'name': 'SO-DRAFT-0002',
+                'posting_date': '2026-08-16',
+                'customer': 'CUST-002',
+                'customer_name': '',
+                'phone_number': '012000002',
+                'driver_name': 'អ្នកបើកបរ ខ',
+                'total_sale_quantity': 15,
+                'total_amount': 225000,
+              },
+              {
+                'name': 'SO-DRAFT-0001',
+                'posting_date': '2026-08-15',
+                'customer': 'CUST-001',
+                'customer_name': 'អតិថិជន ក',
+                'phone_number': '012000001',
+                'driver_name': '',
+                'total_sale_quantity': 10,
+                'total_amount': 150000,
               },
             ],
           }),
@@ -154,9 +186,43 @@ void main() {
       ),
       findsOneWidget,
     );
-    await tester.tap(
-      find.byKey(const ValueKey('reload-pending-orders-button')),
+    await tester.tap(find.byKey(const ValueKey('open-pending-orders-button')));
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('pending-order-list-dialog')),
+      findsOneWidget,
     );
+    expect(pendingOrderListRequestCount, 1);
+    expect(find.text('SO-DRAFT-0002'), findsOneWidget);
+    expect(find.text('SO-DRAFT-0001'), findsOneWidget);
+    expect(find.text('CUST-001 - អតិថិជន ក'), findsOneWidget);
+    expect(find.text('012000001'), findsNothing);
+    expect(
+      find.byKey(const ValueKey('pending-order-date-2026-08-16')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('pending-order-date-2026-08-15')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('pending-order-search-input')),
+      findsOneWidget,
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('pending-order-search-input')),
+      'CUST-001',
+    );
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.pumpAndSettle();
+    expect(pendingOrderListRequestCount, 2);
+    await tester.tap(find.byKey(const ValueKey('pending-order-date-filter')));
+    await tester.pumpAndSettle();
+    expect(find.text('ជ្រើសរើសកាលបរិច្ឆេទ'), findsWidgets);
+    await tester.tap(find.byKey(const ValueKey('confirm-posting-date')));
+    await tester.pumpAndSettle();
+    expect(pendingOrderListRequestCount, 3);
+    await tester.tap(find.byKey(const ValueKey('close-pending-order-list')));
     await tester.pumpAndSettle();
     expect(pendingOrderRequestCount, 2);
     expect(

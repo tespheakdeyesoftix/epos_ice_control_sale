@@ -71,6 +71,7 @@ class _InputNumberDialogWidgetState extends State<InputNumberDialogWidget> {
   ];
 
   late String _input;
+  late bool _replaceOnNextKey;
 
   double? get _quantity {
     final value = double.tryParse(_input);
@@ -83,16 +84,19 @@ class _InputNumberDialogWidgetState extends State<InputNumberDialogWidget> {
   void initState() {
     super.initState();
     final initialValue = widget.initialValue;
-    _input =
+    final hasInitialValue =
         initialValue != null &&
-            (initialValue > 0 || (widget.allowZero && initialValue == 0))
-        ? _formatInputValue(initialValue)
-        : '';
+        (initialValue > 0 || (widget.allowZero && initialValue == 0));
+    _input = hasInitialValue ? _formatInputValue(initialValue) : '';
+    _replaceOnNextKey = hasInitialValue;
   }
 
   void _append(String value) {
     setState(() {
-      if (_input == '0') {
+      if (_replaceOnNextKey) {
+        _input = value == '00' ? '0' : value;
+        _replaceOnNextKey = false;
+      } else if (_input == '0') {
         _input = value.replaceFirst(RegExp(r'^0+'), '');
       } else {
         _input += value;
@@ -101,11 +105,21 @@ class _InputNumberDialogWidgetState extends State<InputNumberDialogWidget> {
     });
   }
 
-  void _clear() => setState(() => _input = '');
+  void _clear() => setState(() {
+    _input = '';
+    _replaceOnNextKey = false;
+  });
 
   void _appendDecimal() {
-    if (_input.contains('.')) return;
-    setState(() => _input = _input.isEmpty ? '0.' : '$_input.');
+    if (!_replaceOnNextKey && _input.contains('.')) return;
+    setState(() {
+      if (_replaceOnNextKey) {
+        _input = '0.';
+        _replaceOnNextKey = false;
+      } else {
+        _input = _input.isEmpty ? '0.' : '$_input.';
+      }
+    });
   }
 
   void _accept() {

@@ -27,7 +27,7 @@ class PendingOrderBadgeWidget extends StatelessWidget {
           children: [
             Positioned.fill(
               child: IconButton(
-                key: const ValueKey('reload-pending-orders-button'),
+                key: const ValueKey('open-pending-orders-button'),
                 onPressed: isLoading ? null : onTap,
                 style: IconButton.styleFrom(
                   backgroundColor: colors.surfaceContainerLow,

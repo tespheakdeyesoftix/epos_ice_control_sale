@@ -13,6 +13,7 @@ import 'customer.dart';
 import 'sell_controller.dart';
 import 'widgets/order_product_list_widget.dart';
 import 'widgets/pending_order_badge_widget.dart';
+import 'widgets/pending_order_list_dialog_widget.dart';
 import 'widgets/edit_sale_order_widget.dart';
 import 'widgets/product_card_widget.dart';
 import 'widgets/select_customer_widget.dart';
@@ -243,7 +244,14 @@ class _TopBar extends StatelessWidget {
             () => PendingOrderBadgeWidget(
               count: controller.pendingOrderCount.value,
               isLoading: controller.isLoadingPendingOrders.value,
-              onTap: controller.loadPendingOrderCount,
+              onTap: () async {
+                await showPendingOrderListDialog(
+                  context,
+                  saleService: controller.saleService,
+                  outlet: controller.outletName,
+                );
+                await controller.loadPendingOrderCount();
+              },
             ),
           ),
           const SizedBox(width: 12),
