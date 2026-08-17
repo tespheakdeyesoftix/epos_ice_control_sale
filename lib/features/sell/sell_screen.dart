@@ -198,7 +198,7 @@ class _TopBar extends StatelessWidget {
                       ),
                       const SizedBox(height: 3),
                       Text(
-                        'សាខា៖ ${login.outletName}',
+                        'ទីតាំងលក់៖ ${login.outletName}',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
@@ -370,6 +370,55 @@ class _ProductPanel extends StatelessWidget {
             ),
           ),
           Divider(height: 1, color: context.colors.outlineVariant),
+          Obx(() {
+            final categories = controller.productCategories;
+            if (categories.isEmpty) return const SizedBox.shrink();
+            return SizedBox(
+              height: 52,
+              child: ListView.separated(
+                key: const ValueKey('product-category-list'),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 8,
+                ),
+                scrollDirection: Axis.horizontal,
+                itemCount: categories.length + 1,
+                separatorBuilder: (_, _) => const SizedBox(width: 8),
+                itemBuilder: (context, index) {
+                  final category = index == 0 ? '' : categories[index - 1];
+                  final productCount = controller.productCountForCategory(
+                    category,
+                  );
+                  final isSelected =
+                      controller.selectedProductCategory.value == category;
+                  return FilterChip(
+                    key: ValueKey(
+                      category.isEmpty
+                          ? 'product-category-all'
+                          : 'product-category-$category',
+                    ),
+                    label: Text(
+                      '${category.isEmpty ? 'ទាំងអស់' : category} ($productCount)',
+                    ),
+                    selected: isSelected,
+                    showCheckmark: false,
+                    avatar: category.isEmpty
+                        ? const Icon(Icons.apps_rounded, size: 17)
+                        : null,
+                    onSelected: (_) =>
+                        controller.selectProductCategory(category),
+                    visualDensity: VisualDensity.compact,
+                    side: BorderSide(
+                      color: isSelected
+                          ? context.colors.primary
+                          : context.colors.outlineVariant,
+                    ),
+                  );
+                },
+              ),
+            );
+          }),
+          Divider(height: 1, color: context.colors.outlineVariant),
           Expanded(
             child: Obx(() {
               if (controller.isLoading.value) {
@@ -452,26 +501,37 @@ class _CheckoutPanel extends StatelessWidget {
 
   Future<void> _saveOrder(BuildContext context) async {
     if (!controller.hasSelectedCustomer) {
-      Get.rawSnackbar(
-        messageText: Text(
-          'សូមជ្រើសរើសអតិថិជនមុនពេលរក្សាទុកការលក់។',
-          style: TextStyle(
-            color: context.colors.onInverseSurface,
-            fontWeight: FontWeight.w600,
+      final selectNow = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          key: const ValueKey('missing-customer-dialog'),
+          icon: const Icon(Icons.person_search_outlined),
+          title: const Text('មិនទាន់ជ្រើសរើសអតិថិជន'),
+          content: const Text(
+            'ការលក់នេះមិនទាន់មានអតិថិជនទេ។ តើអ្នកចង់ជ្រើសរើសអតិថិជនឥឡូវនេះទេ?',
           ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('បោះបង់'),
+            ),
+            FilledButton.icon(
+              key: const ValueKey('select-customer-now'),
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              icon: const Icon(Icons.person_add_alt_1_outlined),
+              label: const Text('ជ្រើសរើសអតិថិជនឥឡូវនេះ'),
+            ),
+          ],
         ),
-        icon: Icon(
-          Icons.person_search_outlined,
-          color: context.colors.onInverseSurface,
-        ),
-        snackPosition: SnackPosition.TOP,
-        snackStyle: SnackStyle.FLOATING,
-        maxWidth: 520,
-        margin: const EdgeInsets.only(top: 18),
-        borderRadius: 12,
-        backgroundColor: context.colors.inverseSurface,
-        duration: const Duration(seconds: 3),
       );
+      if (selectNow != true || !context.mounted) return;
+
+      final selected = await showSelectCustomerDialog(
+        context,
+        customerService: controller.customerService,
+        selectionType: CustomerSelectionType.customer,
+      );
+      if (selected != null) controller.selectCustomer(selected);
       return;
     }
 
@@ -831,27 +891,35 @@ class _BottomBar extends StatelessWidget {
             Expanded(
               child: Container(
                 height: double.infinity,
-                padding: const EdgeInsets.symmetric(horizontal: 22),
+                padding: const EdgeInsets.symmetric(horizontal: 16),
                 decoration: BoxDecoration(
                   color: context.colors.surfaceContainer,
                   borderRadius: BorderRadius.circular(14),
                 ),
                 child: Row(
                   children: [
-                    Text(
-                      'ទឹកប្រាក់សរុប',
-                      style: TextStyle(
-                        color: context.colors.onSurfaceVariant,
-                        fontSize: 14,
+                    Flexible(
+                      flex: 2,
+                      child: _SaleSummaryMetric(
+                        label: 'ចំនួនសរុប',
+                        value: formatQuantity(controller.totalSaleQuantity),
+                        valueFontSize: 20,
                       ),
                     ),
-                    const Spacer(),
-                    Text(
-                      '${formatMoney(controller.grandTotal)} រៀល',
-                      style: TextStyle(
-                        color: context.colors.primary,
-                        fontSize: 28,
-                        fontWeight: FontWeight.w800,
+                    const SizedBox(width: 12),
+                    VerticalDivider(
+                      width: 1,
+                      indent: 12,
+                      endIndent: 12,
+                      color: context.colors.outlineVariant,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      flex: 5,
+                      child: _SaleSummaryMetric(
+                        label: 'ទឹកប្រាក់សរុប',
+                        value: '${formatMoney(controller.grandTotal)} រៀល',
+                        valueFontSize: 28,
                       ),
                     ),
                   ],
@@ -982,6 +1050,56 @@ class _MessageState extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _SaleSummaryMetric extends StatelessWidget {
+  const _SaleSummaryMetric({
+    required this.label,
+    required this.value,
+    required this.valueFontSize,
+  });
+
+  final String label;
+  final String value;
+  final double valueFontSize;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            color: context.colors.onSurfaceVariant,
+            fontSize: 12,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Expanded(
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Text(
+                value,
+                maxLines: 1,
+                style: TextStyle(
+                  color: context.colors.primary,
+                  fontSize: valueFontSize,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

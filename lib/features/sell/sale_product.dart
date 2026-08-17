@@ -69,9 +69,7 @@ class SaleProduct {
       photo: _text(json['photo']),
       baseUnit: _text(json['base_unit']),
       allowSplitBill: _flag(json['allow_split_bill']),
-      saleTransactionType: _text(json['sale_transaction_type']).isEmpty
-          ? 'Sale'
-          : _text(json['sale_transaction_type']),
+      saleTransactionType: _saleTransactionType(json),
       unit: _text(json['unit']),
       multiplier: toDoubleValue(json['multiplier'], fallback: 1),
       revenueGroup: _text(json['revenue_group']),
@@ -206,3 +204,14 @@ class SaleProduct {
 String _text(dynamic value) => value == null ? '' : value.toString().trim();
 
 bool _flag(dynamic value) => toDoubleValue(value) == 1;
+
+String _saleTransactionType(Map<String, dynamic> json) {
+  for (final value in [
+    json['sale_transaction_type'],
+    json['default_sale_type'],
+  ]) {
+    final type = _text(value);
+    if (type.isNotEmpty) return type;
+  }
+  return 'Sale';
+}

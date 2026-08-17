@@ -41,6 +41,7 @@ void main() {
       freeQuantity: 1,
       returnQuantity: 2,
       splitQuantity: 1,
+      allowSumQuantity: true,
     );
     final sale = Sale(
       outlet: 'ទឹកកកដើម',
@@ -62,4 +63,34 @@ void main() {
     expect(json['total_sale_quantity'], 6);
     expect(json['sale_products'], hasLength(1));
   });
+
+  test(
+    'total sale quantity includes only products that allow quantity sum',
+    () {
+      const included = SaleProduct(
+        productCode: '01',
+        productName: 'ទឹកកកដើម',
+        productCategory: 'ទឹកកក',
+        unit: 'ដើម',
+        price: 15000,
+        quantity: 10,
+        freeQuantity: 2,
+        allowSumQuantity: true,
+      );
+      const excluded = SaleProduct(
+        productCode: '02',
+        productName: 'ផលិតផលមិនរាប់ចំនួន',
+        productCategory: 'ផ្សេងៗ',
+        unit: 'មុខ',
+        price: 5000,
+        quantity: 20,
+        allowSumQuantity: false,
+      );
+      const sale = Sale(outlet: 'ទឹកកកដើម', saleProducts: [included, excluded]);
+
+      expect(sale.totalSaleQuantity, 8);
+      expect(sale.toJson()['total_sale_quantity'], 8);
+      expect(sale.totalAmount, 220000);
+    },
+  );
 }

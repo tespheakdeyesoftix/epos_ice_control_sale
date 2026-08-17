@@ -46,10 +46,20 @@ class Product {
       multiplier: toDoubleValue(json['multiplier'], fallback: 1),
       allowSumQuantity: toDoubleValue(json['allow_sum_qty']) == 1,
       allowSplitBill: toDoubleValue(json['allow_split_bill']) == 1,
-      saleTransactionType: (json['default_sale_transaction_type'] ?? 'Sale')
-          .toString(),
+      saleTransactionType: _saleTransactionType(json),
       isInventoryProduct: toDoubleValue(json['is_inventory_product']) == 1,
       cost: toDoubleValue(json['cost']),
     );
   }
+}
+
+String _saleTransactionType(Map<String, dynamic> json) {
+  for (final value in [
+    json['default_sale_type'],
+    json['default_sale_transaction_type'],
+  ]) {
+    final type = value?.toString().trim() ?? '';
+    if (type.isNotEmpty) return type;
+  }
+  return 'Sale';
 }

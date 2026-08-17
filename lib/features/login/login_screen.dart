@@ -384,14 +384,14 @@ class _StationOutletFooter extends StatelessWidget {
         children: [
           _LocationInfoRow(
             icon: Icons.point_of_sale_outlined,
-            label: 'ស្ថានីយ',
-            value: stationName,
+            label: 'សាខា',
+            value: outletName,
           ),
           const SizedBox(height: 9),
           _LocationInfoRow(
             icon: Icons.storefront_outlined,
-            label: 'សាខា',
-            value: outletName,
+            label: 'ស្ថានីយ',
+            value: stationName,
           ),
         ],
       ),

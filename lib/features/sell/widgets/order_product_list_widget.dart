@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../app/app_theme.dart';
 import '../../../shared/network_image.dart';
 import '../../../utils/helpers.dart';
 import '../sale_product.dart';
@@ -400,7 +401,66 @@ class _OrderProductLine extends StatelessWidget {
                 ),
               ),
             ),
+            Positioned(
+              left: 6,
+              top: 6,
+              child: _SaleTransactionTypeChip(
+                productCode: line.productCode,
+                transactionType: line.saleTransactionType,
+              ),
+            ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SaleTransactionTypeChip extends StatelessWidget {
+  const _SaleTransactionTypeChip({
+    required this.productCode,
+    required this.transactionType,
+  });
+
+  final String productCode;
+  final String transactionType;
+
+  @override
+  Widget build(BuildContext context) {
+    final semanticColors = AppSemanticColors.of(context);
+    final normalizedType = transactionType.trim().toLowerCase();
+    final isBorrow = normalizedType == 'borrow';
+    final isSale = normalizedType == 'sale' || normalizedType.isEmpty;
+    final backgroundColor = isBorrow
+        ? const Color(0xFFF79009)
+        : isSale
+        ? semanticColors.success
+        : Theme.of(context).colorScheme.primary;
+    final foregroundColor = isBorrow
+        ? Colors.white
+        : isSale
+        ? semanticColors.onSuccess
+        : Theme.of(context).colorScheme.onPrimary;
+    final label = isBorrow
+        ? 'ខ្ចី'
+        : isSale
+        ? 'លក់'
+        : transactionType.trim();
+
+    return Container(
+      key: ValueKey('sale-transaction-type-$productCode'),
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: foregroundColor,
+          fontSize: 10,
+          fontWeight: FontWeight.w700,
+          height: 1.1,
         ),
       ),
     );

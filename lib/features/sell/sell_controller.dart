@@ -30,6 +30,7 @@ class SellController extends GetxController {
   final isLoading = false.obs;
   final errorMessage = RxnString();
   final searchQuery = ''.obs;
+  final selectedProductCategory = ''.obs;
   final selectedCustomer = Rxn<Customer>();
   final selectedDriver = Rxn<Customer>();
   final openedSale = Rxn<Sale>();
@@ -43,15 +44,34 @@ class SellController extends GetxController {
 
   List<Product> get filteredProducts {
     final query = searchQuery.value.trim().toLowerCase();
-    if (query.isEmpty) return products;
+    final category = selectedProductCategory.value;
+    return products.where((product) {
+      final matchesCategory =
+          category.isEmpty || product.category.trim() == category;
+      final matchesSearch =
+          query.isEmpty ||
+          product.name.toLowerCase().contains(query) ||
+          product.code.toLowerCase().contains(query) ||
+          product.category.toLowerCase().contains(query);
+      return matchesCategory && matchesSearch;
+    }).toList();
+  }
+
+  List<String> get productCategories {
+    final categories = <String>{};
+    for (final product in products) {
+      final category = product.category.trim();
+      if (category.isNotEmpty) categories.add(category);
+    }
+    return categories.toList(growable: false);
+  }
+
+  int productCountForCategory(String category) {
+    final normalizedCategory = category.trim();
+    if (normalizedCategory.isEmpty) return products.length;
     return products
-        .where(
-          (product) =>
-              product.name.toLowerCase().contains(query) ||
-              product.code.toLowerCase().contains(query) ||
-              product.category.toLowerCase().contains(query),
-        )
-        .toList();
+        .where((product) => product.category.trim() == normalizedCategory)
+        .length;
   }
 
   Sale get currentSale {
@@ -96,6 +116,7 @@ class SellController extends GetxController {
   }
 
   double get totalQuantity => currentSale.totalQuantity;
+  double get totalSaleQuantity => currentSale.totalSaleQuantity;
   double get grandTotal => currentSale.totalAmount;
   bool get hasSelectedCustomer => selectedCustomer.value != null;
   bool get isNewSale => openedSale.value == null;
@@ -139,6 +160,9 @@ class SellController extends GetxController {
     errorMessage.value = null;
     try {
       products.assignAll(await productService.getProducts(outletName));
+      if (!productCategories.contains(selectedProductCategory.value)) {
+        selectedProductCategory.value = '';
+      }
     } on Exception {
       errorMessage.value = 'មិនអាចទាញយកបញ្ជីទំនិញបានទេ។';
     } finally {
@@ -147,6 +171,10 @@ class SellController extends GetxController {
   }
 
   void updateSearch(String value) => searchQuery.value = value;
+
+  void selectProductCategory(String category) {
+    selectedProductCategory.value = category.trim();
+  }
 
   void selectCustomer(Customer customer) => selectedCustomer.value = customer;
 

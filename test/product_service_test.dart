@@ -23,6 +23,8 @@ void main() {
               'color': '#ECAD4B',
               'photo': '/files/block_ice.jpg',
               'revenue_group': 'ចំណូលទឹកកកដើម',
+              'allow_sum_qty': 1,
+              'default_sale_type': 'Borrow',
             },
           ],
         }),
@@ -47,6 +49,8 @@ void main() {
     expect(products.single.price, 15000);
     expect(products.single.photo, '/files/block_ice.jpg');
     expect(products.single.revenueGroup, 'ចំណូលទឹកកកដើម');
+    expect(products.single.allowSumQuantity, isTrue);
+    expect(products.single.saleTransactionType, 'Borrow');
 
     final saleProduct = SaleProduct.fromProduct(
       products.single,
@@ -54,7 +58,11 @@ void main() {
     );
     expect(saleProduct.photo, '/files/block_ice.jpg');
     expect(saleProduct.revenueGroup, 'ចំណូលទឹកកកដើម');
+    expect(saleProduct.allowSumQuantity, isTrue);
+    expect(saleProduct.saleTransactionType, 'Borrow');
     expect(saleProduct.toJson()['photo'], '/files/block_ice.jpg');
     expect(saleProduct.toJson()['revenue_group'], 'ចំណូលទឹកកកដើម');
+    expect(saleProduct.toJson()['allow_sum_qty'], 1);
+    expect(saleProduct.toJson()['sale_transaction_type'], 'Borrow');
   });
 }

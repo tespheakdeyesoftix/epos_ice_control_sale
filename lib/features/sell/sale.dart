@@ -125,7 +125,8 @@ class Sale {
   double get totalFree => _sum((item) => item.freeQuantity);
   double get totalQuantityReturn => _sum((item) => item.returnQuantity);
   double get totalSplitQuantity => _sum((item) => item.splitQuantity);
-  double get totalSaleQuantity => _sum((item) => item.totalSaleQuantity);
+  double get totalSaleQuantity =>
+      _sum((item) => item.allowSumQuantity ? item.totalSaleQuantity : 0);
   double get totalAmount => _sum((item) => item.totalAmount);
   double get balance => totalAmount - totalPayment - totalWriteOff;
 

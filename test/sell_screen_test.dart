@@ -21,7 +21,7 @@ void main() {
   testWidgets('បង្ហាញទំនិញ និងបន្ថែមទៅការលក់', (tester) async {
     SharedPreferences.setMockInitialValues({});
     final preferences = await SharedPreferences.getInstance();
-    tester.view.physicalSize = const Size(1440, 900);
+    tester.view.physicalSize = const Size(1024, 768);
     tester.view.devicePixelRatio = 1;
     addTearDown(() {
       tester.view.resetPhysicalSize();
@@ -165,6 +165,15 @@ void main() {
               'color': '#ECAD4B',
               'photo': '',
             },
+            {
+              'product_code': '02',
+              'product_name': 'ទឹកកកដប',
+              'product_category': 'ទឹកកកដប',
+              'unit': 'ដប',
+              'price': 5000,
+              'color': '#1677FF',
+              'photo': '',
+            },
           ],
         }),
         200,
@@ -215,6 +224,36 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    expect(find.text('ទឹកកកដើមធំ'), findsOneWidget);
+    expect(find.byKey(const ValueKey('product-category-all')), findsOneWidget);
+    expect(find.text('ទាំងអស់ (2)'), findsOneWidget);
+    expect(find.text('ទឹកកកដើម (1)'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('product-category-ទឹកកកដើម')),
+      findsOneWidget,
+    );
+    await tester.drag(
+      find.byKey(const ValueKey('product-category-list')),
+      const Offset(-300, 0),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('product-category-ទឹកកកដប')),
+      findsOneWidget,
+    );
+    expect(find.text('ទឹកកកដប (1)'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('product-category-ទឹកកកដប')));
+    await tester.pumpAndSettle();
+    expect(find.text('ទឹកកកដើមធំ'), findsNothing);
+    expect(sellController.filteredProducts, hasLength(1));
+    expect(sellController.filteredProducts.single.name, 'ទឹកកកដប');
+    await tester.drag(
+      find.byKey(const ValueKey('product-category-list')),
+      const Offset(300, 0),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('product-category-all')));
+    await tester.pumpAndSettle();
     expect(find.text('ទឹកកកដើមធំ'), findsOneWidget);
     expect(productRequestCount, 1);
     expect(pendingOrderRequestCount, 1);
@@ -352,6 +391,25 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('ដឹកជញ្ជូនមុនម៉ោង ១០ ព្រឹក'), findsOneWidget);
     expect(sellController.currentSale.note, 'ដឹកជញ្ជូនមុនម៉ោង ១០ ព្រឹក');
+
+    expect(sellController.addProduct(sellController.products.first), isTrue);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('បិទការលក់'));
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('missing-customer-dialog')),
+      findsOneWidget,
+    );
+    expect(find.text('មិនទាន់ជ្រើសរើសអតិថិជន'), findsOneWidget);
+    expect(find.byType(SnackBar), findsNothing);
+    await tester.tap(find.byKey(const ValueKey('select-customer-now')));
+    await tester.pumpAndSettle();
+    expect(find.text('ជ្រើសរើសអតិថិជន'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('close-customer-dialog')));
+    await tester.pumpAndSettle();
+    expect(sellController.selectedCustomer.value, isNull);
+    sellController.clearCart();
+    await tester.pumpAndSettle();
 
     await tester.tap(find.byKey(const ValueKey('customer-card')));
     await tester.pumpAndSettle();
