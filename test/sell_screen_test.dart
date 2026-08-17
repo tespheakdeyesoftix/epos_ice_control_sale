@@ -58,6 +58,45 @@ void main() {
           headers: {'content-type': 'application/json; charset=utf-8'},
         );
       }
+      if (request.url.path == '/api/resource/Sale/SO-DRAFT-0001') {
+        return http.Response(
+          jsonEncode({
+            'data': {
+              'name': 'SO-DRAFT-0001',
+              'doctype': 'Sale',
+              'posting_date': '2026-08-15',
+              'reference_number': 'DRAFT-REF-001',
+              'outlet': 'ទឹកកកដើម',
+              'stock_location': 'ឃ្លាំងទឹកកកដើម',
+              'customer': 'CUST-001',
+              'customer_name': 'អតិថិជន ក',
+              'phone_number': '012000001',
+              'driver': 'DRIVER-001',
+              'driver_name': 'អ្នកបើកបរ ក',
+              'driver_phone_number': '099000001',
+              'plate_number': '2AB-1001',
+              'sale_status': 'Draft',
+              'note': 'Draft note',
+              'sale_products': [
+                {
+                  'product_code': '01',
+                  'product_name': 'ទឹកកកដើមធំ',
+                  'product_category': 'ទឹកកកដើម',
+                  'outlet': 'ទឹកកកដើម',
+                  'unit': 'ដើម',
+                  'price': 15000,
+                  'quantity': 2,
+                  'free_quantity': 0,
+                  'return_quantity': 0,
+                  'split_quantity': 0,
+                },
+              ],
+            },
+          }),
+          200,
+          headers: {'content-type': 'application/json; charset=utf-8'},
+        );
+      }
       if (request.url.path == '/api/resource/Sale') {
         pendingOrderListRequestCount++;
         return http.Response(
@@ -222,8 +261,28 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('confirm-posting-date')));
     await tester.pumpAndSettle();
     expect(pendingOrderListRequestCount, 3);
-    await tester.tap(find.byKey(const ValueKey('close-pending-order-list')));
+    await tester.tap(find.byKey(const ValueKey('pending-order-SO-DRAFT-0001')));
     await tester.pumpAndSettle();
+    expect(sellController.openedSale.value?.name, 'SO-DRAFT-0001');
+    expect(sellController.isNewSale, isFalse);
+    expect(sellController.saleProducts, hasLength(1));
+    expect(sellController.currentSale.name, 'SO-DRAFT-0001');
+    expect(
+      find.byKey(const ValueKey('opened-sale-document-banner')),
+      findsOneWidget,
+    );
+    expect(find.text('SO-DRAFT-0001'), findsWidgets);
+    expect(sellController.currentSale.referenceNumber, 'DRAFT-REF-001');
+    expect(sellController.currentSale.customer, 'CUST-001');
+    expect(sellController.currentSale.driver, 'DRIVER-001');
+    sellController.startNewSale();
+    await tester.pumpAndSettle();
+    expect(sellController.isNewSale, isTrue);
+    expect(sellController.saleProducts, isEmpty);
+    expect(
+      find.byKey(const ValueKey('opened-sale-document-banner')),
+      findsNothing,
+    );
     expect(pendingOrderRequestCount, 2);
     expect(
       find.byKey(const ValueKey('reload-products-button')),
@@ -401,6 +460,10 @@ void main() {
     expect(find.text('1.5 x 15,000 / ដើម'), findsOneWidget);
     expect(find.text('22,500 រៀល'), findsWidgets);
     expect(sellController.saleProducts.single.quantity, 1.5);
+    await expectLater(
+      sellController.openPendingOrder('SO-DRAFT-0001'),
+      throwsA(isA<PendingOrderOpenValidationException>()),
+    );
 
     await tester.tap(find.byKey(const ValueKey('order-product-card-01')));
     await tester.pumpAndSettle();

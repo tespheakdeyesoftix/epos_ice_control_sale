@@ -1,7 +1,9 @@
+import '../../utils/helpers.dart';
 import 'sale_product.dart';
 
 class Sale {
   const Sale({
+    this.name = '',
     required this.outlet,
     required this.saleProducts,
     this.doctype = 'Sale',
@@ -35,6 +37,58 @@ class Sale {
     this.lastUpdateStation = '',
   });
 
+  factory Sale.fromJson(Map<String, dynamic> json) {
+    final productRows = json['sale_products'];
+    return Sale(
+      name: _text(json['name']),
+      doctype: _text(json['doctype']).isEmpty ? 'Sale' : _text(json['doctype']),
+      namingSeries: _text(json['naming_series']).isEmpty
+          ? 'SO.YYYY.-.####'
+          : _text(json['naming_series']),
+      postingDate: DateTime.tryParse(_text(json['posting_date'])),
+      referenceNumber: _text(json['reference_number']),
+      outlet: _text(json['outlet']),
+      stockLocation: _text(json['stock_location']),
+      seller: _text(json['seller']),
+      customer: _text(json['customer']),
+      customerName: _text(json['customer_name']),
+      phoneNumber: _text(json['phone_number']),
+      customerGroup: _text(json['customer_group']),
+      customerPhoto: _text(json['customer_photo']),
+      canShowPrice: _flag(json['can_show_price']),
+      canSplitBill: _flag(json['can_split_bill']),
+      canEditBill: _flag(json['can_edit_bill']),
+      driver: _text(json['driver']),
+      driverName: _text(json['driver_name']),
+      driverPhoneNumber: _text(json['driver_phone_number']),
+      plateNumber: _text(json['plate_number']),
+      driverPhoto: _text(json['driver_photo']),
+      saleStatus: _text(json['sale_status']).isEmpty
+          ? 'Draft'
+          : _text(json['sale_status']),
+      parentBillNumber: _text(json['parent_bill_number']),
+      saleProducts: productRows is List
+          ? productRows
+                .whereType<Map>()
+                .map(
+                  (row) => SaleProduct.fromJson(Map<String, dynamic>.from(row)),
+                )
+                .toList(growable: false)
+          : const [],
+      note: _text(json['note']),
+      totalPayment: toDoubleValue(json['total_payment']),
+      totalWriteOff: toDoubleValue(json['total_write_off']),
+      status: _text(json['status']).isEmpty ? 'Unpaid' : _text(json['status']),
+      id: _text(json['id']),
+      enableEditMode: json['enable_edit_mode'] == null
+          ? true
+          : _flag(json['enable_edit_mode']),
+      station: _text(json['station']),
+      lastUpdateStation: _text(json['last_update_station']),
+    );
+  }
+
+  final String name;
   final String doctype;
   final String namingSeries;
   final DateTime? postingDate;
@@ -82,6 +136,7 @@ class Sale {
   Map<String, dynamic> toJson() {
     final date = postingDate ?? DateTime.now();
     return {
+      if (name.isNotEmpty) 'name': name,
       'doctype': doctype,
       'naming_series': namingSeries,
       'posting_date': _dateOnly(date),
@@ -123,6 +178,10 @@ class Sale {
     };
   }
 }
+
+String _text(dynamic value) => value == null ? '' : value.toString().trim();
+
+bool _flag(dynamic value) => toDoubleValue(value) == 1;
 
 String _dateOnly(DateTime value) {
   final month = value.month.toString().padLeft(2, '0');

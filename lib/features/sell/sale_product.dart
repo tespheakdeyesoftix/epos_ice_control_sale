@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import '../../utils/helpers.dart';
 import 'product.dart';
 
 class SaleProduct {
@@ -56,6 +57,41 @@ class SaleProduct {
       quantity: quantity,
       cost: product.cost,
       color: product.color,
+    );
+  }
+
+  factory SaleProduct.fromJson(Map<String, dynamic> json) {
+    return SaleProduct(
+      productCode: _text(json['product_code']),
+      productName: _text(json['product_name']),
+      productCategory: _text(json['product_category']),
+      outlet: _text(json['outlet']),
+      photo: _text(json['photo']),
+      baseUnit: _text(json['base_unit']),
+      allowSplitBill: _flag(json['allow_split_bill']),
+      saleTransactionType: _text(json['sale_transaction_type']).isEmpty
+          ? 'Sale'
+          : _text(json['sale_transaction_type']),
+      unit: _text(json['unit']),
+      multiplier: toDoubleValue(json['multiplier'], fallback: 1),
+      revenueGroup: _text(json['revenue_group']),
+      allowSumQuantity: _flag(json['allow_sum_qty']),
+      isInventoryProduct: _flag(json['is_inventory_product']),
+      quantity: toDoubleValue(json['quantity'], fallback: 1),
+      price: toDoubleValue(json['price']),
+      productPrice: json['product_price'] == null
+          ? null
+          : toDoubleValue(json['product_price']),
+      freeQuantity: toDoubleValue(json['free_quantity']),
+      returnQuantity: toDoubleValue(json['return_quantity']),
+      splitQuantity: toDoubleValue(json['split_quantity']),
+      cost: toDoubleValue(json['cost']),
+      stockLocation: _text(json['stock_location']),
+      allowFree: _flag(json['allow_free']),
+      allowChangePrice: _flag(json['allow_change_price']),
+      allowReturn: _flag(json['allow_return']),
+      note: _text(json['note']),
+      color: _text(json['color']).isEmpty ? '#1677FF' : _text(json['color']),
     );
   }
 
@@ -166,3 +202,7 @@ class SaleProduct {
     };
   }
 }
+
+String _text(dynamic value) => value == null ? '' : value.toString().trim();
+
+bool _flag(dynamic value) => toDoubleValue(value) == 1;

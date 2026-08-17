@@ -8,6 +8,52 @@ import 'package:ice_control_sale/features/sell/sale_product.dart';
 import 'package:ice_control_sale/services/sale_service.dart';
 
 void main() {
+  test('ទាញ Sale document និង sale_products សម្រាប់កែប្រែ', () async {
+    late http.Request sentRequest;
+    final client = MockClient((request) async {
+      sentRequest = request;
+      return http.Response(
+        jsonEncode({
+          'data': {
+            'name': 'SO-DRAFT-0001',
+            'doctype': 'Sale',
+            'posting_date': '2026-08-15',
+            'outlet': 'ទឹកកកដើម',
+            'customer': 'CUST-001',
+            'customer_name': 'Customer A',
+            'sale_status': 'Draft',
+            'sale_products': [
+              {
+                'product_code': '01',
+                'product_name': 'Product A',
+                'product_category': 'Ice',
+                'unit': 'Unit',
+                'price': 15000,
+                'quantity': 2,
+              },
+            ],
+          },
+        }),
+        200,
+        headers: {'content-type': 'application/json'},
+      );
+    });
+    final service = SaleService(
+      Uri.parse('http://127.0.0.1:8888/'),
+      client: client,
+    );
+
+    final sale = await service.getSale('SO-DRAFT-0001');
+
+    expect(sentRequest.method, 'GET');
+    expect(sentRequest.url.path, '/api/resource/Sale/SO-DRAFT-0001');
+    expect(sale.name, 'SO-DRAFT-0001');
+    expect(sale.saleStatus, 'Draft');
+    expect(sale.customer, 'CUST-001');
+    expect(sale.saleProducts, hasLength(1));
+    expect(sale.saleProducts.single.quantity, 2);
+  });
+
   test('ទាញបញ្ជីការលក់ Draft តាមសាខាពី Frappe resource', () async {
     late http.Request sentRequest;
     final client = MockClient((request) async {

@@ -245,11 +245,56 @@ class _TopBar extends StatelessWidget {
               count: controller.pendingOrderCount.value,
               isLoading: controller.isLoadingPendingOrders.value,
               onTap: () async {
-                await showPendingOrderListDialog(
+                final name = await showPendingOrderListDialog(
                   context,
                   saleService: controller.saleService,
                   outlet: controller.outletName,
                 );
+                if (name != null && context.mounted) {
+                  try {
+                    await controller.openPendingOrder(name);
+                  } on PendingOrderOpenValidationException {
+                    if (!context.mounted) return;
+                    Get.rawSnackbar(
+                      messageText: Text(
+                        'សូមរក្សាទុកការលក់បច្ចុប្បន្នជាមុនសិន មុននឹងបើកការលក់ដែលបានផ្អាក។',
+                        style: TextStyle(
+                          color: context.colors.onInverseSurface,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      icon: Icon(
+                        Icons.info_outline_rounded,
+                        color: context.colors.onInverseSurface,
+                      ),
+                      snackPosition: SnackPosition.TOP,
+                      snackStyle: SnackStyle.FLOATING,
+                      maxWidth: 620,
+                      margin: const EdgeInsets.only(top: 18),
+                      borderRadius: 12,
+                      backgroundColor: context.colors.inverseSurface,
+                      duration: const Duration(seconds: 4),
+                    );
+                  } on Exception {
+                    if (!context.mounted) return;
+                    Get.rawSnackbar(
+                      messageText: Text(
+                        'មិនអាចបើកការលក់ដែលបានផ្អាកបានទេ។',
+                        style: TextStyle(
+                          color: context.colors.onError,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      snackPosition: SnackPosition.TOP,
+                      snackStyle: SnackStyle.FLOATING,
+                      maxWidth: 520,
+                      margin: const EdgeInsets.only(top: 18),
+                      borderRadius: 12,
+                      backgroundColor: context.colors.error,
+                      duration: const Duration(seconds: 4),
+                    );
+                  }
+                }
                 await controller.loadPendingOrderCount();
               },
             ),
@@ -482,6 +527,14 @@ class _CheckoutPanel extends StatelessWidget {
     return Column(
       children: [
         Obx(() {
+          final saleDocumentName = controller.openedSale.value?.name ?? '';
+          if (saleDocumentName.isEmpty) return const SizedBox.shrink();
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: _OpenedSaleBanner(documentName: saleDocumentName),
+          );
+        }),
+        Obx(() {
           final customer = controller.selectedCustomer.value;
           return SelectCustomerWidget(
             key: const ValueKey('customer-card'),
@@ -570,6 +623,60 @@ class _CheckoutPanel extends StatelessWidget {
         ),
         const Spacer(),
       ],
+    );
+  }
+}
+
+class _OpenedSaleBanner extends StatelessWidget {
+  const _OpenedSaleBanner({required this.documentName});
+
+  final String documentName;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      key: const ValueKey('opened-sale-document-banner'),
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: context.colors.primaryContainer,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: context.colors.primary.withValues(alpha: 0.25),
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.edit_document, size: 20, color: context.colors.primary),
+          const SizedBox(width: 9),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'កំពុងកែប្រែវិក្កយបត្រ',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: context.colors.onPrimaryContainer,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 11,
+                  ),
+                ),
+                Text(
+                  documentName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: context.colors.primary,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

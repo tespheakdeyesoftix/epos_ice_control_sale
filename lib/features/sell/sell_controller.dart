@@ -32,6 +32,7 @@ class SellController extends GetxController {
   final searchQuery = ''.obs;
   final selectedCustomer = Rxn<Customer>();
   final selectedDriver = Rxn<Customer>();
+  final openedSale = Rxn<Sale>();
   final plateNumber = ''.obs;
   final postingDate = _dateOnly(DateTime.now()).obs;
   final referenceNumber = ''.obs;
@@ -56,9 +57,15 @@ class SellController extends GetxController {
   Sale get currentSale {
     final customer = selectedCustomer.value;
     final driver = selectedDriver.value;
+    final savedSale = openedSale.value;
     return Sale(
+      name: savedSale?.name ?? '',
+      namingSeries: savedSale?.namingSeries ?? 'SO.YYYY.-.####',
       outlet: outletName,
-      stockLocation: appSettingController?.current?.defaultStockLocation ?? '',
+      stockLocation: savedSale?.stockLocation.isNotEmpty == true
+          ? savedSale!.stockLocation
+          : appSettingController?.current?.defaultStockLocation ?? '',
+      seller: savedSale?.seller ?? '',
       postingDate: postingDate.value,
       referenceNumber: referenceNumber.value,
       note: saleNote.value,
@@ -75,6 +82,14 @@ class SellController extends GetxController {
       driverName: driver?.displayName ?? '',
       driverPhoneNumber: driver?.phoneNumber1 ?? '',
       plateNumber: plateNumber.value,
+      driverPhoto: driver?.photo ?? '',
+      saleStatus: savedSale?.saleStatus ?? 'Draft',
+      parentBillNumber: savedSale?.parentBillNumber ?? '',
+      totalPayment: savedSale?.totalPayment ?? 0,
+      totalWriteOff: savedSale?.totalWriteOff ?? 0,
+      status: savedSale?.status ?? 'Unpaid',
+      id: savedSale?.id ?? '',
+      enableEditMode: savedSale?.enableEditMode ?? true,
       station: stationName,
       lastUpdateStation: stationName,
     );
@@ -83,6 +98,8 @@ class SellController extends GetxController {
   double get totalQuantity => currentSale.totalQuantity;
   double get grandTotal => currentSale.totalAmount;
   bool get hasSelectedCustomer => selectedCustomer.value != null;
+  bool get isNewSale => openedSale.value == null;
+  bool get canOpenPendingOrder => saleProducts.isEmpty && isNewSale;
 
   Uri? productImage(Product product) => _resolveImage(product.photo);
 
@@ -185,6 +202,47 @@ class SellController extends GetxController {
 
   void clearCart() => saleProducts.clear();
 
+  Future<void> openPendingOrder(String name) async {
+    if (!canOpenPendingOrder) {
+      throw const PendingOrderOpenValidationException();
+    }
+    final sale = await saleService.getSale(name);
+    if (!canOpenPendingOrder) {
+      throw const PendingOrderOpenValidationException();
+    }
+    if (sale.saleStatus != 'Draft') {
+      throw const PendingOrderNotDraftException();
+    }
+
+    openedSale.value = sale;
+    postingDate.value = sale.postingDate ?? _dateOnly(DateTime.now());
+    referenceNumber.value = sale.referenceNumber;
+    saleNote.value = sale.note;
+    saleProducts.assignAll(sale.saleProducts);
+    selectedCustomer.value = sale.customer.isEmpty
+        ? null
+        : Customer(
+            name: sale.customer,
+            customerName: sale.customerName,
+            phoneNumber1: sale.phoneNumber,
+            customerGroup: sale.customerGroup,
+            photo: sale.customerPhoto,
+            canEditBill: sale.canEditBill,
+            canShowPrice: sale.canShowPrice,
+            canSplitBill: sale.canSplitBill,
+          );
+    selectedDriver.value = sale.driver.isEmpty
+        ? null
+        : Customer(
+            name: sale.driver,
+            customerName: sale.driverName,
+            phoneNumber1: sale.driverPhoneNumber,
+            plateNumber: sale.plateNumber,
+            photo: sale.driverPhoto,
+          );
+    plateNumber.value = sale.plateNumber;
+  }
+
   Future<Map<String, dynamic>> saveOrder() async {
     if (saleProducts.isEmpty || !hasSelectedCustomer || isSaving.value) {
       throw const SaleValidationException();
@@ -217,6 +275,7 @@ class SellController extends GetxController {
   }
 
   void startNewSale() {
+    openedSale.value = null;
     saleProducts.clear();
     selectedCustomer.value = null;
     selectedDriver.value = null;
@@ -229,6 +288,14 @@ class SellController extends GetxController {
 
 class SaleValidationException implements Exception {
   const SaleValidationException();
+}
+
+class PendingOrderOpenValidationException implements Exception {
+  const PendingOrderOpenValidationException();
+}
+
+class PendingOrderNotDraftException implements Exception {
+  const PendingOrderNotDraftException();
 }
 
 DateTime _dateOnly(DateTime date) => DateTime(date.year, date.month, date.day);

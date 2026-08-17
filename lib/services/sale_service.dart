@@ -31,6 +31,26 @@ class SaleService {
     'total_amount',
   ];
 
+  Future<Sale> getSale(String name) async {
+    final response = await _client
+        .get(
+          baseUri.resolve(ApiEndpoint.sale(name)),
+          headers: const {'Accept': 'application/json'},
+        )
+        .timeout(const Duration(seconds: 30));
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw SaleServiceException(response.statusCode);
+    }
+
+    final payload = jsonDecode(response.body);
+    final data = payload is Map && payload['data'] is Map
+        ? payload['data'] as Map
+        : null;
+    if (data == null) throw const SaleServiceException(200);
+    return Sale.fromJson(Map<String, dynamic>.from(data));
+  }
+
   Future<PendingOrderPage> getPendingOrders({
     required String outlet,
     String search = '',

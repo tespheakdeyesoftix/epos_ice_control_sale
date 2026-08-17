@@ -7,12 +7,12 @@ import '../../../shared/select_date_dialog_widget.dart';
 import '../../../utils/helpers.dart';
 import '../pending_order.dart';
 
-Future<void> showPendingOrderListDialog(
+Future<String?> showPendingOrderListDialog(
   BuildContext context, {
   required SaleService saleService,
   required String outlet,
 }) {
-  return showDialog<void>(
+  return showDialog<String>(
     context: context,
     builder: (_) =>
         PendingOrderListDialogWidget(saleService: saleService, outlet: outlet),
@@ -230,7 +230,11 @@ class _PendingOrderListDialogWidgetState
         for (final group in groupedOrders.entries) ...[
           _DateGroupHeader(date: group.key, count: group.value.length),
           for (var index = 0; index < group.value.length; index++)
-            _PendingOrderRow(order: group.value[index], alternate: index.isOdd),
+            _PendingOrderRow(
+              order: group.value[index],
+              alternate: index.isOdd,
+              onTap: () => Navigator.of(context).pop(group.value[index].name),
+            ),
         ],
         if (_isLoading)
           const Padding(
@@ -452,40 +456,50 @@ class _DateGroupHeader extends StatelessWidget {
 }
 
 class _PendingOrderRow extends StatelessWidget {
-  const _PendingOrderRow({required this.order, required this.alternate});
+  const _PendingOrderRow({
+    required this.order,
+    required this.alternate,
+    required this.onTap,
+  });
 
   final PendingOrder order;
   final bool alternate;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    return Container(
+    return Material(
       key: ValueKey('pending-order-${order.name}'),
-      constraints: const BoxConstraints(minHeight: 52),
-      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-      decoration: BoxDecoration(
-        color: alternate ? colors.surfaceContainerLow : colors.surface,
-        border: Border(bottom: BorderSide(color: colors.outlineVariant)),
-      ),
-      child: Row(
-        children: [
-          _DataCell(order.name, flex: 18, emphasized: true),
-          _DataCell(_formatDate(order.postingDate), flex: 15),
-          _DataCell(_customerLabel(order), flex: 22),
-          _DataCell(_fallback(order.driverName), flex: 22),
-          _DataCell(
-            formatQuantity(order.totalSaleQuantity),
-            flex: 12,
-            textAlign: TextAlign.right,
+      color: alternate ? colors.surfaceContainerLow : colors.surface,
+      child: InkWell(
+        onTap: onTap,
+        child: Container(
+          constraints: const BoxConstraints(minHeight: 52),
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+          decoration: BoxDecoration(
+            border: Border(bottom: BorderSide(color: colors.outlineVariant)),
           ),
-          _DataCell(
-            '${formatMoney(order.totalAmount)} រៀល',
-            flex: 17,
-            textAlign: TextAlign.right,
-            emphasized: true,
+          child: Row(
+            children: [
+              _DataCell(order.name, flex: 18, emphasized: true),
+              _DataCell(_formatDate(order.postingDate), flex: 15),
+              _DataCell(_customerLabel(order), flex: 22),
+              _DataCell(_fallback(order.driverName), flex: 22),
+              _DataCell(
+                formatQuantity(order.totalSaleQuantity),
+                flex: 12,
+                textAlign: TextAlign.right,
+              ),
+              _DataCell(
+                '${formatMoney(order.totalAmount)} រៀល',
+                flex: 17,
+                textAlign: TextAlign.right,
+                emphasized: true,
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
