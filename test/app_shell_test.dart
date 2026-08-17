@@ -20,6 +20,92 @@ import 'package:ice_control_sale/services/sale_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
+  testWidgets('compact user profile remains visible on every destination', (
+    tester,
+  ) async {
+    await _pumpShell(tester);
+
+    for (final destination in AppDestination.values) {
+      await _tapDestination(tester, destination);
+      expect(find.byKey(const ValueKey('global-user-profile')), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('rail-settings-button')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('rail-profile-separator')),
+        findsOneWidget,
+      );
+    }
+
+    final settingsButton = tester.widget<IconButton>(
+      find.byKey(const ValueKey('rail-settings-button')),
+    );
+    expect(settingsButton.tooltip, 'ការកំណត់');
+
+    final profileButton = tester.widget<PopupMenuButton>(
+      find.byType(PopupMenuButton),
+    );
+    expect(profileButton.tooltip, 'Administrator');
+    expect(
+      tester
+          .getBottomLeft(find.byKey(const ValueKey('global-user-profile')))
+          .dy,
+      greaterThan(690),
+    );
+  });
+
+  testWidgets('pending screen views and opens a Draft order for editing', (
+    tester,
+  ) async {
+    final harness = await _pumpShell(tester);
+
+    expect(find.byKey(const ValueKey('pending-rail-badge')), findsOneWidget);
+    expect(find.byKey(const ValueKey('pending-rail-count')), findsOneWidget);
+
+    await _tapDestination(tester, AppDestination.pendingSales);
+    expect(
+      find.byKey(const ValueKey('pending-order-list-screen')),
+      findsOneWidget,
+    );
+    expect(
+      tester
+          .getSize(find.byKey(const ValueKey('pending-screen-app-bar')))
+          .height,
+      82,
+    );
+    expect(
+      find.byKey(const ValueKey('view-pending-order-SO-DRAFT-0001')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('edit-pending-order-SO-DRAFT-0001')),
+      findsOneWidget,
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey('view-pending-order-SO-DRAFT-0001')),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('pending-sale-view-dialog')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('pending-sale-product-01')),
+      findsOneWidget,
+    );
+    await tester.tap(find.byKey(const ValueKey('close-pending-sale-view')));
+    await tester.pumpAndSettle();
+
+    await tester.tap(
+      find.byKey(const ValueKey('edit-pending-order-SO-DRAFT-0001')),
+    );
+    await tester.pumpAndSettle();
+    expect(harness.shell.selectedDestination.value, AppDestination.sale);
+    expect(harness.sell.openedSale.value?.name, 'SO-DRAFT-0001');
+  });
+
   testWidgets('empty navigation and unfinished Continue and Clear actions', (
     tester,
   ) async {
@@ -163,7 +249,47 @@ Future<_ShellHarness> _pumpShell(
     }
     if (request.url.path ==
         '/api/method/ice_control.api.v1.sale.get_total_pending_order') {
-      return _jsonResponse({'message': 0});
+      return _jsonResponse({'message': 1});
+    }
+    if (request.url.path == '/api/resource/Sale') {
+      return _jsonResponse({
+        'data': [
+          {
+            'name': 'SO-DRAFT-0001',
+            'posting_date': '2026-08-18',
+            'customer': 'C457',
+            'customer_name': 'អតិថិជន C457',
+            'phone_number': '012345678',
+            'driver_name': 'អ្នកបើកបរ 01',
+            'total_sale_quantity': 2,
+            'total_amount': 30000,
+          },
+        ],
+      });
+    }
+    if (request.url.path == '/api/resource/Sale/SO-DRAFT-0001') {
+      return _jsonResponse({
+        'data': {
+          'name': 'SO-DRAFT-0001',
+          'outlet': 'ទឹកកកដើម',
+          'posting_date': '2026-08-18',
+          'sale_status': 'Draft',
+          'customer': 'C457',
+          'customer_name': 'អតិថិជន C457',
+          'phone_number': '012345678',
+          'sale_products': [
+            {
+              'product_code': '01',
+              'product_name': 'ទឹកកកដើមធំ',
+              'product_category': 'ទឹកកកដើម',
+              'unit': 'ដើម',
+              'quantity': 2,
+              'price': 15000,
+              'allow_sum_qty': 1,
+            },
+          ],
+        },
+      });
     }
     if (request.url.path == '/api/resource/Customer') {
       return _jsonResponse({

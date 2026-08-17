@@ -12,6 +12,7 @@ class UserProfileWidget extends StatelessWidget {
     required this.isDark,
     required this.onThemeToggle,
     required this.onLogout,
+    this.compact = false,
   });
 
   final String username;
@@ -19,6 +20,7 @@ class UserProfileWidget extends StatelessWidget {
   final bool isDark;
   final VoidCallback onThemeToggle;
   final VoidCallback onLogout;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
@@ -26,8 +28,9 @@ class UserProfileWidget extends StatelessWidget {
     final displayName = username.trim().isEmpty ? 'អ្នកប្រើប្រាស់' : username;
 
     return PopupMenuButton<_UserMenuAction>(
-      tooltip: 'បើកជម្រើសអ្នកប្រើប្រាស់',
-      offset: const Offset(0, 54),
+      tooltip: compact ? displayName : 'បើកជម្រើសអ្នកប្រើប្រាស់',
+      position: compact ? PopupMenuPosition.over : PopupMenuPosition.under,
+      offset: compact ? const Offset(52, 0) : const Offset(0, 4),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       onSelected: (action) {
         switch (action) {
@@ -40,6 +43,27 @@ class UserProfileWidget extends StatelessWidget {
         }
       },
       itemBuilder: (context) => [
+        PopupMenuItem<_UserMenuAction>(
+          enabled: false,
+          child: Row(
+            children: [
+              Icon(Icons.account_circle_outlined, color: colors.primary),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  displayName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: colors.onSurface,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const PopupMenuDivider(),
         PopupMenuItem<_UserMenuAction>(
           value: _UserMenuAction.theme,
           child: Row(
@@ -79,70 +103,81 @@ class UserProfileWidget extends StatelessWidget {
           ),
         ),
       ],
-      child: Container(
-        padding: const EdgeInsets.fromLTRB(6, 6, 12, 6),
-        decoration: BoxDecoration(
-          color: colors.surfaceContainerLow,
-          borderRadius: BorderRadius.circular(28),
-          border: Border.all(color: colors.outlineVariant),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ClipOval(
-              child: SizedBox(
-                width: 40,
-                height: 40,
-                child: userImageUrl.trim().isEmpty
-                    ? _ProfileImageFallback(
-                        displayName: displayName,
-                        backgroundColor: colors.primary,
-                        foregroundColor: colors.onPrimary,
-                      )
-                    : AppNetworkImage(
-                        key: const ValueKey('user-profile-image'),
-                        imageUrl: userImageUrl,
-                        width: 40,
-                        height: 40,
-                        fit: BoxFit.cover,
-                        memCacheWidth: 96,
-                        memCacheHeight: 96,
-                        maxWidthDiskCache: 192,
-                        maxHeightDiskCache: 192,
-                        placeholder: _ProfileImageFallback(
-                          displayName: displayName,
-                          backgroundColor: colors.primary,
-                          foregroundColor: colors.onPrimary,
-                        ),
-                        errorWidget: _ProfileImageFallback(
-                          displayName: displayName,
-                          backgroundColor: colors.primary,
-                          foregroundColor: colors.onPrimary,
-                        ),
+      child: compact
+          ? Container(
+              key: const ValueKey('global-user-profile'),
+              width: 44,
+              height: 44,
+              padding: const EdgeInsets.all(2),
+              decoration: BoxDecoration(
+                color: colors.surface,
+                shape: BoxShape.circle,
+                border: Border.all(color: colors.outlineVariant),
+              ),
+              child: _buildAvatar(colors, displayName, 38),
+            )
+          : Container(
+              key: const ValueKey('user-profile'),
+              padding: const EdgeInsets.fromLTRB(6, 6, 12, 6),
+              decoration: BoxDecoration(
+                color: colors.surfaceContainerLow,
+                borderRadius: BorderRadius.circular(28),
+                border: Border.all(color: colors.outlineVariant),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _buildAvatar(colors, displayName, 40),
+                  const SizedBox(width: 9),
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 130),
+                    child: Text(
+                      displayName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: colors.onSurface,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13,
                       ),
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  Icon(
+                    Icons.keyboard_arrow_down_rounded,
+                    color: colors.onSurfaceVariant,
+                  ),
+                ],
               ),
             ),
-            const SizedBox(width: 9),
-            ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 130),
-              child: Text(
-                displayName,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: colors.onSurface,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 13,
-                ),
+    );
+  }
+
+  Widget _buildAvatar(ColorScheme colors, String displayName, double size) {
+    final fallback = _ProfileImageFallback(
+      displayName: displayName,
+      backgroundColor: colors.primary,
+      foregroundColor: colors.onPrimary,
+    );
+    return ClipOval(
+      child: SizedBox(
+        width: size,
+        height: size,
+        child: userImageUrl.trim().isEmpty
+            ? fallback
+            : AppNetworkImage(
+                key: const ValueKey('user-profile-image'),
+                imageUrl: userImageUrl,
+                width: size,
+                height: size,
+                fit: BoxFit.cover,
+                memCacheWidth: 96,
+                memCacheHeight: 96,
+                maxWidthDiskCache: 192,
+                maxHeightDiskCache: 192,
+                placeholder: fallback,
+                errorWidget: fallback,
               ),
-            ),
-            const SizedBox(width: 4),
-            Icon(
-              Icons.keyboard_arrow_down_rounded,
-              color: colors.onSurfaceVariant,
-            ),
-          ],
-        ),
       ),
     );
   }

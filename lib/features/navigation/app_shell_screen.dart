@@ -2,10 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../app/app_setting_controller.dart';
+import '../../app/theme_controller.dart';
 import '../../services/frappe_response_handler.dart';
 import '../../shared/network_image.dart';
 import '../../shared/select_customer_dialog_widget.dart';
+import '../../shared/user_profile_widget.dart';
 import '../closed_sales/closed_sale_list_screen.dart';
+import '../login/login_controller.dart';
 import '../pending_sales/pending_sale_list_screen.dart';
 import '../report/report_screen.dart';
 import '../sale_summary/sale_summary_screen.dart';
@@ -177,6 +180,8 @@ class AppShellScreen extends GetView<AppShellController> {
     final settingController = Get.isRegistered<AppSettingController>()
         ? Get.find<AppSettingController>()
         : null;
+    final loginController = Get.find<LoginController>();
+    final themeController = Get.find<ThemeController>();
     return Scaffold(
       body: SafeArea(
         child: Obx(() {
@@ -207,6 +212,40 @@ class AppShellScreen extends GetView<AppShellController> {
                       settingController: settingController,
                     ),
                   ),
+                  trailingAtBottom: true,
+                  trailing: Padding(
+                    padding: const EdgeInsets.only(bottom: 10),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          key: const ValueKey('rail-settings-button'),
+                          tooltip: 'ការកំណត់',
+                          onPressed: () {},
+                          icon: const Icon(Icons.settings_outlined),
+                        ),
+                        SizedBox(
+                          width: 32,
+                          child: Divider(
+                            key: const ValueKey('rail-profile-separator'),
+                            height: 17,
+                            color: colors.outlineVariant,
+                          ),
+                        ),
+                        Obx(
+                          () => UserProfileWidget(
+                            username: loginController.currentUsername.value,
+                            userImageUrl:
+                                loginController.currentUserImageUrl.value,
+                            isDark: themeController.isDark.value,
+                            onThemeToggle: themeController.toggleTheme,
+                            onLogout: loginController.logout,
+                            compact: true,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                   onDestinationSelected: controller.isNavigating.value
                       ? null
                       : (index) =>
@@ -219,7 +258,13 @@ class AppShellScreen extends GetView<AppShellController> {
                               'nav-destination-${destination.name}',
                             ),
                             message: destination.label,
-                            child: Icon(destination.icon),
+                            child: _RailDestinationIcon(
+                              destination: destination,
+                              pendingCount: controller
+                                  .sellController
+                                  .pendingOrderCount
+                                  .value,
+                            ),
                           ),
                           label: Text(destination.label),
                         ),
@@ -247,6 +292,60 @@ class AppShellScreen extends GetView<AppShellController> {
             ],
           );
         }),
+      ),
+    );
+  }
+}
+
+class _RailDestinationIcon extends StatelessWidget {
+  const _RailDestinationIcon({
+    required this.destination,
+    required this.pendingCount,
+  });
+
+  final AppDestination destination;
+  final int pendingCount;
+
+  @override
+  Widget build(BuildContext context) {
+    if (destination != AppDestination.pendingSales) {
+      return Icon(destination.icon);
+    }
+    final colors = Theme.of(context).colorScheme;
+    final countLabel = pendingCount > 99 ? '99+' : pendingCount.toString();
+    return SizedBox(
+      width: 34,
+      height: 32,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Positioned.fill(child: Icon(destination.icon)),
+          Positioned(
+            key: const ValueKey('pending-rail-badge'),
+            top: -5,
+            right: -5,
+            child: Container(
+              constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: colors.error,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: colors.surface, width: 1.5),
+              ),
+              child: Text(
+                countLabel,
+                key: const ValueKey('pending-rail-count'),
+                style: TextStyle(
+                  color: colors.onError,
+                  fontSize: 9,
+                  fontWeight: FontWeight.w800,
+                  height: 1,
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

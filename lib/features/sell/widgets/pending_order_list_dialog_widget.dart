@@ -25,10 +25,18 @@ class PendingOrderListDialogWidget extends StatefulWidget {
     super.key,
     required this.saleService,
     required this.outlet,
+    this.embedded = false,
+    this.onView,
+    this.onEdit,
+    this.onRefreshed,
   });
 
   final SaleService saleService;
   final String outlet;
+  final bool embedded;
+  final ValueChanged<String>? onView;
+  final ValueChanged<String>? onEdit;
+  final VoidCallback? onRefreshed;
 
   @override
   State<PendingOrderListDialogWidget> createState() =>
@@ -102,6 +110,7 @@ class _PendingOrderListDialogWidgetState
       _errorMessage = null;
     });
     await _loadMore();
+    widget.onRefreshed?.call();
   }
 
   void _handleSearchChanged(String value) {
@@ -128,78 +137,106 @@ class _PendingOrderListDialogWidgetState
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
+    final content = Column(
+      children: [
+        Container(
+          key: widget.embedded
+              ? const ValueKey('pending-screen-app-bar')
+              : null,
+          height: widget.embedded ? 82 : 58,
+          padding: EdgeInsets.only(
+            left: widget.embedded ? 24 : 20,
+            right: widget.embedded ? 20 : 0,
+          ),
+          decoration: BoxDecoration(
+            color: widget.embedded ? colors.surface : colors.inverseSurface,
+            border: widget.embedded
+                ? Border(bottom: BorderSide(color: colors.outlineVariant))
+                : null,
+          ),
+          child: Row(
+            children: [
+              if (!widget.embedded) ...[
+                Icon(
+                  Icons.pending_actions_rounded,
+                  color: colors.onInverseSurface,
+                ),
+                const SizedBox(width: 10),
+              ],
+              Expanded(
+                child: Text(
+                  'បញ្ជីការលក់ដែលបានផ្អាក',
+                  style: TextStyle(
+                    color: widget.embedded
+                        ? colors.onSurface
+                        : colors.onInverseSurface,
+                    fontSize: widget.embedded ? 22 : 18,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+              IconButton(
+                key: const ValueKey('refresh-pending-order-list'),
+                tooltip: 'ផ្ទុកឡើងវិញ',
+                onPressed: _isLoading ? null : _refresh,
+                color: widget.embedded
+                    ? colors.primary
+                    : colors.onInverseSurface,
+                style: widget.embedded
+                    ? IconButton.styleFrom(
+                        backgroundColor: colors.surfaceContainerLow,
+                        side: BorderSide(color: colors.outlineVariant),
+                      )
+                    : null,
+                icon: const Icon(Icons.refresh_rounded),
+              ),
+              if (!widget.embedded)
+                SizedBox(
+                  width: 58,
+                  height: 58,
+                  child: IconButton(
+                    key: const ValueKey('close-pending-order-list'),
+                    tooltip: 'បិទ',
+                    onPressed: () => Navigator.of(context).pop(),
+                    color: colors.onError,
+                    style: IconButton.styleFrom(
+                      backgroundColor: colors.error,
+                      shape: const RoundedRectangleBorder(),
+                    ),
+                    icon: const Icon(Icons.close_rounded),
+                  ),
+                ),
+            ],
+          ),
+        ),
+        _FilterBar(
+          searchController: _searchController,
+          postingDate: _postingDate,
+          onSearchChanged: _handleSearchChanged,
+          onClearSearch: () {
+            _searchController.clear();
+            _handleSearchChanged('');
+          },
+          onDateTap: _selectPostingDate,
+          onClearDate: _clearPostingDate,
+        ),
+        _TableHeader(colors: colors, showActions: widget.embedded),
+        Expanded(child: _buildBody(colors)),
+      ],
+    );
+    if (widget.embedded) {
+      return ColoredBox(
+        key: const ValueKey('pending-order-list-screen'),
+        color: colors.surfaceContainerLowest,
+        child: content,
+      );
+    }
     return Dialog(
       key: const ValueKey('pending-order-list-dialog'),
       insetPadding: const EdgeInsets.all(24),
       clipBehavior: Clip.antiAlias,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-      child: SizedBox(
-        width: 1050,
-        height: 680,
-        child: Column(
-          children: [
-            Container(
-              height: 58,
-              padding: const EdgeInsets.only(left: 20),
-              color: colors.inverseSurface,
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.pending_actions_rounded,
-                    color: colors.onInverseSurface,
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      'បញ្ជីការលក់ដែលបានផ្អាក',
-                      style: TextStyle(
-                        color: colors.onInverseSurface,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                  IconButton(
-                    key: const ValueKey('refresh-pending-order-list'),
-                    tooltip: 'ផ្ទុកឡើងវិញ',
-                    onPressed: _isLoading ? null : _refresh,
-                    color: colors.onInverseSurface,
-                    icon: const Icon(Icons.refresh_rounded),
-                  ),
-                  SizedBox(
-                    width: 58,
-                    height: 58,
-                    child: IconButton(
-                      key: const ValueKey('close-pending-order-list'),
-                      tooltip: 'បិទ',
-                      onPressed: () => Navigator.of(context).pop(),
-                      color: colors.onError,
-                      style: IconButton.styleFrom(
-                        backgroundColor: colors.error,
-                        shape: const RoundedRectangleBorder(),
-                      ),
-                      icon: const Icon(Icons.close_rounded),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            _FilterBar(
-              searchController: _searchController,
-              postingDate: _postingDate,
-              onSearchChanged: _handleSearchChanged,
-              onClearSearch: () {
-                _searchController.clear();
-                _handleSearchChanged('');
-              },
-              onDateTap: _selectPostingDate,
-              onClearDate: _clearPostingDate,
-            ),
-            _TableHeader(colors: colors),
-            Expanded(child: _buildBody(colors)),
-          ],
-        ),
-      ),
+      child: SizedBox(width: 1050, height: 680, child: content),
     );
   }
 
@@ -236,7 +273,11 @@ class _PendingOrderListDialogWidgetState
             _PendingOrderRow(
               order: group.value[index],
               alternate: index.isOdd,
-              onTap: () => Navigator.of(context).pop(group.value[index].name),
+              onTap: widget.embedded
+                  ? null
+                  : () => Navigator.of(context).pop(group.value[index].name),
+              onView: widget.embedded ? widget.onView : null,
+              onEdit: widget.embedded ? widget.onEdit : null,
             ),
         ],
         if (_isLoading)
@@ -371,9 +412,10 @@ class _FilterBar extends StatelessWidget {
 }
 
 class _TableHeader extends StatelessWidget {
-  const _TableHeader({required this.colors});
+  const _TableHeader({required this.colors, required this.showActions});
 
   final ColorScheme colors;
+  final bool showActions;
 
   @override
   Widget build(BuildContext context) {
@@ -384,7 +426,7 @@ class _TableHeader extends StatelessWidget {
         color: colors.surfaceContainer,
         border: Border(bottom: BorderSide(color: colors.outlineVariant)),
       ),
-      child: const Row(
+      child: Row(
         children: [
           _HeaderCell('លេខឯកសារ', flex: 18),
           _HeaderCell('កាលបរិច្ឆេទ', flex: 15),
@@ -392,6 +434,8 @@ class _TableHeader extends StatelessWidget {
           _HeaderCell('អ្នកបើកបរ', flex: 22),
           _HeaderCell('ចំនួនសរុប', flex: 12, textAlign: TextAlign.right),
           _HeaderCell('ទឹកប្រាក់សរុប', flex: 17, textAlign: TextAlign.right),
+          if (showActions)
+            _HeaderCell('សកម្មភាព', flex: 24, textAlign: TextAlign.center),
         ],
       ),
     );
@@ -463,11 +507,15 @@ class _PendingOrderRow extends StatelessWidget {
     required this.order,
     required this.alternate,
     required this.onTap,
+    required this.onView,
+    required this.onEdit,
   });
 
   final PendingOrder order;
   final bool alternate;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
+  final ValueChanged<String>? onView;
+  final ValueChanged<String>? onEdit;
 
   @override
   Widget build(BuildContext context) {
@@ -500,6 +548,40 @@ class _PendingOrderRow extends StatelessWidget {
                 textAlign: TextAlign.right,
                 emphasized: true,
               ),
+              if (onView != null || onEdit != null)
+                Expanded(
+                  flex: 24,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      OutlinedButton.icon(
+                        key: ValueKey('view-pending-order-${order.name}'),
+                        onPressed: onView == null
+                            ? null
+                            : () => onView!(order.name),
+                        icon: const Icon(Icons.visibility_outlined, size: 17),
+                        label: const Text('មើល'),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(horizontal: 10),
+                          visualDensity: VisualDensity.compact,
+                        ),
+                      ),
+                      const SizedBox(width: 7),
+                      FilledButton.tonalIcon(
+                        key: ValueKey('edit-pending-order-${order.name}'),
+                        onPressed: onEdit == null
+                            ? null
+                            : () => onEdit!(order.name),
+                        icon: const Icon(Icons.edit_outlined, size: 17),
+                        label: const Text('កែបុង'),
+                        style: FilledButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(horizontal: 10),
+                          visualDensity: VisualDensity.compact,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
             ],
           ),
         ),

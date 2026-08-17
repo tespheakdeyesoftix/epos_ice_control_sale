@@ -1,13 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
-import '../../app/theme_controller.dart';
 import '../../services/frappe_response_handler.dart';
 import '../../shared/input_number_dialog_widget.dart';
 import '../../shared/select_customer_dialog_widget.dart';
 import '../../shared/select_date_dialog_widget.dart';
 import '../../shared/text_input_dialog_widget.dart';
-import '../../shared/user_profile_widget.dart';
 import '../../utils/helpers.dart';
 import '../login/login_controller.dart';
 import 'customer.dart';
@@ -153,7 +151,6 @@ class _TopBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final login = Get.find<LoginController>();
-    final themeController = Get.find<ThemeController>();
     return Container(
       height: 82,
       padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -169,19 +166,6 @@ class _TopBar extends StatelessWidget {
             width: 330,
             child: Row(
               children: [
-                Container(
-                  width: 48,
-                  height: 48,
-                  decoration: BoxDecoration(
-                    color: context.colors.surfaceContainer,
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: Icon(
-                    Icons.ac_unit_rounded,
-                    color: context.colors.primary,
-                  ),
-                ),
-                const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -300,16 +284,6 @@ class _TopBar extends StatelessWidget {
                 }
                 await controller.loadPendingOrderCount();
               },
-            ),
-          ),
-          const SizedBox(width: 12),
-          Obx(
-            () => UserProfileWidget(
-              username: login.currentUsername.value,
-              userImageUrl: login.currentUserImageUrl.value,
-              isDark: themeController.isDark.value,
-              onThemeToggle: themeController.toggleTheme,
-              onLogout: login.logout,
             ),
           ),
         ],
