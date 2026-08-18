@@ -76,37 +76,89 @@ void main() {
     expect(restrictedController.openedSale.value?.name, 'DRAFT-ALLOWED');
   });
 
-  test('delete_bill permission applies to Draft and Closed Sales', () async {
-    var requestCount = 0;
-    final client = MockClient((_) async {
-      requestCount++;
-      return http.Response('{}', 200);
-    });
-    final baseUri = Uri.parse('http://127.0.0.1:8888/');
-    final controller = SellController(
-      productService: ProductService(baseUri, client: client),
-      customerService: CustomerService(baseUri, client: client),
-      saleService: SaleService(baseUri, client: client),
-      outletName: 'Main Outlet',
-      stationName: 'Cashier 01',
-      canDeleteBillProvider: () => false,
-    );
+  test(
+    'delete_bill permission is ignored for Draft and required otherwise',
+    () async {
+      var requestCount = 0;
+      var hasDeletePermission = false;
+      final client = MockClient((request) async {
+        requestCount++;
+        if (request.url.path.contains('get_total_pending_order')) {
+          return http.Response('{"message": 0}', 200);
+        }
+        return http.Response('{}', 200);
+      });
+      final baseUri = Uri.parse('http://127.0.0.1:8888/');
+      final controller = SellController(
+        productService: ProductService(baseUri, client: client),
+        customerService: CustomerService(baseUri, client: client),
+        saleService: SaleService(baseUri, client: client),
+        outletName: 'Main Outlet',
+        stationName: 'Cashier 01',
+        canDeleteBillProvider: () => hasDeletePermission,
+      );
 
-    for (final status in ['Draft', 'Closed']) {
-      controller.openedSale.value = Sale(
-        name: 'SO-$status',
+      expect(
+        () => controller.validateDeleteBillPermission(saleStatus: ' dRaFt '),
+        returnsNormally,
+      );
+      controller.openedSale.value = const Sale(
+        name: 'SO-DRAFT',
         outlet: 'Main Outlet',
-        saleStatus: status,
-        saleProducts: const [],
+        saleStatus: 'Draft',
+        saleProducts: [],
+      );
+      await controller.deleteOpenedSale('Draft note');
+      expect(controller.openedSale.value, isNull);
+      expect(requestCount, 2);
+
+      controller.openedSale.value = const Sale(
+        name: 'SO-CLOSED',
+        outlet: 'Main Outlet',
+        saleStatus: 'Closed',
+        saleProducts: [],
       );
       await expectLater(
-        controller.deleteOpenedSale('Test note'),
+        controller.deleteOpenedSale('Closed note'),
         throwsA(isA<DeleteBillPermissionException>()),
       );
-      expect(controller.openedSale.value?.name, 'SO-$status');
-    }
-    expect(requestCount, 0);
-  });
+      expect(controller.openedSale.value?.name, 'SO-CLOSED');
+      expect(requestCount, 2);
+
+      controller.openedSale.value = const Sale(
+        name: 'SO-ANOTHER-DRAFT',
+        outlet: 'Main Outlet',
+        saleStatus: 'Draft',
+        saleProducts: [],
+      );
+      expect(
+        () => controller.validateDeleteBillPermission(saleStatus: 'Closed'),
+        throwsA(isA<DeleteBillPermissionException>()),
+      );
+
+      hasDeletePermission = true;
+      controller.openedSale.value = const Sale(
+        name: 'SO-CLOSED-ALLOWED',
+        outlet: 'Main Outlet',
+        saleStatus: 'Closed',
+        saleProducts: [],
+      );
+      await controller.deleteOpenedSale('Allowed note');
+      expect(controller.openedSale.value, isNull);
+      expect(requestCount, 3);
+
+      controller.openedSale.value = const Sale(
+        outlet: 'Main Outlet',
+        saleStatus: 'Draft',
+        saleProducts: [],
+      );
+      await expectLater(
+        controller.deleteOpenedSale('Unsaved note'),
+        throwsA(isA<SaleDeleteValidationException>()),
+      );
+      expect(requestCount, 3);
+    },
+  );
 }
 
 Map<String, dynamic> _sale({

@@ -32,6 +32,20 @@ class LoginController extends GetxController {
   final currentUserImageUrl = ''.obs;
   final currentSession = Rxn<AuthSession>();
 
+  String get localStorageUserKey {
+    final session = currentSession.value;
+    for (final value in [
+      session?.user,
+      session?.username,
+      session?.email,
+      currentUsername.value,
+    ]) {
+      final normalized = value?.trim() ?? '';
+      if (normalized.isNotEmpty) return normalized;
+    }
+    return 'anonymous';
+  }
+
   Future<void> login() async {
     FocusManager.instance.primaryFocus?.unfocus();
     errorMessage.value = null;

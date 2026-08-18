@@ -331,6 +331,7 @@ void main() {
     await service.deleteSale(
       docName: 'SO-CLOSED-0001',
       deletedNote: 'បញ្ចូលខុស',
+      stationName: 'Cashier 01',
     );
 
     expect(sentRequest.method, 'POST');
@@ -340,6 +341,7 @@ void main() {
     );
     expect(sentRequest.bodyFields['doc_name'], 'SO-CLOSED-0001');
     expect(sentRequest.bodyFields['deleted_note'], 'បញ្ចូលខុស');
+    expect(sentRequest.bodyFields['station_name'], 'Cashier 01');
   });
 
   test('ស្វែងរកបុងសម្រាប់កែប្រែតាម keyword', () async {

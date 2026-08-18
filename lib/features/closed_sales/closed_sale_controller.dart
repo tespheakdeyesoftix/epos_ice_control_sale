@@ -198,6 +198,7 @@ class ClosedSaleController extends GetxController {
       await sellController.saleService.deleteSale(
         docName: name,
         deletedNote: deletedNote,
+        stationName: sellController.stationName,
       );
       sales.removeWhere((sale) => sale.name == name);
       await loadTodayClosedSaleCount();
@@ -216,7 +217,7 @@ class ClosedSaleController extends GetxController {
 
   bool checkDeleteBillPermission() {
     try {
-      sellController.validateDeleteBillPermission();
+      sellController.validateDeleteBillPermission(saleStatus: 'Closed');
       return true;
     } on DeleteBillPermissionException catch (error) {
       _showMessage(error.message, indicator: 'orange');

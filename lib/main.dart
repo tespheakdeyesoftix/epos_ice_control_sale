@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:get_storage/get_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'app/app_config.dart';
@@ -16,6 +17,7 @@ import 'features/navigation/app_shell_screen.dart';
 import 'features/sell/sell_controller.dart';
 import 'services/frappe_auth_service.dart';
 import 'services/frappe_session_client.dart';
+import 'services/note_preset_repository.dart';
 import 'services/customer_service.dart';
 import 'services/sale_service.dart';
 import 'services/setting_service.dart';
@@ -23,6 +25,7 @@ import 'services/product_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await GetStorage.init(NotePresetRepository.containerName);
   final preferences = await SharedPreferences.getInstance();
 
   AppConfig? config;

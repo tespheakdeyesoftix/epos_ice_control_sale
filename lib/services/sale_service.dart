@@ -315,12 +315,17 @@ class SaleService {
   Future<void> deleteSale({
     required String docName,
     required String deletedNote,
+    required String stationName,
   }) async {
     final response = await _client
         .post(
           baseUri.resolve(ApiEndpoint.deleteSale),
           headers: const {'Accept': 'application/json'},
-          body: {'doc_name': docName, 'deleted_note': deletedNote},
+          body: {
+            'doc_name': docName,
+            'deleted_note': deletedNote,
+            'station_name': stationName.trim(),
+          },
         )
         .timeout(const Duration(seconds: 30));
 

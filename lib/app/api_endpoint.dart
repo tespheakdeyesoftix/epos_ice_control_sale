@@ -71,7 +71,8 @@ abstract final class ApiEndpoint {
   /// Marks an existing Sale as deleted and records the deletion reason.
   ///
   /// Method: `POST`
-  /// Form payload: `doc_name` and `deleted_note`.
+  /// Form payload: `doc_name`, `deleted_note`, and `station_name` from
+  /// `setting.json`.
   /// Returns: a success response; the current client does not consume its
   /// body.
   static const deleteSale = 'api/method/ice_control.api.v1.sale.delete_sale';

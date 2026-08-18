@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import '../../shared/select_date_dialog_widget.dart';
 import '../../shared/note_dialog_widget.dart';
 import '../../utils/helpers.dart';
+import '../login/login_controller.dart';
 import 'closed_sale.dart';
 import 'closed_sale_controller.dart';
 
@@ -19,6 +20,9 @@ class ClosedSaleListScreen extends GetView<ClosedSaleController> {
     return showNoteDialog(
       context,
       promptTitle: 'មូលហេតុដែលលុបបុង ${sale.name}',
+      presetKey: 'delete_bill_note',
+      userKey: Get.find<LoginController>().localStorageUserKey,
+      allowDeletingSavedNotes: true,
       onSubmit: (note) => controller.deleteSale(sale.name, note),
     );
   }

@@ -74,6 +74,8 @@ double _checkoutColumnWidth(double availableWidth) {
   return (availableWidth * 0.24).clamp(285.0, 350.0);
 }
 
+double _orderColumnWidth(bool compact) => compact ? 320 : 360;
+
 class SellScreen extends GetView<SellController> {
   const SellScreen({super.key});
 
@@ -111,7 +113,7 @@ class SellScreen extends GetView<SellController> {
                         SizedBox(width: compactLayout ? 8 : 12),
                         SizedBox(
                           key: const ValueKey('order-product-column'),
-                          width: compactLayout ? 320 : 360,
+                          width: _orderColumnWidth(compactLayout),
                           child: Obx(
                             () => OrderProductListWidget(
                               lines: controller.saleProducts.toList(),
@@ -434,148 +436,149 @@ class _TopBarState extends State<_TopBar> {
           bottom: BorderSide(color: context.colors.outlineVariant),
         ),
       ),
-      child: Row(
+      child: Stack(
+        alignment: Alignment.center,
         children: [
-          SizedBox(
-            width: 330,
-            child: Obx(
-              () => Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Flexible(
-                        fit: FlexFit.loose,
-                        child: Text(
-                          controller.activeOutletName,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: context.colors.onSurface,
-                            fontWeight: FontWeight.w700,
-                            fontSize: 16,
-                          ),
-                        ),
-                      ),
-                      if (controller.canChangeOutlet) ...[
-                        const SizedBox(width: 6),
-                        SizedBox(
-                          height: 32,
-                          child: TextButton.icon(
-                            key: const ValueKey('change-outlet-button'),
-                            onPressed:
-                                controller.isChangingOutlet.value ||
-                                    controller.isLoading.value
-                                ? null
-                                : _changeOutlet,
-                            icon: controller.isChangingOutlet.value
-                                ? const SizedBox.square(
-                                    dimension: 14,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                    ),
-                                  )
-                                : const Icon(
-                                    Icons.swap_horiz_rounded,
-                                    size: 17,
-                                  ),
-                            label: const Text('ប្តូរកន្លែងលក់'),
-                            style: TextButton.styleFrom(
-                              backgroundColor: context.colors.primary
-                                  .withValues(alpha: 0.025),
-                              foregroundColor: context.colors.primary,
-                              side: BorderSide(
-                                color: context.colors.primary.withValues(
-                                  alpha: 0.2,
-                                ),
-                              ),
-                              minimumSize: Size.zero,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 9,
-                              ),
-                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                              visualDensity: VisualDensity.compact,
-                              textStyle: const TextStyle(
-                                fontFamily: AppTheme.fontFamily,
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                                height: 1.4,
-                              ),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: SizedBox(
+              width: 330,
+              child: Obx(
+                () => Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Flexible(
+                          fit: FlexFit.loose,
+                          child: Text(
+                            controller.activeOutletName,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: context.colors.onSurface,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 16,
                             ),
                           ),
                         ),
+                        if (controller.canChangeOutlet) ...[
+                          const SizedBox(width: 6),
+                          SizedBox(
+                            height: 32,
+                            child: TextButton.icon(
+                              key: const ValueKey('change-outlet-button'),
+                              onPressed:
+                                  controller.isChangingOutlet.value ||
+                                      controller.isLoading.value
+                                  ? null
+                                  : _changeOutlet,
+                              icon: controller.isChangingOutlet.value
+                                  ? const SizedBox.square(
+                                      dimension: 14,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                      ),
+                                    )
+                                  : const Icon(
+                                      Icons.swap_horiz_rounded,
+                                      size: 17,
+                                    ),
+                              label: const Text('ប្តូរកន្លែងលក់'),
+                              style: TextButton.styleFrom(
+                                backgroundColor: context.colors.primary
+                                    .withValues(alpha: 0.025),
+                                foregroundColor: context.colors.primary,
+                                side: BorderSide(
+                                  color: context.colors.primary.withValues(
+                                    alpha: 0.2,
+                                  ),
+                                ),
+                                minimumSize: Size.zero,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 9,
+                                ),
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                visualDensity: VisualDensity.compact,
+                                textStyle: const TextStyle(
+                                  fontFamily: AppTheme.fontFamily,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  height: 1.4,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
                       ],
-                    ],
-                  ),
-                  const SizedBox(height: 3),
-                  Text(
-                    'ម៉ាស៊ីនលក់៖ ${login.stationName}',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: context.colors.onSurfaceVariant,
-                      fontSize: 12,
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 3),
+                    Text(
+                      'ម៉ាស៊ីនលក់៖ ${login.stationName}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: context.colors.onSurfaceVariant,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
-          const SizedBox(width: 20),
-          Expanded(
-            child: Center(
-              child: Obx(
-                () => SizedBox(
-                  width: 320,
-                  height: 42,
-                  child: TextField(
-                    key: const ValueKey('sale-bill-search-input'),
-                    controller: _searchController,
-                    focusNode: _searchFocusNode,
-                    autofocus: true,
-                    enabled: !controller.isSearchingBill.value,
-                    textInputAction: TextInputAction.search,
-                    onSubmitted: _searchBill,
-                    decoration: InputDecoration(
-                      hintText: 'ស្កេន ឬបញ្ចូលលេខបុង',
-                      isDense: true,
-                      prefixIcon: const Icon(Icons.search_rounded, size: 20),
-                      prefixIconConstraints: const BoxConstraints(
-                        minWidth: 40,
-                        minHeight: 40,
-                      ),
-                      suffixIcon: controller.isSearchingBill.value
-                          ? const Padding(
-                              padding: EdgeInsets.all(11),
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : IconButton(
-                              key: const ValueKey('select-closed-order-button'),
-                              tooltip: 'ជ្រើសរើសបុងដែលបានបិទ',
-                              onPressed: _selectClosedOrder,
-                              padding: EdgeInsets.zero,
-                              visualDensity: VisualDensity.compact,
-                              icon: const Icon(
-                                Icons.receipt_long_outlined,
-                                size: 19,
-                              ),
+          Center(
+            child: Obx(
+              () => SizedBox(
+                width: 320,
+                height: 42,
+                child: TextField(
+                  key: const ValueKey('sale-bill-search-input'),
+                  controller: _searchController,
+                  focusNode: _searchFocusNode,
+                  autofocus: true,
+                  enabled: !controller.isSearchingBill.value,
+                  textInputAction: TextInputAction.search,
+                  onSubmitted: _searchBill,
+                  decoration: InputDecoration(
+                    hintText: 'ស្កេន ឬបញ្ចូលលេខបុង',
+                    isDense: true,
+                    prefixIcon: const Icon(Icons.search_rounded, size: 20),
+                    prefixIconConstraints: const BoxConstraints(
+                      minWidth: 40,
+                      minHeight: 40,
+                    ),
+                    suffixIcon: controller.isSearchingBill.value
+                        ? const Padding(
+                            padding: EdgeInsets.all(11),
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : IconButton(
+                            key: const ValueKey('select-closed-order-button'),
+                            tooltip: 'ជ្រើសរើសបុងដែលបានបិទ',
+                            onPressed: _selectClosedOrder,
+                            padding: EdgeInsets.zero,
+                            visualDensity: VisualDensity.compact,
+                            icon: const Icon(
+                              Icons.receipt_long_outlined,
+                              size: 19,
                             ),
-                      suffixIconConstraints: const BoxConstraints(
-                        minWidth: 40,
-                        minHeight: 40,
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(vertical: 10),
-                      fillColor: context.colors.surfaceContainerLow,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide.none,
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(
-                          color: context.colors.outlineVariant,
-                        ),
+                          ),
+                    suffixIconConstraints: const BoxConstraints(
+                      minWidth: 40,
+                      minHeight: 40,
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                    fillColor: context.colors.surfaceContainerLow,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(
+                        color: context.colors.outlineVariant,
                       ),
                     ),
                   ),
@@ -583,73 +586,75 @@ class _TopBarState extends State<_TopBar> {
               ),
             ),
           ),
-          const SizedBox(width: 20),
-          Obx(
-            () => PendingOrderBadgeWidget(
-              count: controller.pendingOrderCount.value,
-              isLoading: controller.isLoadingPendingOrders.value,
-              onTap: () async {
-                final name = await showPendingOrderListDialog(
-                  context,
-                  saleService: controller.saleService,
-                  outlet: controller.activeOutletName,
-                );
-                if (name != null && context.mounted) {
-                  try {
-                    await controller.openPendingOrder(name);
-                  } on PendingOrderOpenValidationException {
-                    if (!context.mounted) return;
-                    Get.rawSnackbar(
-                      messageText: Text(
-                        'សូមរក្សាទុកការលក់បច្ចុប្បន្នជាមុនសិន មុននឹងបើកការលក់ដែលបានផ្អាក។',
-                        style: TextStyle(
+          Align(
+            alignment: Alignment.centerRight,
+            child: Obx(
+              () => PendingOrderBadgeWidget(
+                count: controller.pendingOrderCount.value,
+                isLoading: controller.isLoadingPendingOrders.value,
+                onTap: () async {
+                  final name = await showPendingOrderListDialog(
+                    context,
+                    saleService: controller.saleService,
+                    outlet: controller.activeOutletName,
+                  );
+                  if (name != null && context.mounted) {
+                    try {
+                      await controller.openPendingOrder(name);
+                    } on PendingOrderOpenValidationException {
+                      if (!context.mounted) return;
+                      Get.rawSnackbar(
+                        messageText: Text(
+                          'សូមរក្សាទុកការលក់បច្ចុប្បន្នជាមុនសិន មុននឹងបើកការលក់ដែលបានផ្អាក។',
+                          style: TextStyle(
+                            color: context.colors.onInverseSurface,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        icon: Icon(
+                          Icons.info_outline_rounded,
                           color: context.colors.onInverseSurface,
-                          fontWeight: FontWeight.w600,
                         ),
-                      ),
-                      icon: Icon(
-                        Icons.info_outline_rounded,
-                        color: context.colors.onInverseSurface,
-                      ),
-                      snackPosition: SnackPosition.TOP,
-                      snackStyle: SnackStyle.FLOATING,
-                      maxWidth: 620,
-                      margin: const EdgeInsets.only(top: 18),
-                      borderRadius: 12,
-                      backgroundColor: context.colors.inverseSurface,
-                      duration: const Duration(seconds: 4),
-                    );
-                  } on SaleEditBlockedException catch (error) {
-                    FrappeResponseHandler.show(
-                      FrappeServerMessage(
-                        message: error.message,
-                        indicator: 'orange',
-                      ),
-                    );
-                  } on FrappeServerMessageException {
-                    // The shared API client already displayed the server message.
-                  } on Exception {
-                    if (!context.mounted) return;
-                    Get.rawSnackbar(
-                      messageText: Text(
-                        'មិនអាចបើកការលក់ដែលបានផ្អាកបានទេ។',
-                        style: TextStyle(
-                          color: context.colors.onError,
-                          fontWeight: FontWeight.w600,
+                        snackPosition: SnackPosition.TOP,
+                        snackStyle: SnackStyle.FLOATING,
+                        maxWidth: 620,
+                        margin: const EdgeInsets.only(top: 18),
+                        borderRadius: 12,
+                        backgroundColor: context.colors.inverseSurface,
+                        duration: const Duration(seconds: 4),
+                      );
+                    } on SaleEditBlockedException catch (error) {
+                      FrappeResponseHandler.show(
+                        FrappeServerMessage(
+                          message: error.message,
+                          indicator: 'orange',
                         ),
-                      ),
-                      snackPosition: SnackPosition.TOP,
-                      snackStyle: SnackStyle.FLOATING,
-                      maxWidth: 520,
-                      margin: const EdgeInsets.only(top: 18),
-                      borderRadius: 12,
-                      backgroundColor: context.colors.error,
-                      duration: const Duration(seconds: 4),
-                    );
+                      );
+                    } on FrappeServerMessageException {
+                      // The shared API client already displayed the server message.
+                    } on Exception {
+                      if (!context.mounted) return;
+                      Get.rawSnackbar(
+                        messageText: Text(
+                          'មិនអាចបើកការលក់ដែលបានផ្អាកបានទេ។',
+                          style: TextStyle(
+                            color: context.colors.onError,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        snackPosition: SnackPosition.TOP,
+                        snackStyle: SnackStyle.FLOATING,
+                        maxWidth: 520,
+                        margin: const EdgeInsets.only(top: 18),
+                        borderRadius: 12,
+                        backgroundColor: context.colors.error,
+                        duration: const Duration(seconds: 4),
+                      );
+                    }
                   }
-                }
-                await controller.loadPendingOrderCount();
-              },
+                  await controller.loadPendingOrderCount();
+                },
+              ),
             ),
           ),
         ],
@@ -1198,8 +1203,10 @@ class _OpenedSaleBanner extends StatelessWidget {
                           minimumSize: const Size(0, 30),
                           visualDensity: VisualDensity.compact,
                           textStyle: const TextStyle(
+                            fontFamily: AppTheme.fontFamily,
                             fontSize: 11,
                             fontWeight: FontWeight.w700,
+                            height: 1.4,
                           ),
                         ),
                         child: const Text('បោះបង់ការកែប្រែ'),
@@ -1269,6 +1276,60 @@ class _QuickActionButton extends StatelessWidget {
   }
 }
 
+class _SaleSummaryCard extends StatelessWidget {
+  const _SaleSummaryCard({required this.controller, required this.compact});
+
+  final SellController controller;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      key: const ValueKey('sale-summary-card'),
+      height: double.infinity,
+      padding: EdgeInsets.symmetric(horizontal: compact ? 12 : 16),
+      decoration: BoxDecoration(
+        color: context.colors.surfaceContainer,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: context.colors.outlineVariant),
+      ),
+      child: Row(
+        children: [
+          Flexible(
+            flex: 2,
+            child: _SaleSummaryMetric(
+              label: 'ចំនួនសរុប',
+              value: formatQuantity(controller.totalSaleQuantity),
+              valueFontSize: compact ? 18 : 20,
+              alignRight: true,
+            ),
+          ),
+          SizedBox(width: compact ? 8 : 12),
+          VerticalDivider(
+            width: 1,
+            indent: 10,
+            endIndent: 10,
+            color: context.colors.outlineVariant,
+          ),
+          SizedBox(width: compact ? 8 : 12),
+          Expanded(
+            flex: 5,
+            child: _SaleSummaryMetric(
+              label: 'ទឹកប្រាក់សរុប',
+              value: (controller.selectedCustomer.value?.canShowPrice ?? true)
+                  ? '${formatMoney(controller.grandTotal)} រៀល'
+                  : '***',
+              valueFontSize: compact ? 23 : 28,
+              valueKey: const ValueKey('sale-summary-total-amount'),
+              alignRight: true,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _BottomBar extends StatelessWidget {
   const _BottomBar({required this.controller});
 
@@ -1286,7 +1347,9 @@ class _BottomBar extends StatelessWidget {
     final saleName = controller.currentSale.name;
     if (saleName.trim().isEmpty) return;
     try {
-      controller.validateDeleteBillPermission();
+      controller.validateDeleteBillPermission(
+        saleStatus: controller.currentSale.saleStatus,
+      );
     } on DeleteBillPermissionException {
       _showDeleteBillPermissionDenied();
       return;
@@ -1294,6 +1357,9 @@ class _BottomBar extends StatelessWidget {
     await showNoteDialog(
       context,
       promptTitle: 'មូលហេតុដែលលុបបុង $saleName',
+      presetKey: 'delete_bill_note',
+      userKey: Get.find<LoginController>().localStorageUserKey,
+      allowDeletingSavedNotes: true,
       onSubmit: (note) async {
         try {
           await controller.deleteOpenedSale(note);
@@ -1380,6 +1446,7 @@ class _BottomBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final compactLayout = MediaQuery.sizeOf(context).width <= 1100;
     final paymentButtonWidth = _checkoutColumnWidth(
       MediaQuery.sizeOf(context).width - 32,
     );
@@ -1416,51 +1483,16 @@ class _BottomBar extends StatelessWidget {
                   ? null
                   : () => _pauseSale(context),
             ),
-            const SizedBox(width: 18),
-            Expanded(
-              child: Container(
-                height: double.infinity,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                decoration: BoxDecoration(
-                  color: context.colors.surfaceContainer,
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: Row(
-                  children: [
-                    Flexible(
-                      flex: 2,
-                      child: _SaleSummaryMetric(
-                        label: 'ចំនួនសរុប',
-                        value: formatQuantity(controller.totalSaleQuantity),
-                        valueFontSize: 20,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    VerticalDivider(
-                      width: 1,
-                      indent: 12,
-                      endIndent: 12,
-                      color: context.colors.outlineVariant,
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      flex: 5,
-                      child: _SaleSummaryMetric(
-                        label: 'ទឹកប្រាក់សរុប',
-                        value:
-                            (controller.selectedCustomer.value?.canShowPrice ??
-                                true)
-                            ? '${formatMoney(controller.grandTotal)} រៀល'
-                            : '***',
-                        valueFontSize: 28,
-                        valueKey: const ValueKey('sale-summary-total-amount'),
-                      ),
-                    ),
-                  ],
-                ),
+            const Spacer(),
+            SizedBox(
+              width: _orderColumnWidth(compactLayout),
+              height: double.infinity,
+              child: _SaleSummaryCard(
+                controller: controller,
+                compact: compactLayout,
               ),
             ),
-            const SizedBox(width: 12),
+            SizedBox(width: compactLayout ? 8 : 12),
             SizedBox(
               key: const ValueKey('payment-button'),
               width: paymentButtonWidth,
@@ -1596,21 +1628,26 @@ class _SaleSummaryMetric extends StatelessWidget {
     required this.value,
     required this.valueFontSize,
     this.valueKey,
+    this.alignRight = false,
   });
 
   final String label;
   final String value;
   final double valueFontSize;
   final Key? valueKey;
+  final bool alignRight;
 
   @override
   Widget build(BuildContext context) {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: alignRight
+          ? CrossAxisAlignment.end
+          : CrossAxisAlignment.start,
       children: [
         Text(
           label,
+          textAlign: alignRight ? TextAlign.right : TextAlign.left,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
           style: TextStyle(
@@ -1621,10 +1658,14 @@ class _SaleSummaryMetric extends StatelessWidget {
         const SizedBox(height: 2),
         Expanded(
           child: Align(
-            alignment: Alignment.centerLeft,
+            alignment: alignRight
+                ? Alignment.centerRight
+                : Alignment.centerLeft,
             child: FittedBox(
               fit: BoxFit.scaleDown,
-              alignment: Alignment.centerLeft,
+              alignment: alignRight
+                  ? Alignment.centerRight
+                  : Alignment.centerLeft,
               child: Text(
                 key: valueKey,
                 value,
