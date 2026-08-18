@@ -98,6 +98,8 @@ extension SellControllerMethods on SellController {
   bool get _canSearchBillForEdit => _isNewSale && !_isNewSaleDirty;
   bool get _canChangeCustomer =>
       _isNewSale || (canChangeCustomerProvider?.call() ?? true);
+  bool get _canChangeSaleDate =>
+      _isNewSale || (canChangeSaleDateProvider?.call() ?? true);
 
   Uri? _productImage(Product product) => _resolveImage(product.photo);
 
@@ -210,6 +212,12 @@ class CustomerChangePermissionException implements Exception {
   const CustomerChangePermissionException();
 
   String get message => 'អ្នកមិនមានសិទ្ធិកែប្រែអតិថិជនទេ។';
+}
+
+class SaleDateChangePermissionException implements Exception {
+  const SaleDateChangePermissionException();
+
+  String get message => 'អ្នកមិនមានសិទ្ធិកែប្រែកាលបរិច្ឆេទការលក់ទេ។';
 }
 
 class PendingOrderOpenValidationException implements Exception {

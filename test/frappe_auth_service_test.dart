@@ -24,6 +24,7 @@ void main() {
             'name': 'EMP0002',
             'employee_name': 'Administrator',
             'change_customer': 1,
+            'change_sale_date': 1,
           },
         }),
         200,
@@ -56,6 +57,7 @@ void main() {
     expect(session.roles, ['Sales User', 'System Manager']);
     expect(session.employee['name'], 'EMP0002');
     expect(session.canChangeCustomer, isTrue);
+    expect(session.canChangeSaleDate, isTrue);
   });
 
   test('custom login supports null user image', () async {
@@ -82,5 +84,6 @@ void main() {
 
     expect(session.userImageUrl, isEmpty);
     expect(session.canChangeCustomer, isFalse);
+    expect(session.canChangeSaleDate, isFalse);
   });
 }

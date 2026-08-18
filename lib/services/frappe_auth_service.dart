@@ -61,6 +61,7 @@ class AuthSession {
   final Map<String, dynamic> employee;
 
   bool get canChangeCustomer => _flag(employee['change_customer']);
+  bool get canChangeSaleDate => _flag(employee['change_sale_date']);
 }
 
 class FrappeAuthService {

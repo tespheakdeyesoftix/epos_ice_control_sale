@@ -22,6 +22,7 @@ class SellController extends GetxController {
     required this.stationName,
     this.appSettingController,
     this.canChangeCustomerProvider,
+    this.canChangeSaleDateProvider,
   });
 
   final ProductService productService;
@@ -31,6 +32,7 @@ class SellController extends GetxController {
   final String stationName;
   final AppSettingController? appSettingController;
   final bool Function()? canChangeCustomerProvider;
+  final bool Function()? canChangeSaleDateProvider;
   final products = <Product>[].obs;
   final saleProducts = <SaleProduct>[].obs;
   final isLoading = false.obs;
@@ -68,6 +70,7 @@ class SellController extends GetxController {
   bool get isSaleDirty => _isSaleDirty;
   bool get canSearchBillForEdit => _canSearchBillForEdit;
   bool get canChangeCustomer => _canChangeCustomer;
+  bool get canChangeSaleDate => _canChangeSaleDate;
   Uri? productImage(Product product) => _productImage(product);
   Uri? saleProductImage(SaleProduct product) => _saleProductImage(product);
   Uri? customerImage(Customer customer) => _customerImage(customer);
@@ -165,6 +168,9 @@ class SellController extends GetxController {
   }
 
   void updatePostingDate(DateTime date) {
+    if (!canChangeSaleDate) {
+      throw const SaleDateChangePermissionException();
+    }
     final selectedDate = _dateOnly(date);
     final maximumDate = _dateOnly(DateTime.now()).add(const Duration(days: 1));
     if (!selectedDate.isAfter(maximumDate)) postingDate.value = selectedDate;

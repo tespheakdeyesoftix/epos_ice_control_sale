@@ -32,6 +32,13 @@ void _showCustomerChangePermissionDenied() {
   );
 }
 
+void _showSaleDateChangePermissionDenied() {
+  const error = SaleDateChangePermissionException();
+  FrappeResponseHandler.show(
+    FrappeServerMessage(message: error.message, indicator: 'orange'),
+  );
+}
+
 double _checkoutColumnWidth(double availableWidth) {
   if (availableWidth <= 1100) return 250;
   return (availableWidth * 0.24).clamp(285.0, 350.0);
@@ -110,12 +117,20 @@ class SellScreen extends GetView<SellController> {
                                 }
                               },
                               onDateTap: () async {
+                                if (!controller.canChangeSaleDate) {
+                                  _showSaleDateChangePermissionDenied();
+                                  return;
+                                }
                                 final selected = await showSelectDateDialog(
                                   context,
                                   initialDate: controller.postingDate.value,
                                 );
                                 if (selected != null) {
-                                  controller.updatePostingDate(selected);
+                                  try {
+                                    controller.updatePostingDate(selected);
+                                  } on SaleDateChangePermissionException {
+                                    _showSaleDateChangePermissionDenied();
+                                  }
                                 }
                               },
                               onReferenceTap: () async {

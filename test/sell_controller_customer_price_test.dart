@@ -149,4 +149,41 @@ void main() {
     controller.clearCustomer();
     expect(controller.selectedCustomer.value, isNull);
   });
+
+  test('change_sale_date permission applies only while editing', () {
+    var hasPermission = false;
+    final client = MockClient((_) async => http.Response('{}', 200));
+    final baseUri = Uri.parse('http://127.0.0.1:8888/');
+    final controller = SellController(
+      productService: ProductService(baseUri, client: client),
+      customerService: CustomerService(baseUri, client: client),
+      saleService: SaleService(baseUri, client: client),
+      outletName: 'Main Outlet',
+      stationName: 'Cashier 01',
+      canChangeSaleDateProvider: () => hasPermission,
+    );
+    final newOrderDate = DateTime.now().subtract(const Duration(days: 1));
+
+    controller.updatePostingDate(newOrderDate);
+    expect(controller.postingDate.value, _dateOnly(newOrderDate));
+
+    controller.openedSale.value = const Sale(
+      name: 'SO-EDIT-002',
+      outlet: 'Main Outlet',
+      saleProducts: [],
+    );
+    final blockedDate = DateTime.now();
+    expect(
+      () => controller.updatePostingDate(blockedDate),
+      throwsA(isA<SaleDateChangePermissionException>()),
+    );
+    expect(controller.postingDate.value, _dateOnly(newOrderDate));
+
+    hasPermission = true;
+    controller.updatePostingDate(blockedDate);
+    expect(controller.postingDate.value, _dateOnly(blockedDate));
+  });
 }
+
+DateTime _dateOnly(DateTime value) =>
+    DateTime(value.year, value.month, value.day);
