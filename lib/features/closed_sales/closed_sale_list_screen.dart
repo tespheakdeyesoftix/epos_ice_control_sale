@@ -13,6 +13,9 @@ class ClosedSaleListScreen extends GetView<ClosedSaleController> {
   static const _tableWidth = 1480.0;
 
   Future<void> _deleteSale(BuildContext context, ClosedSale sale) {
+    if (!controller.checkDeleteBillPermission()) {
+      return Future<void>.value();
+    }
     return showNoteDialog(
       context,
       promptTitle: 'មូលហេតុដែលលុបបុង ${sale.name}',

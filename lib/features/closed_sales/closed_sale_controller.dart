@@ -191,6 +191,7 @@ class ClosedSaleController extends GetxController {
   }
 
   Future<bool> deleteSale(String name, String deletedNote) async {
+    if (!checkDeleteBillPermission()) return false;
     if (deletingSaleNames.contains(name)) return false;
     deletingSaleNames.add(name);
     try {
@@ -210,6 +211,16 @@ class ClosedSaleController extends GetxController {
       return false;
     } finally {
       deletingSaleNames.remove(name);
+    }
+  }
+
+  bool checkDeleteBillPermission() {
+    try {
+      sellController.validateDeleteBillPermission();
+      return true;
+    } on DeleteBillPermissionException catch (error) {
+      _showMessage(error.message, indicator: 'orange');
+      return false;
     }
   }
 

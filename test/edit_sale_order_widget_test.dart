@@ -212,4 +212,41 @@ void main() {
     );
     expect(priceInkWell.onTap, isNull);
   });
+
+  testWidgets('employee permission locks product price editing', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light,
+        home: const Scaffold(
+          body: EditSaleOrderWidget(
+            canChangePrice: false,
+            saleProduct: SaleProduct(
+              productCode: 'P-NO-PRICE',
+              productName: 'Restricted Product',
+              productCategory: 'Test',
+              unit: 'Unit',
+              price: 15500,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('15,500'), findsOneWidget);
+    expect(find.text('អ្នកមិនមានសិទ្ធិកែប្រែតម្លៃទំនិញទេ។'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('product-price-change-permission-message')),
+      findsOneWidget,
+    );
+    final priceInkWell = tester.widget<InkWell>(
+      find.descendant(
+        of: find.byKey(const ValueKey('edit-sale-price')),
+        matching: find.byType(InkWell),
+      ),
+    );
+    expect(priceInkWell.onTap, isNull);
+  });
 }

@@ -62,6 +62,11 @@ class AuthSession {
 
   bool get canChangeCustomer => _flag(employee['change_customer']);
   bool get canChangeSaleDate => _flag(employee['change_sale_date']);
+  bool get canRemoveSaleProduct => _flag(employee['remove_sale_product']);
+  bool get canChangeProductPrice => _flag(employee['change_product_price']);
+  bool get canUsePosPayment => _flag(employee['pos_payment']);
+  bool get canEditBill => _flag(employee['edit_bill']);
+  bool get canDeleteBill => _flag(employee['delete_bill']);
 }
 
 class FrappeAuthService {

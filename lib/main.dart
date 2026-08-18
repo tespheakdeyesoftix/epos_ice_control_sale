@@ -118,6 +118,19 @@ class IceSaleApp extends StatelessWidget {
                   canChangeSaleDateProvider: () =>
                       controller.currentSession.value?.canChangeSaleDate ??
                       false,
+                  canRemoveSaleProductProvider: () =>
+                      controller.currentSession.value?.canRemoveSaleProduct ??
+                      false,
+                  canChangeProductPriceProvider: () =>
+                      controller.currentSession.value?.canChangeProductPrice ??
+                      false,
+                  canUsePosPaymentProvider: () =>
+                      controller.currentSession.value?.canUsePosPayment ??
+                      false,
+                  canEditBillProvider: () =>
+                      controller.currentSession.value?.canEditBill ?? false,
+                  canDeleteBillProvider: () =>
+                      controller.currentSession.value?.canDeleteBill ?? false,
                 ),
               );
               Get.lazyPut<AppShellController>(

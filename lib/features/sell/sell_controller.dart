@@ -23,6 +23,11 @@ class SellController extends GetxController {
     this.appSettingController,
     this.canChangeCustomerProvider,
     this.canChangeSaleDateProvider,
+    this.canRemoveSaleProductProvider,
+    this.canChangeProductPriceProvider,
+    this.canUsePosPaymentProvider,
+    this.canEditBillProvider,
+    this.canDeleteBillProvider,
   });
 
   final ProductService productService;
@@ -33,6 +38,11 @@ class SellController extends GetxController {
   final AppSettingController? appSettingController;
   final bool Function()? canChangeCustomerProvider;
   final bool Function()? canChangeSaleDateProvider;
+  final bool Function()? canRemoveSaleProductProvider;
+  final bool Function()? canChangeProductPriceProvider;
+  final bool Function()? canUsePosPaymentProvider;
+  final bool Function()? canEditBillProvider;
+  final bool Function()? canDeleteBillProvider;
   final products = <Product>[].obs;
   final saleProducts = <SaleProduct>[].obs;
   final isLoading = false.obs;
@@ -71,6 +81,10 @@ class SellController extends GetxController {
   bool get canSearchBillForEdit => _canSearchBillForEdit;
   bool get canChangeCustomer => _canChangeCustomer;
   bool get canChangeSaleDate => _canChangeSaleDate;
+  bool canRemoveSaleProduct(SaleProduct item) => _canRemoveSaleProduct(item);
+  bool get canChangeProductPrice => _canChangeProductPrice;
+  bool get canUsePosPayment => _canUsePosPayment;
+  bool get canDeleteBill => _canDeleteBill;
   Uri? productImage(Product product) => _productImage(product);
   Uri? saleProductImage(SaleProduct product) => _saleProductImage(product);
   Uri? customerImage(Customer customer) => _customerImage(customer);
@@ -184,6 +198,18 @@ class SellController extends GetxController {
     saleNote.value = value.trim();
   }
 
+  void requestPayment() {
+    if (!canUsePosPayment) {
+      throw const PosPaymentPermissionException();
+    }
+  }
+
+  void validateDeleteBillPermission() {
+    if (!canDeleteBill) {
+      throw const DeleteBillPermissionException();
+    }
+  }
+
   bool hasProduct(Product product) =>
       saleProducts.any((item) => item.productCode == product.code);
 
@@ -206,15 +232,30 @@ class SellController extends GetxController {
     return true;
   }
 
-  void remove(SaleProduct item) => saleProducts.removeWhere(
-    (candidate) => candidate.productCode == item.productCode,
-  );
+  void remove(SaleProduct item) {
+    if (!canRemoveSaleProduct(item)) {
+      throw const SaleProductRemovePermissionException();
+    }
+    saleProducts.removeWhere(
+      (candidate) => candidate.productCode == item.productCode,
+    );
+  }
 
   void updateSaleProduct(SaleProduct updatedItem) {
     final index = saleProducts.indexWhere(
       (item) => item.productCode == updatedItem.productCode,
     );
-    if (index >= 0) saleProducts[index] = updatedItem;
+    if (index < 0) return;
+    final currentItem = saleProducts[index];
+    final priceChanged =
+        (currentItem.price - updatedItem.price).abs() > 0.000001;
+    final saleTypeChanged =
+        currentItem.saleTransactionType.trim().toLowerCase() !=
+        updatedItem.saleTransactionType.trim().toLowerCase();
+    if (priceChanged && !saleTypeChanged && !canChangeProductPrice) {
+      throw const ProductPriceChangePermissionException();
+    }
+    saleProducts[index] = updatedItem;
   }
 
   void clearCart() => saleProducts.clear();
@@ -308,6 +349,7 @@ class SellController extends GetxController {
   }
 
   Future<void> deleteOpenedSale(String deletedNote) async {
+    validateDeleteBillPermission();
     final sale = openedSale.value;
     if (sale == null ||
         sale.name.trim().isEmpty ||

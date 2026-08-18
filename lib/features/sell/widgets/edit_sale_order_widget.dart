@@ -9,6 +9,7 @@ Future<SaleProduct?> showEditSaleOrderDialog(
   BuildContext context, {
   required SaleProduct saleProduct,
   bool canShowPrice = true,
+  bool canChangePrice = true,
   String customerName = '',
 }) {
   return showDialog<SaleProduct>(
@@ -16,6 +17,7 @@ Future<SaleProduct?> showEditSaleOrderDialog(
     builder: (_) => EditSaleOrderWidget(
       saleProduct: saleProduct,
       canShowPrice: canShowPrice,
+      canChangePrice: canChangePrice,
       customerName: customerName,
     ),
   );
@@ -26,11 +28,13 @@ class EditSaleOrderWidget extends StatefulWidget {
     super.key,
     required this.saleProduct,
     this.canShowPrice = true,
+    this.canChangePrice = true,
     this.customerName = '',
   });
 
   final SaleProduct saleProduct;
   final bool canShowPrice;
+  final bool canChangePrice;
   final String customerName;
 
   @override
@@ -190,6 +194,40 @@ class _EditSaleOrderWidgetState extends State<EditSaleOrderWidget> {
                         ),
                       ],
                     ),
+                    if (!widget.canChangePrice) ...[
+                      const SizedBox(height: 12),
+                      Container(
+                        key: const ValueKey(
+                          'product-price-change-permission-message',
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 11,
+                        ),
+                        decoration: BoxDecoration(
+                          color: colors.primaryContainer,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.info_outline_rounded,
+                              color: colors.onPrimaryContainer,
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                'អ្នកមិនមានសិទ្ធិកែប្រែតម្លៃទំនិញទេ។',
+                                style: TextStyle(
+                                  color: colors.onPrimaryContainer,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                     if (!widget.canShowPrice) ...[
                       const SizedBox(height: 12),
                       Container(
@@ -251,7 +289,10 @@ class _EditSaleOrderWidgetState extends State<EditSaleOrderWidget> {
                           value: widget.canShowPrice
                               ? formatMoney(_price)
                               : '***',
-                          onTap: _isBorrow || !widget.canShowPrice
+                          onTap:
+                              _isBorrow ||
+                                  !widget.canShowPrice ||
+                                  !widget.canChangePrice
                               ? null
                               : () => _editNumber(
                                   value: _price,

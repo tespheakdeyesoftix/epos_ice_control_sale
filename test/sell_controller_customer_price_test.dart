@@ -6,6 +6,7 @@ import 'package:http/testing.dart';
 import 'package:ice_control_sale/features/sell/customer.dart';
 import 'package:ice_control_sale/features/sell/product.dart';
 import 'package:ice_control_sale/features/sell/sale.dart';
+import 'package:ice_control_sale/features/sell/sale_product.dart';
 import 'package:ice_control_sale/features/sell/sell_controller.dart';
 import 'package:ice_control_sale/services/customer_service.dart';
 import 'package:ice_control_sale/services/product_service.dart';
@@ -133,6 +134,7 @@ void main() {
     controller.openedSale.value = const Sale(
       name: 'SO-EDIT-001',
       outlet: 'Main Outlet',
+      saleStatus: 'Closed',
       saleProducts: [],
     );
     await expectLater(
@@ -145,9 +147,26 @@ void main() {
     );
     expect(controller.selectedCustomer.value?.name, 'C001');
 
-    hasPermission = true;
+    controller.openedSale.value = const Sale(
+      name: 'SO-DRAFT-001',
+      outlet: 'Main Outlet',
+      saleStatus: 'Draft',
+      saleProducts: [],
+    );
+    await controller.selectCustomer(second);
+    expect(controller.selectedCustomer.value?.name, 'C002');
     controller.clearCustomer();
     expect(controller.selectedCustomer.value, isNull);
+
+    hasPermission = true;
+    controller.openedSale.value = const Sale(
+      name: 'SO-EDIT-001',
+      outlet: 'Main Outlet',
+      saleStatus: 'Closed',
+      saleProducts: [],
+    );
+    await controller.selectCustomer(first);
+    expect(controller.selectedCustomer.value?.name, 'C001');
   });
 
   test('change_sale_date permission applies only while editing', () {
@@ -170,6 +189,7 @@ void main() {
     controller.openedSale.value = const Sale(
       name: 'SO-EDIT-002',
       outlet: 'Main Outlet',
+      saleStatus: 'Closed',
       saleProducts: [],
     );
     final blockedDate = DateTime.now();
@@ -179,9 +199,180 @@ void main() {
     );
     expect(controller.postingDate.value, _dateOnly(newOrderDate));
 
-    hasPermission = true;
+    controller.openedSale.value = const Sale(
+      name: 'SO-DRAFT-002',
+      outlet: 'Main Outlet',
+      saleStatus: 'Draft',
+      saleProducts: [],
+    );
     controller.updatePostingDate(blockedDate);
     expect(controller.postingDate.value, _dateOnly(blockedDate));
+
+    hasPermission = true;
+    controller.openedSale.value = const Sale(
+      name: 'SO-EDIT-002',
+      outlet: 'Main Outlet',
+      saleStatus: 'Closed',
+      saleProducts: [],
+    );
+    controller.updatePostingDate(blockedDate);
+    expect(controller.postingDate.value, _dateOnly(blockedDate));
+  });
+
+  test('remove_sale_product permission applies only while editing', () {
+    var hasPermission = false;
+    final client = MockClient((_) async => http.Response('{}', 200));
+    final baseUri = Uri.parse('http://127.0.0.1:8888/');
+    final controller = SellController(
+      productService: ProductService(baseUri, client: client),
+      customerService: CustomerService(baseUri, client: client),
+      saleService: SaleService(baseUri, client: client),
+      outletName: 'Main Outlet',
+      stationName: 'Cashier 01',
+      canRemoveSaleProductProvider: () => hasPermission,
+    );
+    const product = Product(
+      code: 'P001',
+      name: 'Product One',
+      category: 'Test',
+      unit: 'Unit',
+      price: 1000,
+      color: '#1677FF',
+      photo: '',
+    );
+
+    expect(controller.addProduct(product), isTrue);
+    controller.remove(controller.saleProducts.single);
+    expect(controller.saleProducts, isEmpty);
+    controller.openedSale.value = const Sale(
+      name: 'SO-EDIT-003',
+      outlet: 'Main Outlet',
+      saleStatus: 'Closed',
+      saleProducts: [],
+    );
+
+    expect(controller.addProduct(product), isTrue);
+    controller.remove(controller.saleProducts.single);
+    expect(controller.saleProducts, isEmpty);
+
+    const line = SaleProduct(
+      name: 'SALE-PRODUCT-ROW-001',
+      productCode: 'P001',
+      productName: 'Product One',
+      productCategory: 'Test',
+      unit: 'Unit',
+      price: 1000,
+    );
+    controller.saleProducts.add(line);
+    expect(
+      () => controller.remove(line),
+      throwsA(isA<SaleProductRemovePermissionException>()),
+    );
+    expect(controller.saleProducts, hasLength(1));
+
+    controller.openedSale.value = const Sale(
+      name: 'SO-DRAFT-003',
+      outlet: 'Main Outlet',
+      saleStatus: 'Draft',
+      saleProducts: [],
+    );
+    controller.remove(line);
+    expect(controller.saleProducts, isEmpty);
+
+    hasPermission = true;
+    controller.openedSale.value = const Sale(
+      name: 'SO-EDIT-003',
+      outlet: 'Main Outlet',
+      saleStatus: 'Closed',
+      saleProducts: [],
+    );
+    controller.saleProducts.add(line);
+    controller.remove(line);
+    expect(controller.saleProducts, isEmpty);
+  });
+
+  test('change_product_price permission applies to new and edited Sales', () {
+    var hasPermission = false;
+    final client = MockClient((_) async => http.Response('{}', 200));
+    final baseUri = Uri.parse('http://127.0.0.1:8888/');
+    final controller = SellController(
+      productService: ProductService(baseUri, client: client),
+      customerService: CustomerService(baseUri, client: client),
+      saleService: SaleService(baseUri, client: client),
+      outletName: 'Main Outlet',
+      stationName: 'Cashier 01',
+      canChangeProductPriceProvider: () => hasPermission,
+    );
+    const product = Product(
+      code: 'P001',
+      name: 'Product One',
+      category: 'Test',
+      unit: 'Unit',
+      price: 1000,
+      color: '#1677FF',
+      photo: '',
+    );
+    expect(controller.addProduct(product), isTrue);
+
+    expect(
+      () => controller.updateSaleProduct(
+        controller.saleProducts.single.copyWith(price: 2000),
+      ),
+      throwsA(isA<ProductPriceChangePermissionException>()),
+    );
+    expect(controller.saleProducts.single.price, 1000);
+
+    hasPermission = true;
+    controller.updateSaleProduct(
+      controller.saleProducts.single.copyWith(price: 2000),
+    );
+    expect(controller.saleProducts.single.price, 2000);
+
+    controller.openedSale.value = const Sale(
+      name: 'SO-EDIT-004',
+      outlet: 'Main Outlet',
+      saleProducts: [],
+    );
+    hasPermission = false;
+    expect(
+      () => controller.updateSaleProduct(
+        controller.saleProducts.single.copyWith(price: 3000),
+      ),
+      throwsA(isA<ProductPriceChangePermissionException>()),
+    );
+    expect(controller.saleProducts.single.price, 2000);
+  });
+
+  test('pos_payment permission applies to new and edited Sales', () {
+    var hasPermission = false;
+    final client = MockClient((_) async => http.Response('{}', 200));
+    final baseUri = Uri.parse('http://127.0.0.1:8888/');
+    final controller = SellController(
+      productService: ProductService(baseUri, client: client),
+      customerService: CustomerService(baseUri, client: client),
+      saleService: SaleService(baseUri, client: client),
+      outletName: 'Main Outlet',
+      stationName: 'Cashier 01',
+      canUsePosPaymentProvider: () => hasPermission,
+    );
+
+    expect(
+      controller.requestPayment,
+      throwsA(isA<PosPaymentPermissionException>()),
+    );
+
+    controller.openedSale.value = const Sale(
+      name: 'SO-EDIT-005',
+      outlet: 'Main Outlet',
+      saleProducts: [],
+    );
+    expect(
+      controller.requestPayment,
+      throwsA(isA<PosPaymentPermissionException>()),
+    );
+
+    hasPermission = true;
+    expect(controller.requestPayment, returnsNormally);
   });
 }
 

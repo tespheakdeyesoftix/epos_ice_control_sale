@@ -84,6 +84,8 @@ extension SellControllerMethods on SellController {
   double get _grandTotal => _currentSale.totalAmount;
   bool get _hasSelectedCustomer => selectedCustomer.value != null;
   bool get _isNewSale => openedSale.value == null;
+  bool get _isOpenedDraftSale =>
+      openedSale.value?.saleStatus.trim().toLowerCase() == 'draft';
   bool get _canOpenPendingOrder => saleProducts.isEmpty && _isNewSale;
   bool get _isNewSaleDirty =>
       _isNewSale &&
@@ -97,9 +99,23 @@ extension SellControllerMethods on SellController {
   bool get _isSaleDirty => !_isNewSale || _isNewSaleDirty;
   bool get _canSearchBillForEdit => _isNewSale && !_isNewSaleDirty;
   bool get _canChangeCustomer =>
-      _isNewSale || (canChangeCustomerProvider?.call() ?? true);
+      _isNewSale ||
+      _isOpenedDraftSale ||
+      (canChangeCustomerProvider?.call() ?? true);
   bool get _canChangeSaleDate =>
-      _isNewSale || (canChangeSaleDateProvider?.call() ?? true);
+      _isNewSale ||
+      _isOpenedDraftSale ||
+      (canChangeSaleDateProvider?.call() ?? true);
+  bool _canRemoveSaleProduct(SaleProduct item) =>
+      _isNewSale ||
+      _isOpenedDraftSale ||
+      item.name.trim().isEmpty ||
+      (canRemoveSaleProductProvider?.call() ?? true);
+  bool get _canChangeProductPrice =>
+      canChangeProductPriceProvider?.call() ?? true;
+  bool get _canUsePosPayment => canUsePosPaymentProvider?.call() ?? true;
+  bool get _canEditBill => canEditBillProvider?.call() ?? true;
+  bool get _canDeleteBill => canDeleteBillProvider?.call() ?? true;
 
   Uri? _productImage(Product product) => _resolveImage(product.photo);
 
@@ -172,8 +188,14 @@ extension SellControllerMethods on SellController {
   }
 
   void _validateSaleForEdit(Sale sale) {
-    if (sale.saleStatus.trim().toLowerCase() == 'deleted') {
+    final saleStatus = sale.saleStatus.trim().toLowerCase();
+    if (saleStatus == 'deleted') {
       throw const SaleEditBlockedException(SaleEditBlockedReason.deleted);
+    }
+    if (saleStatus != 'draft' && !_canEditBill) {
+      throw const SaleEditBlockedException(
+        SaleEditBlockedReason.employeePermission,
+      );
     }
     if (sale.status.trim().toLowerCase() != 'unpaid') {
       throw const SaleEditBlockedException(SaleEditBlockedReason.notUnpaid);
@@ -187,7 +209,13 @@ extension SellControllerMethods on SellController {
   }
 }
 
-enum SaleEditBlockedReason { notUnpaid, splitBill, notAllowed, deleted }
+enum SaleEditBlockedReason {
+  notUnpaid,
+  splitBill,
+  notAllowed,
+  deleted,
+  employeePermission,
+}
 
 class SaleEditBlockedException implements Exception {
   const SaleEditBlockedException(this.reason);
@@ -201,6 +229,8 @@ class SaleEditBlockedException implements Exception {
       'មិនអាចកែប្រែបុងនេះបានទេ ព្រោះបុងនេះបានបំបែករួចហើយ។',
     SaleEditBlockedReason.notAllowed => 'អតិថិជននេះមិនអនុញ្ញាតឱ្យកែប្រែបុងទេ។',
     SaleEditBlockedReason.deleted => 'មិនអាចកែប្រែបុងដែលបានលុបបានទេ។',
+    SaleEditBlockedReason.employeePermission =>
+      'អ្នកមិនមានសិទ្ធិកែប្រែបុងលក់ទេ។',
   };
 }
 
@@ -218,6 +248,30 @@ class SaleDateChangePermissionException implements Exception {
   const SaleDateChangePermissionException();
 
   String get message => 'អ្នកមិនមានសិទ្ធិកែប្រែកាលបរិច្ឆេទការលក់ទេ។';
+}
+
+class SaleProductRemovePermissionException implements Exception {
+  const SaleProductRemovePermissionException();
+
+  String get message => 'អ្នកមិនមានសិទ្ធិលុបទំនិញចេញពីការលក់ទេ។';
+}
+
+class ProductPriceChangePermissionException implements Exception {
+  const ProductPriceChangePermissionException();
+
+  String get message => 'អ្នកមិនមានសិទ្ធិកែប្រែតម្លៃទំនិញទេ។';
+}
+
+class PosPaymentPermissionException implements Exception {
+  const PosPaymentPermissionException();
+
+  String get message => 'អ្នកមិនមានសិទ្ធិធ្វើការទូទាត់ប្រាក់ទេ។';
+}
+
+class DeleteBillPermissionException implements Exception {
+  const DeleteBillPermissionException();
+
+  String get message => 'អ្នកមិនមានសិទ្ធិលុបបុងលក់ទេ។';
 }
 
 class PendingOrderOpenValidationException implements Exception {

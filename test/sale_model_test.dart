@@ -3,6 +3,21 @@ import 'package:ice_control_sale/features/sell/sale.dart';
 import 'package:ice_control_sale/features/sell/sale_product.dart';
 
 void main() {
+  test('SaleProduct preserves persisted child row name', () {
+    final item = SaleProduct.fromJson({
+      'name': 'SALE-PRODUCT-ROW-001',
+      'product_code': 'P001',
+      'product_name': 'Product One',
+      'product_category': 'Test',
+      'unit': 'Unit',
+      'price': 1000,
+    });
+
+    expect(item.name, 'SALE-PRODUCT-ROW-001');
+    expect(item.copyWith(quantity: 2).name, 'SALE-PRODUCT-ROW-001');
+    expect(item.toJson()['name'], 'SALE-PRODUCT-ROW-001');
+  });
+
   test('គណនាចំនួនលក់ពិតតាម Sale Products metadata', () {
     const item = SaleProduct(
       productCode: '01',

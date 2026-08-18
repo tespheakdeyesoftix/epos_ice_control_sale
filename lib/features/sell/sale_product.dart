@@ -5,6 +5,7 @@ import 'product.dart';
 
 class SaleProduct {
   const SaleProduct({
+    this.name = '',
     required this.productCode,
     required this.productName,
     required this.productCategory,
@@ -66,6 +67,7 @@ class SaleProduct {
 
   factory SaleProduct.fromJson(Map<String, dynamic> json) {
     return SaleProduct(
+      name: _text(json['name']),
       productCode: _text(json['product_code']),
       productName: _text(json['product_name']),
       productCategory: _text(json['product_category']),
@@ -98,6 +100,7 @@ class SaleProduct {
     );
   }
 
+  final String name;
   final String productCode;
   final String productName;
   final String productCategory;
@@ -150,6 +153,7 @@ class SaleProduct {
     final nextIsBorrow =
         nextSaleTransactionType.trim().toLowerCase() == 'borrow';
     return SaleProduct(
+      name: name,
       productCode: productCode,
       productName: productName,
       productCategory: productCategory,
@@ -182,6 +186,7 @@ class SaleProduct {
 
   Map<String, dynamic> toJson() {
     return {
+      if (name.isNotEmpty) 'name': name,
       'product_code': productCode,
       'outlet': outlet,
       'product_name': productName,

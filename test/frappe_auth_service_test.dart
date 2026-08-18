@@ -25,6 +25,11 @@ void main() {
             'employee_name': 'Administrator',
             'change_customer': 1,
             'change_sale_date': 1,
+            'remove_sale_product': 1,
+            'change_product_price': 1,
+            'pos_payment': 1,
+            'edit_bill': 1,
+            'delete_bill': 1,
           },
         }),
         200,
@@ -58,6 +63,11 @@ void main() {
     expect(session.employee['name'], 'EMP0002');
     expect(session.canChangeCustomer, isTrue);
     expect(session.canChangeSaleDate, isTrue);
+    expect(session.canRemoveSaleProduct, isTrue);
+    expect(session.canChangeProductPrice, isTrue);
+    expect(session.canUsePosPayment, isTrue);
+    expect(session.canEditBill, isTrue);
+    expect(session.canDeleteBill, isTrue);
   });
 
   test('custom login supports null user image', () async {
@@ -85,5 +95,10 @@ void main() {
     expect(session.userImageUrl, isEmpty);
     expect(session.canChangeCustomer, isFalse);
     expect(session.canChangeSaleDate, isFalse);
+    expect(session.canRemoveSaleProduct, isFalse);
+    expect(session.canChangeProductPrice, isFalse);
+    expect(session.canUsePosPayment, isFalse);
+    expect(session.canEditBill, isFalse);
+    expect(session.canDeleteBill, isFalse);
   });
 }

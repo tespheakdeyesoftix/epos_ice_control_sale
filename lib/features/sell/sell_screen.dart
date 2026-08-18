@@ -39,6 +39,34 @@ void _showSaleDateChangePermissionDenied() {
   );
 }
 
+void _showSaleProductRemovePermissionDenied() {
+  const error = SaleProductRemovePermissionException();
+  FrappeResponseHandler.show(
+    FrappeServerMessage(message: error.message, indicator: 'orange'),
+  );
+}
+
+void _showProductPriceChangePermissionDenied() {
+  const error = ProductPriceChangePermissionException();
+  FrappeResponseHandler.show(
+    FrappeServerMessage(message: error.message, indicator: 'orange'),
+  );
+}
+
+void _showPosPaymentPermissionDenied() {
+  const error = PosPaymentPermissionException();
+  FrappeResponseHandler.show(
+    FrappeServerMessage(message: error.message, indicator: 'orange'),
+  );
+}
+
+void _showDeleteBillPermissionDenied() {
+  const error = DeleteBillPermissionException();
+  FrappeResponseHandler.show(
+    FrappeServerMessage(message: error.message, indicator: 'orange'),
+  );
+}
+
 double _checkoutColumnWidth(double availableWidth) {
   if (availableWidth <= 1100) return 250;
   return (availableWidth * 0.24).clamp(285.0, 350.0);
@@ -100,7 +128,13 @@ class SellScreen extends GetView<SellController> {
                                   : null,
                               showSaleNote: controller.isSaleDirty,
                               imageUriBuilder: controller.saleProductImage,
-                              onRemove: controller.remove,
+                              onRemove: (line) {
+                                try {
+                                  controller.remove(line);
+                                } on SaleProductRemovePermissionException {
+                                  _showSaleProductRemovePermissionDenied();
+                                }
+                              },
                               onEdit: (line) async {
                                 final sale = controller.currentSale;
                                 final canShowPrice =
@@ -110,10 +144,16 @@ class SellScreen extends GetView<SellController> {
                                   context,
                                   saleProduct: line,
                                   canShowPrice: canShowPrice,
+                                  canChangePrice:
+                                      controller.canChangeProductPrice,
                                   customerName: sale.customerName,
                                 );
                                 if (updated != null) {
-                                  controller.updateSaleProduct(updated);
+                                  try {
+                                    controller.updateSaleProduct(updated);
+                                  } on ProductPriceChangePermissionException {
+                                    _showProductPriceChangePermissionDenied();
+                                  }
                                 }
                               },
                               onDateTap: () async {
@@ -1129,9 +1169,23 @@ class _BottomBar extends StatelessWidget {
 
   final SellController controller;
 
+  void _requestPayment() {
+    try {
+      controller.requestPayment();
+    } on PosPaymentPermissionException {
+      _showPosPaymentPermissionDenied();
+    }
+  }
+
   Future<void> _deleteSale(BuildContext context) async {
     final saleName = controller.currentSale.name;
     if (saleName.trim().isEmpty) return;
+    try {
+      controller.validateDeleteBillPermission();
+    } on DeleteBillPermissionException {
+      _showDeleteBillPermissionDenied();
+      return;
+    }
     await showNoteDialog(
       context,
       promptTitle: 'មូលហេតុដែលលុបបុង $saleName',
@@ -1145,6 +1199,9 @@ class _BottomBar extends StatelessWidget {
             ),
           );
           return true;
+        } on DeleteBillPermissionException {
+          _showDeleteBillPermissionDenied();
+          return false;
         } on FrappeServerMessageException {
           // The shared API client already displayed the server message.
           return false;
@@ -1304,7 +1361,9 @@ class _BottomBar extends StatelessWidget {
               width: paymentButtonWidth,
               height: double.infinity,
               child: FilledButton.icon(
-                onPressed: controller.saleProducts.isEmpty ? null : () {},
+                onPressed: controller.saleProducts.isEmpty
+                    ? null
+                    : _requestPayment,
                 icon: Icon(Icons.payments_outlined),
                 label: const Text(
                   'ទូទាត់ប្រាក់',
