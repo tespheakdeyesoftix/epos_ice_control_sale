@@ -44,7 +44,7 @@ extension SellControllerMethods on SellController {
     return Sale(
       name: savedSale?.name ?? '',
       namingSeries: savedSale?.namingSeries ?? 'SO.YYYY.-.####',
-      outlet: outletName,
+      outlet: activeOutletName,
       stockLocation: savedSale?.stockLocation.isNotEmpty == true
           ? savedSale!.stockLocation
           : appSettingController?.current?.defaultStockLocation ?? '',
@@ -272,6 +272,21 @@ class DeleteBillPermissionException implements Exception {
   const DeleteBillPermissionException();
 
   String get message => 'អ្នកមិនមានសិទ្ធិលុបបុងលក់ទេ។';
+}
+
+class OutletChangeBlockedException implements Exception {
+  const OutletChangeBlockedException();
+
+  String get message =>
+      'សូមរក្សាទុក ឬបោះបង់បុងបច្ចុប្បន្នជាមុនសិន មុននឹងប្តូរកន្លែងលក់។';
+}
+
+class OutletChangeValidationException implements Exception {
+  const OutletChangeValidationException();
+}
+
+class OutletChangeInProgressException implements Exception {
+  const OutletChangeInProgressException();
 }
 
 class PendingOrderOpenValidationException implements Exception {

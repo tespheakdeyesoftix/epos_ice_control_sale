@@ -18,6 +18,7 @@ class AuthSession {
     this.userImageUrl = '',
     this.roles = const [],
     this.employee = const {},
+    this.outlets = const [],
   });
 
   factory AuthSession.fromJson(
@@ -27,6 +28,9 @@ class AuthSession {
     final rawImage = _text(json['user_image']);
     final roles = json['roles'];
     final employee = json['employee'];
+    final employeeMap = employee is Map
+        ? Map<String, dynamic>.from(employee)
+        : <String, dynamic>{};
     return AuthSession(
       raw: Map<String, dynamic>.unmodifiable(json),
       fullName: _text(json['full_name']),
@@ -41,11 +45,8 @@ class AuthSession {
       roles: roles is List
           ? roles.map((role) => role.toString()).toList(growable: false)
           : const [],
-      employee: employee is Map
-          ? Map<String, dynamic>.unmodifiable(
-              Map<String, dynamic>.from(employee),
-            )
-          : const {},
+      employee: Map<String, dynamic>.unmodifiable(employeeMap),
+      outlets: _parseOutlets(employeeMap['outlets'] ?? json['outlets']),
     );
   }
 
@@ -59,6 +60,7 @@ class AuthSession {
   final String userImageUrl;
   final List<String> roles;
   final Map<String, dynamic> employee;
+  final List<String> outlets;
 
   bool get canChangeCustomer => _flag(employee['change_customer']);
   bool get canChangeSaleDate => _flag(employee['change_sale_date']);
@@ -137,6 +139,16 @@ bool _flag(dynamic value) {
   if (value is bool) return value;
   if (value is num) return value == 1;
   return value?.toString().trim() == '1';
+}
+
+List<String> _parseOutlets(dynamic value) {
+  if (value is! List) return const [];
+  final outlets = <String>{};
+  for (final item in value) {
+    final outlet = item is Map ? _text(item['outlet']) : _text(item);
+    if (outlet.isNotEmpty) outlets.add(outlet);
+  }
+  return List<String>.unmodifiable(outlets);
 }
 
 class AuthException implements Exception {

@@ -14,17 +14,19 @@ class PendingSaleListScreen extends GetView<AppShellController> {
   @override
   Widget build(BuildContext context) {
     final sell = controller.sellController;
-    return PendingOrderListDialogWidget(
-      saleService: sell.saleService,
-      outlet: sell.outletName,
-      embedded: true,
-      onView: (name) => showPendingSaleViewDialog(
-        context,
+    return Obx(
+      () => PendingOrderListDialogWidget(
         saleService: sell.saleService,
-        name: name,
+        outlet: sell.activeOutletName,
+        embedded: true,
+        onView: (name) => showPendingSaleViewDialog(
+          context,
+          saleService: sell.saleService,
+          name: name,
+        ),
+        onEdit: (name) => _editOrder(context, name),
+        onRefreshed: () => sell.loadPendingOrderCount(),
       ),
-      onEdit: (name) => _editOrder(context, name),
-      onRefreshed: () => sell.loadPendingOrderCount(),
     );
   }
 

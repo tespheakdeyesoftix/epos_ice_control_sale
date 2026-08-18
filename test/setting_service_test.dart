@@ -38,7 +38,10 @@ void main() {
       client: client,
     );
 
-    final setting = await service.getSetting('Cashier 01');
+    final setting = await service.getSetting(
+      'Cashier 01',
+      outlet: 'កន្លែងលក់ទី១',
+    );
 
     expect(sentRequest.method, 'GET');
     expect(
@@ -46,6 +49,7 @@ void main() {
       '/api/method/ice_control.api.v1.utils.get_setting',
     );
     expect(sentRequest.url.queryParameters['station_name'], 'Cashier 01');
+    expect(sentRequest.url.queryParameters['outlet'], 'កន្លែងលក់ទី១');
     expect(setting.businessNameEn, 'Heang Hok Kheang I');
     expect(setting.businessNameKh, 'រោងចក្រទឹកកក ហ៊ាងហុកឃាង');
     expect(setting.address, 'ខេត្តសៀមរាប');

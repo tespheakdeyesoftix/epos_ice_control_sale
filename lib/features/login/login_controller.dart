@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 
 import '../../app/app_routes.dart';
 import '../../app/app_setting_controller.dart';
+import '../../app/session_outlet_controller.dart';
 import '../../services/frappe_auth_service.dart';
 import '../../services/frappe_response_handler.dart';
 
@@ -13,12 +14,14 @@ class LoginController extends GetxController {
     required this.authService,
     required this.stationName,
     required this.outletName,
+    this.sessionOutletController,
     this.configurationError,
   });
 
   final FrappeAuthService? authService;
   final String stationName;
   final String outletName;
+  final SessionOutletController? sessionOutletController;
   final String? configurationError;
   final usernameController = TextEditingController();
   final passwordController = TextEditingController();
@@ -56,6 +59,7 @@ class LoginController extends GetxController {
         unawaited(AppSettingController.to.load());
       }
       currentSession.value = session;
+      sessionOutletController?.startSession(session);
       currentUsername.value = session.fullName.isEmpty
           ? session.user.isEmpty
                 ? username
@@ -88,6 +92,7 @@ class LoginController extends GetxController {
     currentUsername.value = '';
     currentUserImageUrl.value = '';
     currentSession.value = null;
+    sessionOutletController?.reset();
     usernameController.clear();
     passwordController.clear();
     errorMessage.value = null;

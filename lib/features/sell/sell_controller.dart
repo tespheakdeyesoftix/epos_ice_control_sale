@@ -1,6 +1,7 @@
 import 'package:get/get.dart';
 
 import '../../app/app_setting_controller.dart';
+import '../../app/session_outlet_controller.dart';
 import '../../services/customer_service.dart';
 import '../../services/frappe_response_handler.dart';
 import '../../services/product_service.dart';
@@ -21,6 +22,7 @@ class SellController extends GetxController {
     required this.outletName,
     required this.stationName,
     this.appSettingController,
+    this.sessionOutletController,
     this.canChangeCustomerProvider,
     this.canChangeSaleDateProvider,
     this.canRemoveSaleProductProvider,
@@ -36,6 +38,7 @@ class SellController extends GetxController {
   final String outletName;
   final String stationName;
   final AppSettingController? appSettingController;
+  final SessionOutletController? sessionOutletController;
   final bool Function()? canChangeCustomerProvider;
   final bool Function()? canChangeSaleDateProvider;
   final bool Function()? canRemoveSaleProductProvider;
@@ -46,6 +49,7 @@ class SellController extends GetxController {
   final products = <Product>[].obs;
   final saleProducts = <SaleProduct>[].obs;
   final isLoading = false.obs;
+  final isChangingOutlet = false.obs;
   final errorMessage = RxnString();
   final searchQuery = ''.obs;
   final selectedProductCategory = ''.obs;
@@ -85,6 +89,12 @@ class SellController extends GetxController {
   bool get canChangeProductPrice => _canChangeProductPrice;
   bool get canUsePosPayment => _canUsePosPayment;
   bool get canDeleteBill => _canDeleteBill;
+  String get activeOutletName =>
+      sessionOutletController?.currentOutlet.value ?? outletName;
+  List<String> get availableOutlets =>
+      sessionOutletController?.availableOutlets.toList(growable: false) ??
+      <String>[outletName];
+  bool get canChangeOutlet => sessionOutletController?.canChangeOutlet ?? false;
   Uri? productImage(Product product) => _productImage(product);
   Uri? saleProductImage(SaleProduct product) => _saleProductImage(product);
   Uri? customerImage(Customer customer) => _customerImage(customer);
@@ -101,7 +111,7 @@ class SellController extends GetxController {
     isLoadingPendingOrders.value = true;
     try {
       pendingOrderCount.value = await saleService.getTotalPendingOrder(
-        outletName,
+        activeOutletName,
       );
     } on Exception {
       // Keep the last known count when the server cannot be reached.
@@ -114,7 +124,7 @@ class SellController extends GetxController {
     isLoading.value = true;
     errorMessage.value = null;
     try {
-      products.assignAll(await productService.getProducts(outletName));
+      products.assignAll(await productService.getProducts(activeOutletName));
       if (!productCategories.contains(selectedProductCategory.value)) {
         selectedProductCategory.value = '';
       }
@@ -131,6 +141,34 @@ class SellController extends GetxController {
 
   void selectProductCategory(String category) {
     selectedProductCategory.value = category.trim();
+  }
+
+  Future<void> changeOutlet(String outlet) async {
+    final normalized = outlet.trim();
+    if (normalized.isEmpty || normalized == activeOutletName) return;
+    if (isSaleDirty) throw const OutletChangeBlockedException();
+    if (!availableOutlets.contains(normalized)) {
+      throw const OutletChangeValidationException();
+    }
+    if (isChangingOutlet.value || isLoading.value) {
+      throw const OutletChangeInProgressException();
+    }
+
+    isChangingOutlet.value = true;
+    isLoading.value = true;
+    errorMessage.value = null;
+    try {
+      final outletProducts = await productService.getProducts(normalized);
+      await appSettingController?.load(outlet: normalized);
+      sessionOutletController?.commitOutlet(normalized);
+      products.assignAll(outletProducts);
+      if (!productCategories.contains(selectedProductCategory.value)) {
+        selectedProductCategory.value = '';
+      }
+    } finally {
+      isLoading.value = false;
+      isChangingOutlet.value = false;
+    }
   }
 
   Future<void> selectCustomer(Customer customer) async {
@@ -217,7 +255,7 @@ class SellController extends GetxController {
     if (quantity <= 0 || hasProduct(product)) return false;
     final saleProduct = SaleProduct.fromProduct(
       product,
-      outlet: outletName,
+      outlet: activeOutletName,
       quantity: quantity,
     );
     final customerPrice = _customerPriceFor(
@@ -304,7 +342,7 @@ class SellController extends GetxController {
     try {
       final sale = await saleService.searchBillForEdit(
         keyword: normalizedKeyword,
-        outlet: outletName,
+        outlet: activeOutletName,
       );
       if (!canSearchBillForEdit) {
         throw const BillSearchValidationException();

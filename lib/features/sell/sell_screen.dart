@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../app/app_theme.dart';
 import '../../services/frappe_response_handler.dart';
 import '../../shared/input_number_dialog_widget.dart';
 import '../../shared/note_dialog_widget.dart';
 import '../../shared/select_customer_dialog_widget.dart';
 import '../../shared/select_closed_order_dialog_widget.dart';
 import '../../shared/select_date_dialog_widget.dart';
+import '../../shared/select_outlet_dialog_widget.dart';
 import '../../shared/text_input_dialog_widget.dart';
 import '../../utils/helpers.dart';
 import '../login/login_controller.dart';
@@ -283,6 +285,58 @@ class _TopBarState extends State<_TopBar> {
     });
   }
 
+  Future<void> _changeOutlet() async {
+    if (controller.isSaleDirty) {
+      const error = OutletChangeBlockedException();
+      FrappeResponseHandler.show(
+        FrappeServerMessage(message: error.message, indicator: 'orange'),
+      );
+      return;
+    }
+
+    final selected = await showSelectOutletDialog(
+      context,
+      outlets: controller.availableOutlets,
+      selectedOutlet: controller.activeOutletName,
+    );
+    if (selected == null || !mounted) {
+      _focusSearchField();
+      return;
+    }
+
+    try {
+      await controller.changeOutlet(selected);
+      FrappeResponseHandler.show(
+        FrappeServerMessage(
+          message: 'បានប្តូរកន្លែងលក់ទៅ $selected ដោយជោគជ័យ។',
+          indicator: 'green',
+        ),
+      );
+    } on OutletChangeBlockedException catch (error) {
+      FrappeResponseHandler.show(
+        FrappeServerMessage(message: error.message, indicator: 'orange'),
+      );
+    } on OutletChangeInProgressException {
+      FrappeResponseHandler.show(
+        const FrappeServerMessage(
+          message: 'កំពុងផ្ទុកទិន្នន័យកន្លែងលក់ សូមរង់ចាំ។',
+          indicator: 'orange',
+        ),
+      );
+    } on FrappeServerMessageException {
+      // The shared API client already displayed the server message.
+    } on Exception {
+      FrappeResponseHandler.show(
+        const FrappeServerMessage(
+          message: 'មិនអាចប្តូរកន្លែងលក់បានទេ។',
+          indicator: 'red',
+        ),
+      );
+    } finally {
+      _focusSearchField();
+    }
+  }
+
   Future<void> _searchBill(String value) async {
     final keyword = value.trim();
     if (keyword.isEmpty || controller.isSearchingBill.value) return;
@@ -322,7 +376,7 @@ class _TopBarState extends State<_TopBar> {
     final name = await showSelectClosedOrderDialog(
       context,
       saleService: controller.saleService,
-      outlet: controller.outletName,
+      outlet: controller.activeOutletName,
     );
     if (name == null || !mounted) {
       _focusSearchField();
@@ -384,37 +438,88 @@ class _TopBarState extends State<_TopBar> {
         children: [
           SizedBox(
             width: 330,
-            child: Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.start,
+            child: Obx(
+              () => Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
                     children: [
-                      Text(
-                        login.outletName,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color: context.colors.onSurface,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 16,
+                      Flexible(
+                        fit: FlexFit.loose,
+                        child: Text(
+                          controller.activeOutletName,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: context.colors.onSurface,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 16,
+                          ),
                         ),
                       ),
-                      const SizedBox(height: 3),
-                      Text(
-                        'ម៉ាស៊ីនលក់៖ ${login.stationName}',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color: context.colors.onSurfaceVariant,
-                          fontSize: 12,
+                      if (controller.canChangeOutlet) ...[
+                        const SizedBox(width: 6),
+                        SizedBox(
+                          height: 32,
+                          child: TextButton.icon(
+                            key: const ValueKey('change-outlet-button'),
+                            onPressed:
+                                controller.isChangingOutlet.value ||
+                                    controller.isLoading.value
+                                ? null
+                                : _changeOutlet,
+                            icon: controller.isChangingOutlet.value
+                                ? const SizedBox.square(
+                                    dimension: 14,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : const Icon(
+                                    Icons.swap_horiz_rounded,
+                                    size: 17,
+                                  ),
+                            label: const Text('ប្តូរកន្លែងលក់'),
+                            style: TextButton.styleFrom(
+                              backgroundColor: context.colors.primary
+                                  .withValues(alpha: 0.025),
+                              foregroundColor: context.colors.primary,
+                              side: BorderSide(
+                                color: context.colors.primary.withValues(
+                                  alpha: 0.2,
+                                ),
+                              ),
+                              minimumSize: Size.zero,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 9,
+                              ),
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              visualDensity: VisualDensity.compact,
+                              textStyle: const TextStyle(
+                                fontFamily: AppTheme.fontFamily,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                height: 1.4,
+                              ),
+                            ),
+                          ),
                         ),
-                      ),
+                      ],
                     ],
                   ),
-                ),
-              ],
+                  const SizedBox(height: 3),
+                  Text(
+                    'ម៉ាស៊ីនលក់៖ ${login.stationName}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: context.colors.onSurfaceVariant,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
           const SizedBox(width: 20),
@@ -487,7 +592,7 @@ class _TopBarState extends State<_TopBar> {
                 final name = await showPendingOrderListDialog(
                   context,
                   saleService: controller.saleService,
-                  outlet: controller.outletName,
+                  outlet: controller.activeOutletName,
                 );
                 if (name != null && context.mounted) {
                   try {

@@ -79,7 +79,7 @@ class ClosedSaleController extends GetxController {
     errorMessage.value = null;
     try {
       final page = await sellController.saleService.getClosedSales(
-        outlet: sellController.outletName,
+        outlet: sellController.activeOutletName,
         search: searchController.text,
         startDate: startDate.value == null ? '' : _apiDate(startDate.value!),
         endDate: endDate.value == null ? '' : _apiDate(endDate.value!),
@@ -112,7 +112,7 @@ class ClosedSaleController extends GetxController {
     isLoadingTodayCount.value = true;
     try {
       todayClosedSaleCount.value = await sellController.saleService
-          .getTodayClosedSaleCount(sellController.outletName);
+          .getTodayClosedSaleCount(sellController.activeOutletName);
     } on FrappeServerMessageException {
       // The shared API client already displayed the server message.
     } on Exception {

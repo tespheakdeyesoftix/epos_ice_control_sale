@@ -12,10 +12,18 @@ class SettingService {
   final Uri baseUri;
   final http.Client _client;
 
-  Future<AppSetting> getSetting(String stationName) async {
+  Future<AppSetting> getSetting(
+    String stationName, {
+    required String outlet,
+  }) async {
     final endpoint = baseUri
         .resolve(ApiEndpoint.setting)
-        .replace(queryParameters: {'station_name': stationName});
+        .replace(
+          queryParameters: {
+            'station_name': stationName,
+            'outlet': outlet.trim(),
+          },
+        );
     final response = await _client
         .get(endpoint, headers: const {'Accept': 'application/json'})
         .timeout(const Duration(seconds: 20));

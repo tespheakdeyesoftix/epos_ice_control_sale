@@ -7,6 +7,7 @@ import 'app/app_routes.dart';
 import 'app/app_setting_controller.dart';
 import 'app/app_theme.dart';
 import 'app/theme_controller.dart';
+import 'app/session_outlet_controller.dart';
 import 'features/closed_sales/closed_sale_controller.dart';
 import 'features/login/login_controller.dart';
 import 'features/login/login_screen.dart';
@@ -61,10 +62,14 @@ class IceSaleApp extends StatelessWidget {
   Widget build(BuildContext context) {
     final sessionClient = FrappeSessionClient();
     final appThemeController = themeController ?? ThemeController();
+    final sessionOutletController = SessionOutletController(
+      configuredOutlet: config?.outletName ?? '',
+    );
     final globalSettingController =
         appSettingController ??
         AppSettingController(
           stationName: config?.stationName ?? '',
+          outletNameProvider: () => sessionOutletController.currentOutlet.value,
           settingService: config == null
               ? null
               : SettingService(config!.baseUri, client: sessionClient),
@@ -76,6 +81,7 @@ class IceSaleApp extends StatelessWidget {
       configurationError: configurationError,
       stationName: config?.stationName ?? '',
       outletName: config?.outletName ?? '',
+      sessionOutletController: sessionOutletController,
     );
 
     return GetMaterialApp(
@@ -85,6 +91,10 @@ class IceSaleApp extends StatelessWidget {
         Get.put<ThemeController>(appThemeController, permanent: true);
         Get.put<AppSettingController>(globalSettingController, permanent: true);
         Get.put<LoginController>(controller, permanent: true);
+        Get.put<SessionOutletController>(
+          sessionOutletController,
+          permanent: true,
+        );
       }),
       initialRoute: AppRoutes.login,
       getPages: [
@@ -110,6 +120,7 @@ class IceSaleApp extends StatelessWidget {
                     client: sessionClient,
                   ),
                   outletName: appConfig.outletName,
+                  sessionOutletController: sessionOutletController,
                   stationName: appConfig.stationName,
                   appSettingController: globalSettingController,
                   canChangeCustomerProvider: () =>

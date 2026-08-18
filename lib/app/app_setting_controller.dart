@@ -8,6 +8,7 @@ class AppSettingController extends GetxController {
   AppSettingController({
     required this.stationName,
     this.settingService,
+    this.outletNameProvider,
     AppSetting? initialSetting,
   }) {
     setting.value = initialSetting;
@@ -17,6 +18,7 @@ class AppSettingController extends GetxController {
 
   final String stationName;
   final SettingService? settingService;
+  final String Function()? outletNameProvider;
   final setting = Rxn<AppSetting>();
   final isLoading = false.obs;
   final errorMessage = RxnString();
@@ -35,7 +37,7 @@ class AppSettingController extends GetxController {
     if (setting.value == null) load();
   }
 
-  Future<void> load() async {
+  Future<void> load({String? outlet}) async {
     final service = settingService;
     if (service == null || stationName.trim().isEmpty || isLoading.value) {
       return;
@@ -43,7 +45,10 @@ class AppSettingController extends GetxController {
     isLoading.value = true;
     errorMessage.value = null;
     try {
-      setting.value = await service.getSetting(stationName);
+      setting.value = await service.getSetting(
+        stationName,
+        outlet: outlet ?? outletNameProvider?.call() ?? '',
+      );
     } on FrappeServerMessageException {
       // The shared API client already displayed the server message.
     } on Exception {

@@ -30,6 +30,11 @@ void main() {
             'pos_payment': 1,
             'edit_bill': 1,
             'delete_bill': 1,
+            'outlets': [
+              {'outlet': 'កន្លែងលក់ទី១'},
+              {'outlet': 'កន្លែងលក់ទី២'},
+              {'outlet': 'កន្លែងលក់ទី១'},
+            ],
           },
         }),
         200,
@@ -68,6 +73,7 @@ void main() {
     expect(session.canUsePosPayment, isTrue);
     expect(session.canEditBill, isTrue);
     expect(session.canDeleteBill, isTrue);
+    expect(session.outlets, ['កន្លែងលក់ទី១', 'កន្លែងលក់ទី២']);
   });
 
   test('custom login supports null user image', () async {
@@ -100,5 +106,6 @@ void main() {
     expect(session.canUsePosPayment, isFalse);
     expect(session.canEditBill, isFalse);
     expect(session.canDeleteBill, isFalse);
+    expect(session.outlets, isEmpty);
   });
 }
