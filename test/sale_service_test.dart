@@ -280,4 +280,35 @@ void main() {
     expect(savedOrder['name'], 'SO-0001');
     expect(savedOrder['sale_products'], hasLength(1));
   });
+
+  test('លុប Sale ជាមួយកំណត់ចំណាំ', () async {
+    late http.Request sentRequest;
+    final client = MockClient((request) async {
+      sentRequest = request;
+      return http.Response(
+        jsonEncode({
+          'message': {'name': 'SO-CLOSED-0001'},
+        }),
+        200,
+        headers: {'content-type': 'application/json'},
+      );
+    });
+    final service = SaleService(
+      Uri.parse('http://127.0.0.1:8888/'),
+      client: client,
+    );
+
+    await service.deleteSale(
+      docName: 'SO-CLOSED-0001',
+      deletedNote: 'បញ្ចូលខុស',
+    );
+
+    expect(sentRequest.method, 'POST');
+    expect(
+      sentRequest.url.path,
+      '/api/method/ice_control.api.v1.sale.delete_sale',
+    );
+    expect(sentRequest.bodyFields['doc_name'], 'SO-CLOSED-0001');
+    expect(sentRequest.bodyFields['deleted_note'], 'បញ្ចូលខុស');
+  });
 }

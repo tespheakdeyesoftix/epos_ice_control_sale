@@ -13,6 +13,7 @@ class SelectDriverWidget extends StatelessWidget {
     this.onTap,
     this.onClear,
     this.onChangePlateNumber,
+    this.compact = false,
   });
 
   final String driverCode;
@@ -23,6 +24,7 @@ class SelectDriverWidget extends StatelessWidget {
   final VoidCallback? onTap;
   final VoidCallback? onClear;
   final VoidCallback? onChangePlateNumber;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
@@ -34,10 +36,8 @@ class SelectDriverWidget extends StatelessWidget {
         : driverCode.isEmpty
         ? selectedName
         : '$driverCode - $selectedName';
-    final details = [
-      if (phoneNumber.trim().isNotEmpty) phoneNumber.trim(),
-      if (plateNumber.trim().isNotEmpty) plateNumber.trim(),
-    ].join(' • ');
+    final displayPhoneNumber = phoneNumber.trim();
+    final displayPlateNumber = plateNumber.trim();
 
     return Container(
       decoration: _decoration(colors),
@@ -48,7 +48,7 @@ class SelectDriverWidget extends StatelessWidget {
           key: const ValueKey('driver-card-hit-area'),
           onTap: onTap,
           child: Padding(
-            padding: const EdgeInsets.all(16),
+            padding: EdgeInsets.all(compact ? 12 : 16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -63,9 +63,30 @@ class SelectDriverWidget extends StatelessWidget {
                         fontWeight: FontWeight.w700,
                       ),
                     ),
+                    const Spacer(),
+                    if (hasDriver)
+                      SizedBox.square(
+                        dimension: compact ? 32 : 36,
+                        child: IconButton(
+                          key: const ValueKey('clear-selected-driver'),
+                          tooltip: 'លុបអ្នកបើកបរ',
+                          onPressed: onClear,
+                          padding: EdgeInsets.zero,
+                          style: IconButton.styleFrom(
+                            backgroundColor: colors.error.withValues(
+                              alpha: 0.1,
+                            ),
+                          ),
+                          icon: Icon(
+                            Icons.close_rounded,
+                            color: colors.error,
+                            size: 19,
+                          ),
+                        ),
+                      ),
                   ],
                 ),
-                const SizedBox(height: 13),
+                SizedBox(height: compact ? 9 : 13),
                 Row(
                   children: [
                     ClipOval(
@@ -100,16 +121,24 @@ class SelectDriverWidget extends StatelessWidget {
                         children: [
                           Text(
                             displayName,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
                             style: TextStyle(
                               color: colors.onSurface,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
-                          if (details.isNotEmpty)
+                          if (displayPhoneNumber.isNotEmpty)
                             Text(
-                              details,
+                              displayPhoneNumber,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: colors.onSurfaceVariant,
+                                fontSize: 12,
+                              ),
+                            ),
+                          if (displayPlateNumber.isNotEmpty)
+                            Text(
+                              'ស្លាកលេខ: $displayPlateNumber',
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
@@ -120,29 +149,14 @@ class SelectDriverWidget extends StatelessWidget {
                         ],
                       ),
                     ),
-                    if (hasDriver)
-                      IconButton(
-                        key: const ValueKey('clear-selected-driver'),
-                        tooltip: 'លុបអ្នកបើកបរ',
-                        onPressed: onClear,
-                        style: IconButton.styleFrom(
-                          backgroundColor: colors.error.withValues(alpha: 0.1),
-                        ),
-                        icon: Icon(
-                          Icons.close_rounded,
-                          color: colors.error,
-                          size: 20,
-                        ),
-                      )
-                    else
-                      Icon(
-                        Icons.chevron_right_rounded,
-                        color: colors.onSurfaceVariant,
-                      ),
+                    Icon(
+                      Icons.chevron_right_rounded,
+                      color: colors.onSurfaceVariant,
+                    ),
                   ],
                 ),
                 if (hasDriver && onChangePlateNumber != null) ...[
-                  const SizedBox(height: 12),
+                  SizedBox(height: compact ? 8 : 12),
                   SizedBox(
                     height: 42,
                     child: OutlinedButton.icon(

@@ -43,6 +43,7 @@ class SellController extends GetxController {
   final referenceNumber = ''.obs;
   final saleNote = ''.obs;
   final isSaving = false.obs;
+  final isDeletingSale = false.obs;
   final pendingOrderCount = 0.obs;
   final closedSaleRevision = 0.obs;
   final isLoadingPendingOrders = false.obs;
@@ -387,6 +388,32 @@ class SellController extends GetxController {
     }
   }
 
+  Future<void> deleteOpenedSale(String deletedNote) async {
+    final sale = openedSale.value;
+    if (sale == null ||
+        sale.name.trim().isEmpty ||
+        isDeletingSale.value ||
+        isSaving.value) {
+      throw const SaleDeleteValidationException();
+    }
+    isDeletingSale.value = true;
+    try {
+      await saleService.deleteSale(
+        docName: sale.name,
+        deletedNote: deletedNote,
+      );
+      final wasDraft = sale.saleStatus == 'Draft';
+      startNewSale();
+      if (wasDraft) {
+        await loadPendingOrderCount();
+      } else {
+        closedSaleRevision.value++;
+      }
+    } finally {
+      isDeletingSale.value = false;
+    }
+  }
+
   void startNewSale() {
     openedSale.value = null;
     saleProducts.clear();
@@ -419,6 +446,10 @@ class ClosedSaleOpenValidationException implements Exception {
 
 class SaleOrderNotClosedException implements Exception {
   const SaleOrderNotClosedException();
+}
+
+class SaleDeleteValidationException implements Exception {
+  const SaleDeleteValidationException();
 }
 
 DateTime _dateOnly(DateTime date) => DateTime(date.year, date.month, date.day);

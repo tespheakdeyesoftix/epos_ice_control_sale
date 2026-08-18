@@ -10,6 +10,7 @@ class SelectCustomerWidget extends StatelessWidget {
     this.phoneNumber = '',
     this.photoUri,
     this.onTap,
+    this.compact = false,
   });
 
   final String customerCode;
@@ -17,6 +18,7 @@ class SelectCustomerWidget extends StatelessWidget {
   final String phoneNumber;
   final Uri? photoUri;
   final VoidCallback? onTap;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
@@ -32,7 +34,7 @@ class SelectCustomerWidget extends StatelessWidget {
         child: InkWell(
           onTap: onTap,
           child: Padding(
-            padding: const EdgeInsets.all(16),
+            padding: EdgeInsets.all(compact ? 12 : 16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -53,7 +55,7 @@ class SelectCustomerWidget extends StatelessWidget {
                     ),
                   ],
                 ),
-                const SizedBox(height: 13),
+                SizedBox(height: compact ? 9 : 13),
                 Row(
                   children: [
                     ClipOval(
@@ -88,8 +90,6 @@ class SelectCustomerWidget extends StatelessWidget {
                         children: [
                           Text(
                             displayName,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
                             style: TextStyle(
                               color: colors.onSurface,
                               fontWeight: FontWeight.w600,

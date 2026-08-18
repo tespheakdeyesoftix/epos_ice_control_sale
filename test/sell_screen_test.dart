@@ -34,6 +34,8 @@ void main() {
     });
 
     Map<String, dynamic>? submittedSale;
+    String? deletedSaleName;
+    String? deletedSaleNote;
     var productRequestCount = 0;
     var pendingOrderCount = 3;
     var pendingOrderRequestCount = 0;
@@ -161,6 +163,19 @@ void main() {
         );
       }
       if (request.url.path ==
+          '/api/method/ice_control.api.v1.sale.delete_sale') {
+        deletedSaleName = request.bodyFields['doc_name'];
+        deletedSaleNote = request.bodyFields['deleted_note'];
+        pendingOrderCount--;
+        return http.Response(
+          jsonEncode({
+            'message': {'name': deletedSaleName},
+          }),
+          200,
+          headers: {'content-type': 'application/json; charset=utf-8'},
+        );
+      }
+      if (request.url.path ==
           '/api/method/ice_control.api.v1.sale.get_total_pending_order') {
         pendingOrderRequestCount++;
         return http.Response(
@@ -265,6 +280,13 @@ void main() {
     }
 
     expect(find.text('ទឹកកកដើមធំ'), findsOneWidget);
+    final newSaleDeleteButton = tester.widget<OutlinedButton>(
+      find.descendant(
+        of: find.byKey(const ValueKey('delete-sale-button')),
+        matching: find.byType(OutlinedButton),
+      ),
+    );
+    expect(newSaleDeleteButton.onPressed, isNull);
     expect(find.byKey(const ValueKey('product-category-all')), findsOneWidget);
     expect(find.text('ទាំងអស់ (2)'), findsOneWidget);
     expect(find.text('ទឹកកកដើម (1)'), findsOneWidget);
@@ -354,8 +376,39 @@ void main() {
     expect(sellController.currentSale.referenceNumber, 'DRAFT-REF-001');
     expect(sellController.currentSale.customer, 'CUST-001');
     expect(sellController.currentSale.driver, 'DRIVER-001');
-    sellController.startNewSale();
+    final editSaleDeleteButton = tester.widget<OutlinedButton>(
+      find.descendant(
+        of: find.byKey(const ValueKey('delete-sale-button')),
+        matching: find.byType(OutlinedButton),
+      ),
+    );
+    expect(editSaleDeleteButton.onPressed, isNotNull);
+    expect(
+      find.byKey(const ValueKey('cancel-sale-edit-button')),
+      findsOneWidget,
+    );
+    await tester.tap(find.byKey(const ValueKey('cancel-sale-edit-button')));
     await tester.pumpAndSettle();
+    expect(sellController.isNewSale, isTrue);
+    expect(sellController.saleProducts, isEmpty);
+    expect(
+      find.byKey(const ValueKey('opened-sale-document-banner')),
+      findsNothing,
+    );
+
+    await sellController.openPendingOrder('SO-DRAFT-0001');
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('delete-sale-button')));
+    await tester.pumpAndSettle();
+    expect(find.text('មូលហេតុដែលលុបបុង SO-DRAFT-0001'), findsOneWidget);
+    await tester.enterText(
+      find.byKey(const ValueKey('note-dialog-input')),
+      'បញ្ចូលបុងខុស',
+    );
+    await tester.tap(find.byKey(const ValueKey('confirm-note-dialog')));
+    await tester.pumpAndSettle();
+    expect(deletedSaleName, 'SO-DRAFT-0001');
+    expect(deletedSaleNote, 'បញ្ចូលបុងខុស');
     expect(sellController.isNewSale, isTrue);
     expect(sellController.saleProducts, isEmpty);
     expect(
@@ -383,7 +436,11 @@ void main() {
     );
     expect(
       tester.getSize(find.byKey(const ValueKey('order-product-column'))).width,
-      360,
+      320,
+    );
+    expect(
+      tester.getSize(find.byKey(const ValueKey('product-list-column'))).width,
+      greaterThanOrEqualTo(340),
     );
     expect(sellController.currentSale.doctype, 'Sale');
     expect(sellController.currentSale.station, 'Cashier 01');

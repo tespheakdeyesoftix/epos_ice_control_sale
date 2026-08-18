@@ -8,6 +8,7 @@ abstract final class ApiEndpoint {
   static const sales = 'api/resource/Sale';
   static String sale(String name) => '$sales/${Uri.encodeComponent(name)}';
   static const saveOrder = 'api/method/ice_control.api.v1.sale.save_order';
+  static const deleteSale = 'api/method/ice_control.api.v1.sale.delete_sale';
   static const totalPendingOrder =
       'api/method/ice_control.api.v1.sale.get_total_pending_order';
   static const reportViewCount = 'api/method/frappe.desk.reportview.get_count';

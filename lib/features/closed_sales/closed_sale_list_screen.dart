@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../shared/select_date_dialog_widget.dart';
+import '../../shared/note_dialog_widget.dart';
 import '../../utils/helpers.dart';
 import 'closed_sale.dart';
 import 'closed_sale_controller.dart';
@@ -9,7 +10,15 @@ import 'closed_sale_controller.dart';
 class ClosedSaleListScreen extends GetView<ClosedSaleController> {
   const ClosedSaleListScreen({super.key});
 
-  static const _tableWidth = 1400.0;
+  static const _tableWidth = 1480.0;
+
+  Future<void> _deleteSale(BuildContext context, ClosedSale sale) {
+    return showNoteDialog(
+      context,
+      promptTitle: 'មូលហេតុដែលលុបបុង ${sale.name}',
+      onSubmit: (note) => controller.deleteSale(sale.name, note),
+    );
+  }
 
   Future<void> _selectStartDate(BuildContext context) async {
     final selected = await showSelectDateDialog(
@@ -63,7 +72,7 @@ class ClosedSaleListScreen extends GetView<ClosedSaleController> {
                     child: Column(
                       children: [
                         const _TableHeader(),
-                        Expanded(child: _buildBody(colors)),
+                        Expanded(child: _buildBody(context, colors)),
                       ],
                     ),
                   ),
@@ -76,7 +85,7 @@ class ClosedSaleListScreen extends GetView<ClosedSaleController> {
     );
   }
 
-  Widget _buildBody(ColorScheme colors) {
+  Widget _buildBody(BuildContext context, ColorScheme colors) {
     if (controller.sales.isEmpty && controller.isLoading.value) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -107,6 +116,10 @@ class ClosedSaleListScreen extends GetView<ClosedSaleController> {
               sale: group.value[index],
               alternate: index.isOdd,
               onEdit: () => controller.editOrder(group.value[index].name),
+              onDelete: () => _deleteSale(context, group.value[index]),
+              isDeleting: controller.deletingSaleNames.contains(
+                group.value[index].name,
+              ),
             ),
         ],
         if (controller.isLoading.value)
@@ -356,7 +369,7 @@ class _TableHeader extends StatelessWidget {
           _HeaderCell('ស្ថានភាព', flex: 12, align: TextAlign.center),
           _HeaderCell('បង្កើតដោយ', flex: 16),
           _HeaderCell('ពេលបង្កើត', flex: 14),
-          _HeaderCell('សកម្មភាព', flex: 22, align: TextAlign.center),
+          _HeaderCell('សកម្មភាព', flex: 30, align: TextAlign.center),
         ],
       ),
     );
@@ -368,11 +381,15 @@ class _ClosedSaleRow extends StatelessWidget {
     required this.sale,
     required this.alternate,
     required this.onEdit,
+    required this.onDelete,
+    required this.isDeleting,
   });
 
   final ClosedSale sale;
   final bool alternate;
   final VoidCallback onEdit;
+  final VoidCallback onDelete;
+  final bool isDeleting;
 
   @override
   Widget build(BuildContext context) {
@@ -409,7 +426,7 @@ class _ClosedSaleRow extends StatelessWidget {
           _DataCell(_fallback(sale.owner), flex: 16),
           _DataCell(formatTimeAgo(sale.creation), flex: 14),
           Expanded(
-            flex: 22,
+            flex: 30,
             child: Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
@@ -430,6 +447,24 @@ class _ClosedSaleRow extends StatelessWidget {
                   icon: const Icon(Icons.edit_outlined, size: 17),
                   label: const Text('កែបុង'),
                   style: FilledButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                    visualDensity: VisualDensity.compact,
+                  ),
+                ),
+                const SizedBox(width: 7),
+                OutlinedButton.icon(
+                  key: ValueKey('delete-closed-sale-${sale.name}'),
+                  onPressed: isDeleting ? null : onDelete,
+                  icon: isDeleting
+                      ? const SizedBox.square(
+                          dimension: 17,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.delete_outline_rounded, size: 17),
+                  label: const Text('លុប'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: colors.error,
+                    side: BorderSide(color: colors.error),
                     padding: const EdgeInsets.symmetric(horizontal: 10),
                     visualDensity: VisualDensity.compact,
                   ),

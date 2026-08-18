@@ -18,6 +18,7 @@ class OrderProductListWidget extends StatelessWidget {
     required this.onNoteTap,
     required this.note,
     this.date,
+    this.compact = false,
   });
 
   final List<SaleProduct> lines;
@@ -30,6 +31,7 @@ class OrderProductListWidget extends StatelessWidget {
   final VoidCallback onNoteTap;
   final String note;
   final DateTime? date;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
@@ -55,7 +57,12 @@ class OrderProductListWidget extends StatelessWidget {
       child: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(18, 14, 18, 13),
+            padding: EdgeInsets.fromLTRB(
+              compact ? 12 : 18,
+              compact ? 11 : 14,
+              compact ? 12 : 18,
+              compact ? 10 : 13,
+            ),
             child: Row(
               children: [
                 Expanded(
@@ -63,7 +70,7 @@ class OrderProductListWidget extends StatelessWidget {
                     'មុខទំនិញបានជ្រើសរើស',
                     style: TextStyle(
                       color: colors.onSurface,
-                      fontSize: 18,
+                      fontSize: compact ? 16 : 18,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
@@ -76,24 +83,27 @@ class OrderProductListWidget extends StatelessWidget {
                     key: const ValueKey('posting-date-button'),
                     onTap: onDateTap,
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 13,
-                        vertical: 8,
+                      padding: EdgeInsets.symmetric(
+                        horizontal: compact ? 8 : 13,
+                        vertical: compact ? 7 : 8,
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(
-                            Icons.calendar_month_outlined,
-                            color: colors.onInverseSurface,
-                            size: 17,
-                          ),
-                          const SizedBox(width: 7),
+                          if (!compact) ...[
+                            Icon(
+                              Icons.calendar_month_outlined,
+                              color: colors.onInverseSurface,
+                              size: 17,
+                            ),
+                            const SizedBox(width: 7),
+                          ],
                           Text(
                             dateLabel,
                             style: TextStyle(
                               color: colors.onInverseSurface,
                               fontWeight: FontWeight.w600,
+                              fontSize: compact ? 12 : null,
                             ),
                           ),
                         ],
@@ -105,7 +115,12 @@ class OrderProductListWidget extends StatelessWidget {
             ),
           ),
           Padding(
-            padding: const EdgeInsets.fromLTRB(18, 0, 18, 12),
+            padding: EdgeInsets.fromLTRB(
+              compact ? 12 : 18,
+              0,
+              compact ? 12 : 18,
+              compact ? 9 : 12,
+            ),
             child: Material(
               color: colors.surfaceContainerLow,
               borderRadius: BorderRadius.circular(10),
@@ -168,7 +183,7 @@ class OrderProductListWidget extends StatelessWidget {
             child: lines.isEmpty
                 ? const _EmptyOrderState()
                 : ListView.separated(
-                    padding: const EdgeInsets.all(14),
+                    padding: EdgeInsets.all(compact ? 10 : 14),
                     itemCount: lines.length,
                     separatorBuilder: (_, _) => const SizedBox(height: 9),
                     itemBuilder: (context, index) {
@@ -178,13 +193,14 @@ class OrderProductListWidget extends StatelessWidget {
                         imageUri: imageUriBuilder(line),
                         onRemove: () => onRemove(line),
                         onEdit: () => onEdit(line),
+                        compact: compact,
                       );
                     },
                   ),
           ),
           Divider(height: 1, color: colors.outlineVariant),
           Padding(
-            padding: const EdgeInsets.all(12),
+            padding: EdgeInsets.all(compact ? 9 : 12),
             child: Material(
               color: colors.surfaceContainerLow,
               borderRadius: BorderRadius.circular(10),
@@ -254,12 +270,14 @@ class _OrderProductLine extends StatelessWidget {
     required this.imageUri,
     required this.onRemove,
     required this.onEdit,
+    required this.compact,
   });
 
   final SaleProduct line;
   final Uri? imageUri;
   final VoidCallback onRemove;
   final VoidCallback onEdit;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
@@ -281,7 +299,7 @@ class _OrderProductLine extends StatelessWidget {
               left: 0,
               top: 0,
               bottom: 0,
-              width: 72,
+              width: compact ? 64 : 72,
               child: SizedBox(
                 key: ValueKey('order-product-photo-area-${line.productCode}'),
                 child: ColoredBox(
@@ -293,7 +311,7 @@ class _OrderProductLine extends StatelessWidget {
                             'order-product-photo-${line.productCode}',
                           ),
                           imageUrl: imageUri.toString(),
-                          width: 72,
+                          width: compact ? 64 : 72,
                           fit: BoxFit.cover,
                           memCacheWidth: 192,
                           memCacheHeight: 192,
@@ -310,15 +328,20 @@ class _OrderProductLine extends StatelessWidget {
               ),
             ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(85, 13, 13, 13),
+              padding: EdgeInsets.fromLTRB(
+                compact ? 74 : 85,
+                compact ? 10 : 13,
+                compact ? 10 : 13,
+                compact ? 10 : 13,
+              ),
               child: SizedBox(
                 width: double.infinity,
                 child: ConstrainedBox(
-                  constraints: const BoxConstraints(minHeight: 60),
+                  constraints: BoxConstraints(minHeight: compact ? 56 : 60),
                   child: Stack(
                     children: [
                       Padding(
-                        padding: const EdgeInsets.only(right: 125),
+                        padding: EdgeInsets.only(right: compact ? 108 : 125),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -372,6 +395,7 @@ class _OrderProductLine extends StatelessWidget {
                           style: TextStyle(
                             color: colors.onSurface,
                             fontWeight: FontWeight.w700,
+                            fontSize: compact ? 13 : null,
                           ),
                         ),
                       ),
@@ -379,8 +403,8 @@ class _OrderProductLine extends StatelessWidget {
                         right: 0,
                         bottom: 0,
                         child: SizedBox(
-                          width: 36,
-                          height: 36,
+                          width: compact ? 32 : 36,
+                          height: compact ? 32 : 36,
                           child: IconButton(
                             key: ValueKey(
                               'remove-order-product-${line.productCode}',

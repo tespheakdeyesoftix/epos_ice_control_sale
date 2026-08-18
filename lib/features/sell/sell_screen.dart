@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 
 import '../../services/frappe_response_handler.dart';
 import '../../shared/input_number_dialog_widget.dart';
+import '../../shared/note_dialog_widget.dart';
 import '../../shared/select_customer_dialog_widget.dart';
 import '../../shared/select_date_dialog_widget.dart';
 import '../../shared/text_input_dialog_widget.dart';
@@ -24,6 +25,7 @@ extension on BuildContext {
 }
 
 double _checkoutColumnWidth(double availableWidth) {
+  if (availableWidth <= 1100) return 250;
   return (availableWidth * 0.24).clamp(285.0, 350.0);
 }
 
@@ -32,6 +34,7 @@ class SellScreen extends GetView<SellController> {
 
   @override
   Widget build(BuildContext context) {
+    final compactLayout = MediaQuery.sizeOf(context).width <= 1100;
     return Scaffold(
       backgroundColor: context.colors.surfaceContainerLow,
       body: SafeArea(
@@ -40,7 +43,12 @@ class SellScreen extends GetView<SellController> {
             _TopBar(controller: controller),
             Expanded(
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
+                padding: EdgeInsets.fromLTRB(
+                  compactLayout ? 10 : 16,
+                  compactLayout ? 10 : 14,
+                  compactLayout ? 10 : 16,
+                  compactLayout ? 10 : 12,
+                ),
                 child: LayoutBuilder(
                   builder: (context, constraints) {
                     final rightWidth = _checkoutColumnWidth(
@@ -49,17 +57,23 @@ class SellScreen extends GetView<SellController> {
                     return Row(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        Expanded(child: _ProductPanel(controller: controller)),
-                        const SizedBox(width: 12),
+                        Expanded(
+                          child: KeyedSubtree(
+                            key: const ValueKey('product-list-column'),
+                            child: _ProductPanel(controller: controller),
+                          ),
+                        ),
+                        SizedBox(width: compactLayout ? 8 : 12),
                         SizedBox(
                           key: const ValueKey('order-product-column'),
-                          width: 360,
+                          width: compactLayout ? 320 : 360,
                           child: Obx(
                             () => OrderProductListWidget(
                               lines: controller.saleProducts.toList(),
                               date: controller.postingDate.value,
                               referenceNumber: controller.referenceNumber.value,
                               note: controller.saleNote.value,
+                              compact: compactLayout,
                               imageUriBuilder: controller.saleProductImage,
                               onRemove: controller.remove,
                               onEdit: (line) async {
@@ -124,10 +138,13 @@ class SellScreen extends GetView<SellController> {
                             ),
                           ),
                         ),
-                        const SizedBox(width: 12),
+                        SizedBox(width: compactLayout ? 8 : 12),
                         SizedBox(
                           width: rightWidth,
-                          child: _CheckoutPanel(controller: controller),
+                          child: _CheckoutPanel(
+                            controller: controller,
+                            compact: compactLayout,
+                          ),
                         ),
                       ],
                     );
@@ -478,9 +495,10 @@ class _ProductPanel extends StatelessWidget {
 }
 
 class _CheckoutPanel extends StatelessWidget {
-  const _CheckoutPanel({required this.controller});
+  const _CheckoutPanel({required this.controller, required this.compact});
 
   final SellController controller;
+  final bool compact;
 
   Future<void> _saveOrder(BuildContext context) async {
     if (!controller.hasSelectedCustomer) {
@@ -577,7 +595,13 @@ class _CheckoutPanel extends StatelessWidget {
           if (saleDocumentName.isEmpty) return const SizedBox.shrink();
           return Padding(
             padding: const EdgeInsets.only(bottom: 12),
-            child: _OpenedSaleBanner(documentName: saleDocumentName),
+            child: _OpenedSaleBanner(
+              documentName: saleDocumentName,
+              onCancelEdit:
+                  controller.isSaving.value || controller.isDeletingSale.value
+                  ? null
+                  : controller.startNewSale,
+            ),
           );
         }),
         Obx(() {
@@ -590,6 +614,7 @@ class _CheckoutPanel extends StatelessWidget {
             photoUri: customer == null
                 ? null
                 : controller.customerImage(customer),
+            compact: compact,
             onTap: () async {
               final selected = await showSelectCustomerDialog(
                 context,
@@ -600,7 +625,7 @@ class _CheckoutPanel extends StatelessWidget {
             },
           );
         }),
-        const SizedBox(height: 12),
+        SizedBox(height: compact ? 8 : 12),
         Obx(() {
           final driver = controller.selectedDriver.value;
           return SelectDriverWidget(
@@ -610,6 +635,7 @@ class _CheckoutPanel extends StatelessWidget {
             phoneNumber: driver?.phoneNumber1 ?? '',
             plateNumber: controller.plateNumber.value,
             photoUri: driver == null ? null : controller.customerImage(driver),
+            compact: compact,
             onClear: controller.clearDriver,
             onChangePlateNumber: driver == null
                 ? null
@@ -637,7 +663,7 @@ class _CheckoutPanel extends StatelessWidget {
             },
           );
         }),
-        const SizedBox(height: 12),
+        SizedBox(height: compact ? 8 : 12),
         Obx(
           () => Row(
             children: [
@@ -674,9 +700,13 @@ class _CheckoutPanel extends StatelessWidget {
 }
 
 class _OpenedSaleBanner extends StatelessWidget {
-  const _OpenedSaleBanner({required this.documentName});
+  const _OpenedSaleBanner({
+    required this.documentName,
+    required this.onCancelEdit,
+  });
 
   final String documentName;
+  final VoidCallback? onCancelEdit;
 
   @override
   Widget build(BuildContext context) {
@@ -691,35 +721,70 @@ class _OpenedSaleBanner extends StatelessWidget {
           color: context.colors.primary.withValues(alpha: 0.25),
         ),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Icon(Icons.edit_document, size: 20, color: context.colors.primary),
-          const SizedBox(width: 9),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'កំពុងកែប្រែវិក្កយបត្រ',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: context.colors.onPrimaryContainer,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 11,
-                  ),
+          Row(
+            children: [
+              Icon(
+                Icons.edit_document,
+                size: 20,
+                color: context.colors.primary,
+              ),
+              const SizedBox(width: 9),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'កំពុងកែប្រែវិក្កយបត្រ',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: context.colors.onPrimaryContainer,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 11,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      documentName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: context.colors.primary,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 5),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: OutlinedButton(
+                        key: const ValueKey('cancel-sale-edit-button'),
+                        onPressed: onCancelEdit,
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: context.colors.error,
+                          side: BorderSide(
+                            color: context.colors.error.withValues(alpha: 0.55),
+                          ),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 5,
+                          ),
+                          minimumSize: const Size(0, 30),
+                          visualDensity: VisualDensity.compact,
+                          textStyle: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        child: const Text('បោះបង់ការកែប្រែ'),
+                      ),
+                    ),
+                  ],
                 ),
-                Text(
-                  documentName,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: context.colors.primary,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
         ],
       ),
@@ -784,6 +849,38 @@ class _BottomBar extends StatelessWidget {
   const _BottomBar({required this.controller});
 
   final SellController controller;
+
+  Future<void> _deleteSale(BuildContext context) async {
+    final saleName = controller.currentSale.name;
+    if (saleName.trim().isEmpty) return;
+    await showNoteDialog(
+      context,
+      promptTitle: 'មូលហេតុដែលលុបបុង $saleName',
+      onSubmit: (note) async {
+        try {
+          await controller.deleteOpenedSale(note);
+          FrappeResponseHandler.show(
+            FrappeServerMessage(
+              message: 'បានលុបបុង $saleName ដោយជោគជ័យ។',
+              indicator: 'green',
+            ),
+          );
+          return true;
+        } on FrappeServerMessageException {
+          // The shared API client already displayed the server message.
+          return false;
+        } on Exception {
+          FrappeResponseHandler.show(
+            const FrappeServerMessage(
+              message: 'មិនអាចលុបបុងនេះបានទេ។',
+              indicator: 'red',
+            ),
+          );
+          return false;
+        }
+      },
+    );
+  }
 
   Future<void> _pauseSale(BuildContext context) async {
     final confirmed = await showDialog<bool>(
@@ -856,12 +953,16 @@ class _BottomBar extends StatelessWidget {
         () => Row(
           children: [
             _BottomAction(
+              key: const ValueKey('delete-sale-button'),
               label: 'លុបការលក់',
               icon: Icons.delete_outline_rounded,
               color: context.colors.error,
-              onPressed: controller.saleProducts.isEmpty
+              onPressed:
+                  controller.isDeletingSale.value ||
+                      controller.isSaving.value ||
+                      controller.currentSale.name.trim().isEmpty
                   ? null
-                  : controller.clearCart,
+                  : () => _deleteSale(context),
             ),
             const SizedBox(width: 10),
             _BottomAction(

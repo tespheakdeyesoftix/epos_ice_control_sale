@@ -27,6 +27,7 @@ class ClosedSaleController extends GetxController {
   final isLoading = false.obs;
   final isLoadingTodayCount = false.obs;
   final todayClosedSaleCount = 0.obs;
+  final deletingSaleNames = <String>{}.obs;
   final errorMessage = RxnString();
 
   Timer? _searchDebounce;
@@ -53,7 +54,7 @@ class ClosedSaleController extends GetxController {
     scrollController.addListener(_handleScroll);
     _closedSaleWorker = ever<int>(
       sellController.closedSaleRevision,
-      (_) => loadTodayClosedSaleCount(),
+      (_) => refreshAll(),
     );
     loadMore();
     loadTodayClosedSaleCount();
@@ -184,6 +185,29 @@ class ClosedSaleController extends GetxController {
       // The shared API client already displayed the server message.
     } on Exception {
       _showMessage('មិនអាចបើកបុងលក់នេះបានទេ។', indicator: 'red');
+    }
+  }
+
+  Future<bool> deleteSale(String name, String deletedNote) async {
+    if (deletingSaleNames.contains(name)) return false;
+    deletingSaleNames.add(name);
+    try {
+      await sellController.saleService.deleteSale(
+        docName: name,
+        deletedNote: deletedNote,
+      );
+      sales.removeWhere((sale) => sale.name == name);
+      await loadTodayClosedSaleCount();
+      _showMessage('បានលុបបុង $name ដោយជោគជ័យ។', indicator: 'green');
+      return true;
+    } on FrappeServerMessageException {
+      // The shared API client already displayed the server message.
+      return false;
+    } on Exception {
+      _showMessage('មិនអាចលុបបុងនេះបានទេ។', indicator: 'red');
+      return false;
+    } finally {
+      deletingSaleNames.remove(name);
     }
   }
 

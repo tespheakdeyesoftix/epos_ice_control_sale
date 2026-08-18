@@ -272,6 +272,23 @@ class SaleService {
     if (payload is! Map) throw const SaleServiceException(200);
     return Map<String, dynamic>.from(payload);
   }
+
+  Future<void> deleteSale({
+    required String docName,
+    required String deletedNote,
+  }) async {
+    final response = await _client
+        .post(
+          baseUri.resolve(ApiEndpoint.deleteSale),
+          headers: const {'Accept': 'application/json'},
+          body: {'doc_name': docName, 'deleted_note': deletedNote},
+        )
+        .timeout(const Duration(seconds: 30));
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw SaleServiceException(response.statusCode);
+    }
+  }
 }
 
 class SaleServiceException implements Exception {
