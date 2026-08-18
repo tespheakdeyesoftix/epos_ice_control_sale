@@ -189,7 +189,7 @@ class _TopBar extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        login.stationName,
+                        login.outletName,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
@@ -200,7 +200,7 @@ class _TopBar extends StatelessWidget {
                       ),
                       const SizedBox(height: 3),
                       Text(
-                        'ទីតាំងលក់៖ ${login.outletName}',
+                        'ម៉ាស៊ីនលក់៖ ${login.stationName}',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
@@ -372,6 +372,7 @@ class _ProductPanel extends StatelessWidget {
           Divider(height: 1, color: context.colors.outlineVariant),
           Obx(() {
             final categories = controller.productCategories;
+            final selectedCategory = controller.selectedProductCategory.value;
             if (categories.isEmpty) return const SizedBox.shrink();
             return SizedBox(
               height: 52,
@@ -389,30 +390,18 @@ class _ProductPanel extends StatelessWidget {
                   final productCount = controller.productCountForCategory(
                     category,
                   );
-                  final isSelected =
-                      controller.selectedProductCategory.value == category;
-                  return FilterChip(
-                    key: ValueKey(
+                  final isSelected = selectedCategory == category;
+                  return _ProductCategoryChip(
+                    chipKey: ValueKey(
                       category.isEmpty
                           ? 'product-category-all'
                           : 'product-category-$category',
                     ),
-                    label: Text(
-                      '${category.isEmpty ? 'ទាំងអស់' : category} ($productCount)',
-                    ),
+                    label:
+                        '${category.isEmpty ? 'ទាំងអស់' : category} ($productCount)',
                     selected: isSelected,
-                    showCheckmark: false,
-                    avatar: category.isEmpty
-                        ? const Icon(Icons.apps_rounded, size: 17)
-                        : null,
-                    onSelected: (_) =>
-                        controller.selectProductCategory(category),
-                    visualDensity: VisualDensity.compact,
-                    side: BorderSide(
-                      color: isSelected
-                          ? context.colors.primary
-                          : context.colors.outlineVariant,
-                    ),
+                    showAllIcon: category.isEmpty,
+                    onTap: () => controller.selectProductCategory(category),
                   );
                 },
               ),
@@ -489,6 +478,68 @@ class _ProductPanel extends StatelessWidget {
             }),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _ProductCategoryChip extends StatelessWidget {
+  const _ProductCategoryChip({
+    required this.chipKey,
+    required this.label,
+    required this.selected,
+    required this.showAllIcon,
+    required this.onTap,
+  });
+
+  final Key chipKey;
+  final String label;
+  final bool selected;
+  final bool showAllIcon;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    final foreground = selected ? colors.onPrimary : colors.onSurface;
+    return Semantics(
+      button: true,
+      selected: selected,
+      child: Material(
+        key: chipKey,
+        color: selected ? colors.primary : colors.surfaceContainerLow,
+        shape: StadiumBorder(
+          side: BorderSide(
+            color: selected ? colors.primary : colors.outlineVariant,
+            width: selected ? 1.5 : 1,
+          ),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          focusColor: selected
+              ? colors.onPrimary.withValues(alpha: 0.12)
+              : colors.primaryContainer,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (showAllIcon) ...[
+                  Icon(Icons.apps_rounded, size: 17, color: foreground),
+                  const SizedBox(width: 7),
+                ],
+                Text(
+                  label,
+                  style: TextStyle(
+                    color: foreground,
+                    fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

@@ -85,6 +85,17 @@ void main() {
           .height,
       82,
     );
+    final pendingSearchCenter = tester.getCenter(
+      find.byKey(const ValueKey('pending-order-search-input')),
+    );
+    final pendingDateCenter = tester.getCenter(
+      find.byKey(const ValueKey('pending-order-date-filter')),
+    );
+    final pendingRefreshCenter = tester.getCenter(
+      find.byKey(const ValueKey('refresh-pending-order-list')),
+    );
+    expect(pendingSearchCenter.dy, closeTo(pendingRefreshCenter.dy, 1));
+    expect(pendingDateCenter.dy, closeTo(pendingRefreshCenter.dy, 1));
     expect(
       find.byKey(const ValueKey('view-pending-order-SO-DRAFT-0001')),
       findsOneWidget,

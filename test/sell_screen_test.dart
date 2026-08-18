@@ -306,6 +306,24 @@ void main() {
     expect(find.text('ទឹកកកដប (1)'), findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('product-category-ទឹកកកដប')));
     await tester.pumpAndSettle();
+    final selectedCategoryChip = tester.widget<Material>(
+      find.byKey(const ValueKey('product-category-ទឹកកកដប')),
+    );
+    expect(
+      selectedCategoryChip.color,
+      Theme.of(
+        tester.element(find.byKey(const ValueKey('product-category-ទឹកកកដប'))),
+      ).colorScheme.primary,
+    );
+    final allCategoryChip = tester.widget<Material>(
+      find.byKey(const ValueKey('product-category-all')),
+    );
+    expect(
+      allCategoryChip.color,
+      Theme.of(
+        tester.element(find.byKey(const ValueKey('product-category-all'))),
+      ).colorScheme.surfaceContainerLow,
+    );
     expect(find.text('ទឹកកកដើមធំ'), findsNothing);
     expect(sellController.filteredProducts, hasLength(1));
     expect(sellController.filteredProducts.single.name, 'ទឹកកកដប');

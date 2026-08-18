@@ -175,6 +175,18 @@ class _PendingOrderListDialogWidgetState
                   ),
                 ),
               ),
+              _FilterBar(
+                searchController: _searchController,
+                postingDate: _postingDate,
+                onSearchChanged: _handleSearchChanged,
+                onClearSearch: () {
+                  _searchController.clear();
+                  _handleSearchChanged('');
+                },
+                onDateTap: _selectPostingDate,
+                onClearDate: _clearPostingDate,
+              ),
+              const SizedBox(width: 10),
               IconButton(
                 key: const ValueKey('refresh-pending-order-list'),
                 tooltip: 'ផ្ទុកឡើងវិញ',
@@ -208,17 +220,6 @@ class _PendingOrderListDialogWidgetState
                 ),
             ],
           ),
-        ),
-        _FilterBar(
-          searchController: _searchController,
-          postingDate: _postingDate,
-          onSearchChanged: _handleSearchChanged,
-          onClearSearch: () {
-            _searchController.clear();
-            _handleSearchChanged('');
-          },
-          onDateTap: _selectPostingDate,
-          onClearDate: _clearPostingDate,
         ),
         _TableHeader(colors: colors, showActions: widget.embedded),
         Expanded(child: _buildBody(colors)),
@@ -319,106 +320,105 @@ class _FilterBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 11),
-      decoration: BoxDecoration(
-        color: colors.surface,
-        border: Border(bottom: BorderSide(color: colors.outlineVariant)),
-      ),
-      child: Row(
-        children: [
-          SizedBox(
-            width: 280,
-            height: 42,
-            child: TextField(
-              key: const ValueKey('pending-order-search-input'),
-              controller: searchController,
-              onChanged: onSearchChanged,
-              decoration: InputDecoration(
-                hintText: 'Search',
-                isDense: true,
-                prefixIcon: const Icon(Icons.search_rounded, size: 20),
-                prefixIconConstraints: const BoxConstraints(
-                  minWidth: 40,
-                  minHeight: 40,
-                ),
-                suffixIcon: searchController.text.isEmpty
-                    ? null
-                    : IconButton(
-                        key: const ValueKey('clear-pending-order-search'),
-                        onPressed: onClearSearch,
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        SizedBox(
+          width: 220,
+          height: 42,
+          child: TextField(
+            key: const ValueKey('pending-order-search-input'),
+            controller: searchController,
+            onChanged: onSearchChanged,
+            decoration: InputDecoration(
+              hintText: 'Search',
+              isDense: true,
+              fillColor: colors.surfaceContainerLow,
+              prefixIcon: const Icon(Icons.search_rounded, size: 20),
+              prefixIconConstraints: const BoxConstraints(
+                minWidth: 40,
+                minHeight: 40,
+              ),
+              suffixIcon: searchController.text.isEmpty
+                  ? null
+                  : IconButton(
+                      key: const ValueKey('clear-pending-order-search'),
+                      onPressed: onClearSearch,
+                      padding: EdgeInsets.zero,
+                      visualDensity: VisualDensity.compact,
+                      icon: const Icon(Icons.close_rounded, size: 18),
+                    ),
+              suffixIconConstraints: const BoxConstraints(
+                minWidth: 40,
+                minHeight: 40,
+              ),
+              contentPadding: const EdgeInsets.symmetric(vertical: 10),
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        SizedBox(
+          width: 180,
+          height: 42,
+          child: Material(
+            color: colors.surfaceContainerLow,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+              side: BorderSide(color: colors.outlineVariant),
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: InkWell(
+              key: const ValueKey('pending-order-date-filter'),
+              onTap: onDateTap,
+              child: Padding(
+                padding: const EdgeInsets.only(left: 11, right: 3),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.calendar_month_outlined,
+                      size: 18,
+                      color: colors.primary,
+                    ),
+                    const SizedBox(width: 7),
+                    Expanded(
+                      child: Text(
+                        postingDate == null
+                            ? 'កាលបរិច្ឆេទ'
+                            : _displayDate(postingDate!),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: postingDate == null
+                              ? colors.onSurfaceVariant
+                              : colors.onSurface,
+                          fontSize: 12,
+                          fontWeight: postingDate == null
+                              ? FontWeight.w400
+                              : FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    if (postingDate != null)
+                      IconButton(
+                        key: const ValueKey('clear-pending-order-date'),
+                        tooltip: 'លុបកាលបរិច្ឆេទ',
+                        onPressed: onClearDate,
+                        color: colors.error,
                         padding: EdgeInsets.zero,
                         visualDensity: VisualDensity.compact,
-                        icon: const Icon(Icons.close_rounded, size: 18),
-                      ),
-                suffixIconConstraints: const BoxConstraints(
-                  minWidth: 40,
-                  minHeight: 40,
-                ),
-                contentPadding: const EdgeInsets.symmetric(vertical: 10),
-              ),
-            ),
-          ),
-          const SizedBox(width: 10),
-          SizedBox(
-            width: 245,
-            height: 48,
-            child: Material(
-              color: colors.surfaceContainerLow,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-                side: BorderSide(color: colors.outlineVariant),
-              ),
-              clipBehavior: Clip.antiAlias,
-              child: InkWell(
-                key: const ValueKey('pending-order-date-filter'),
-                onTap: onDateTap,
-                child: Padding(
-                  padding: const EdgeInsets.only(left: 14, right: 5),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.calendar_month_outlined,
-                        size: 20,
-                        color: colors.primary,
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          postingDate == null
-                              ? 'ជ្រើសរើសកាលបរិច្ឆេទ'
-                              : _displayDate(postingDate!),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: postingDate == null
-                                ? colors.onSurfaceVariant
-                                : colors.onSurface,
-                            fontWeight: postingDate == null
-                                ? FontWeight.w400
-                                : FontWeight.w600,
-                          ),
+                        constraints: const BoxConstraints(
+                          minWidth: 32,
+                          minHeight: 32,
                         ),
+                        icon: const Icon(Icons.close_rounded, size: 17),
                       ),
-                      if (postingDate != null)
-                        IconButton(
-                          key: const ValueKey('clear-pending-order-date'),
-                          tooltip: 'លុបកាលបរិច្ឆេទ',
-                          onPressed: onClearDate,
-                          color: colors.error,
-                          padding: EdgeInsets.zero,
-                          visualDensity: VisualDensity.compact,
-                          icon: const Icon(Icons.close_rounded, size: 18),
-                        ),
-                    ],
-                  ),
+                  ],
                 ),
               ),
             ),
           ),
-          const Spacer(),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
