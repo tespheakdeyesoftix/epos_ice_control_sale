@@ -24,6 +24,7 @@ void main() {
               'photo': '/files/block_ice.jpg',
               'revenue_group': 'ចំណូលទឹកកកដើម',
               'allow_sum_qty': 1,
+              'allow_change_sale_type': 1,
               'default_sale_type': 'Borrow',
             },
           ],
@@ -50,6 +51,7 @@ void main() {
     expect(products.single.photo, '/files/block_ice.jpg');
     expect(products.single.revenueGroup, 'ចំណូលទឹកកកដើម');
     expect(products.single.allowSumQuantity, isTrue);
+    expect(products.single.allowChangeSaleType, isTrue);
     expect(products.single.saleTransactionType, 'Borrow');
 
     final saleProduct = SaleProduct.fromProduct(
@@ -59,12 +61,14 @@ void main() {
     expect(saleProduct.photo, '/files/block_ice.jpg');
     expect(saleProduct.revenueGroup, 'ចំណូលទឹកកកដើម');
     expect(saleProduct.allowSumQuantity, isTrue);
+    expect(saleProduct.allowChangeSaleType, isTrue);
     expect(saleProduct.saleTransactionType, 'Borrow');
     expect(saleProduct.price, 0);
     expect(saleProduct.productPrice, 15000);
     expect(saleProduct.toJson()['photo'], '/files/block_ice.jpg');
     expect(saleProduct.toJson()['revenue_group'], 'ចំណូលទឹកកកដើម');
     expect(saleProduct.toJson()['allow_sum_qty'], 1);
+    expect(saleProduct.toJson()['allow_change_sale_type'], 1);
     expect(saleProduct.toJson()['sale_transaction_type'], 'Borrow');
     expect(saleProduct.toJson()['price'], 0);
     expect(saleProduct.toJson()['product_price'], 15000);

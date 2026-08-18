@@ -8,17 +8,30 @@ import '../sale_product.dart';
 Future<SaleProduct?> showEditSaleOrderDialog(
   BuildContext context, {
   required SaleProduct saleProduct,
+  bool canShowPrice = true,
+  String customerName = '',
 }) {
   return showDialog<SaleProduct>(
     context: context,
-    builder: (_) => EditSaleOrderWidget(saleProduct: saleProduct),
+    builder: (_) => EditSaleOrderWidget(
+      saleProduct: saleProduct,
+      canShowPrice: canShowPrice,
+      customerName: customerName,
+    ),
   );
 }
 
 class EditSaleOrderWidget extends StatefulWidget {
-  const EditSaleOrderWidget({super.key, required this.saleProduct});
+  const EditSaleOrderWidget({
+    super.key,
+    required this.saleProduct,
+    this.canShowPrice = true,
+    this.customerName = '',
+  });
 
   final SaleProduct saleProduct;
+  final bool canShowPrice;
+  final String customerName;
 
   @override
   State<EditSaleOrderWidget> createState() => _EditSaleOrderWidgetState();
@@ -27,9 +40,13 @@ class EditSaleOrderWidget extends StatefulWidget {
 class _EditSaleOrderWidgetState extends State<EditSaleOrderWidget> {
   late double _quantity;
   late double _price;
+  late double _salePrice;
   late double _returnQuantity;
   late double _freeQuantity;
+  late String _saleTransactionType;
   late String _note;
+
+  bool get _isBorrow => _saleTransactionType == 'Borrow';
 
   double get _allocatedQuantity =>
       _returnQuantity + _freeQuantity + widget.saleProduct.splitQuantity;
@@ -41,6 +58,10 @@ class _EditSaleOrderWidgetState extends State<EditSaleOrderWidget> {
     super.initState();
     _quantity = widget.saleProduct.quantity;
     _price = widget.saleProduct.price;
+    _salePrice = widget.saleProduct.isBorrow
+        ? widget.saleProduct.productPrice ?? widget.saleProduct.price
+        : widget.saleProduct.price;
+    _saleTransactionType = widget.saleProduct.isBorrow ? 'Borrow' : 'Sale';
     _returnQuantity = widget.saleProduct.returnQuantity;
     _freeQuantity = widget.saleProduct.freeQuantity;
     _note = widget.saleProduct.note;
@@ -67,12 +88,29 @@ class _EditSaleOrderWidgetState extends State<EditSaleOrderWidget> {
     if (result != null && mounted) setState(() => _note = result);
   }
 
+  void _changeSaleTransactionType(String value) {
+    if (!widget.saleProduct.allowChangeSaleType ||
+        value == _saleTransactionType) {
+      return;
+    }
+    setState(() {
+      if (value == 'Borrow') {
+        _salePrice = _price;
+        _price = 0;
+      } else {
+        _price = _salePrice;
+      }
+      _saleTransactionType = value;
+    });
+  }
+
   void _save() {
     if (!_hasValidQuantities) return;
     Navigator.of(context).pop(
       widget.saleProduct.copyWith(
         quantity: _quantity,
         price: _price,
+        saleTransactionType: _saleTransactionType,
         returnQuantity: _returnQuantity,
         freeQuantity: _freeQuantity,
         note: _note,
@@ -146,10 +184,46 @@ class _EditSaleOrderWidgetState extends State<EditSaleOrderWidget> {
                         ),
                         const SizedBox(width: 12),
                         _TransactionStatusChip(
-                          isBorrow: widget.saleProduct.isBorrow,
+                          isBorrow: _isBorrow,
+                          canChange: widget.saleProduct.allowChangeSaleType,
+                          onSelected: _changeSaleTransactionType,
                         ),
                       ],
                     ),
+                    if (!widget.canShowPrice) ...[
+                      const SizedBox(height: 12),
+                      Container(
+                        key: const ValueKey('price-edit-permission-message'),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 11,
+                        ),
+                        decoration: BoxDecoration(
+                          color: colors.primaryContainer,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.info_outline_rounded,
+                              color: colors.onPrimaryContainer,
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                widget.customerName.trim().isEmpty
+                                    ? 'អតិថិជននេះមិនអនុញ្ញាតឱ្យកែប្រែតម្លៃទេ។'
+                                    : '${widget.customerName.trim()} មិនអនុញ្ញាតឱ្យកែប្រែតម្លៃទេ។',
+                                style: TextStyle(
+                                  color: colors.onPrimaryContainer,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 16),
                     GridView.count(
                       shrinkWrap: true,
@@ -174,13 +248,18 @@ class _EditSaleOrderWidgetState extends State<EditSaleOrderWidget> {
                           key: const ValueKey('edit-sale-price'),
                           icon: Icons.payments_outlined,
                           label: 'តម្លៃ',
-                          value: formatMoney(_price),
-                          onTap: widget.saleProduct.isBorrow
+                          value: widget.canShowPrice
+                              ? formatMoney(_price)
+                              : '***',
+                          onTap: _isBorrow || !widget.canShowPrice
                               ? null
                               : () => _editNumber(
                                   value: _price,
                                   allowZero: false,
-                                  onChanged: (value) => _price = value,
+                                  onChanged: (value) {
+                                    _price = value;
+                                    _salePrice = value;
+                                  },
                                 ),
                         ),
                         _EditOptionCard(
@@ -428,9 +507,15 @@ class _EditOptionCard extends StatelessWidget {
 }
 
 class _TransactionStatusChip extends StatelessWidget {
-  const _TransactionStatusChip({required this.isBorrow});
+  const _TransactionStatusChip({
+    required this.isBorrow,
+    required this.canChange,
+    required this.onSelected,
+  });
 
   final bool isBorrow;
+  final bool canChange;
+  final ValueChanged<String> onSelected;
 
   @override
   Widget build(BuildContext context) {
@@ -439,17 +524,51 @@ class _TransactionStatusChip extends StatelessWidget {
         ? const Color(0xFFF79009)
         : semanticColors.success;
     final foregroundColor = isBorrow ? Colors.white : semanticColors.onSuccess;
-    return Container(
-      key: const ValueKey('edit-sale-transaction-status'),
+    final chip = Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
         color: backgroundColor,
         borderRadius: BorderRadius.circular(10),
       ),
-      child: Text(
-        isBorrow ? 'ខ្ចី' : 'លក់',
-        style: TextStyle(color: foregroundColor, fontWeight: FontWeight.w700),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            isBorrow ? 'ខ្ចី' : 'លក់',
+            style: TextStyle(
+              color: foregroundColor,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          if (canChange) ...[
+            const SizedBox(width: 4),
+            Icon(
+              Icons.arrow_drop_down_rounded,
+              size: 18,
+              color: foregroundColor,
+            ),
+          ],
+        ],
       ),
+    );
+    return PopupMenuButton<String>(
+      key: const ValueKey('edit-sale-transaction-status'),
+      enabled: canChange,
+      tooltip: canChange ? 'ប្តូរប្រភេទការលក់' : '',
+      onSelected: onSelected,
+      itemBuilder: (_) => const [
+        PopupMenuItem<String>(
+          key: ValueKey('sale-type-option-sale'),
+          value: 'Sale',
+          child: Text('លក់'),
+        ),
+        PopupMenuItem<String>(
+          key: ValueKey('sale-type-option-borrow'),
+          value: 'Borrow',
+          child: Text('ខ្ចី'),
+        ),
+      ],
+      child: chip,
     );
   }
 }

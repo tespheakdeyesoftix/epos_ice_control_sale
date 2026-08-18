@@ -20,6 +20,8 @@ class OrderProductListWidget extends StatelessWidget {
     this.date,
     this.compact = false,
     this.showPrices = true,
+    this.onCancelNewOrder,
+    this.showSaleNote = true,
   });
 
   final List<SaleProduct> lines;
@@ -34,6 +36,8 @@ class OrderProductListWidget extends StatelessWidget {
   final DateTime? date;
   final bool compact;
   final bool showPrices;
+  final VoidCallback? onCancelNewOrder;
+  final bool showSaleNote;
 
   @override
   Widget build(BuildContext context) {
@@ -182,13 +186,45 @@ class OrderProductListWidget extends StatelessWidget {
           ),
           Divider(height: 1, color: colors.outlineVariant),
           Expanded(
-            child: lines.isEmpty
+            child: lines.isEmpty && onCancelNewOrder == null && !showSaleNote
                 ? const _EmptyOrderState()
                 : ListView.separated(
+                    key: const ValueKey('order-product-scroll-view'),
                     padding: EdgeInsets.all(compact ? 10 : 14),
-                    itemCount: lines.length,
+                    itemCount:
+                        lines.length +
+                        (onCancelNewOrder == null ? 0 : 1) +
+                        (showSaleNote ? 1 : 0),
                     separatorBuilder: (_, _) => const SizedBox(height: 9),
                     itemBuilder: (context, index) {
+                      var trailingIndex = index - lines.length;
+                      if (trailingIndex >= 0 && onCancelNewOrder != null) {
+                        if (trailingIndex == 0) {
+                          return SizedBox(
+                            width: double.infinity,
+                            height: 40,
+                            child: OutlinedButton(
+                              key: const ValueKey('cancel-new-sale-button'),
+                              onPressed: onCancelNewOrder,
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: colors.error,
+                                side: BorderSide(
+                                  color: colors.error.withValues(alpha: 0.65),
+                                ),
+                                visualDensity: VisualDensity.compact,
+                              ),
+                              child: const Text('បោះបង់ការបង្កើតបុងថ្មី'),
+                            ),
+                          );
+                        }
+                        trailingIndex--;
+                      }
+                      if (trailingIndex >= 0 && showSaleNote) {
+                        return _SaleNoteButton(note: note, onTap: onNoteTap);
+                      }
+                      if (index >= lines.length) {
+                        return const SizedBox.shrink();
+                      }
                       final line = lines[index];
                       return _OrderProductLine(
                         line: line,
@@ -202,68 +238,110 @@ class OrderProductListWidget extends StatelessWidget {
                   ),
           ),
           Divider(height: 1, color: colors.outlineVariant),
-          Padding(
-            padding: EdgeInsets.all(compact ? 9 : 12),
-            child: Material(
-              color: colors.surfaceContainerLow,
-              borderRadius: BorderRadius.circular(10),
-              clipBehavior: Clip.antiAlias,
-              child: InkWell(
-                key: const ValueKey('sale-note-button'),
-                onTap: onNoteTap,
-                child: Container(
-                  width: double.infinity,
-                  constraints: const BoxConstraints(minHeight: 46),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 9,
-                  ),
-                  decoration: BoxDecoration(
-                    border: Border.all(color: colors.outlineVariant),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.sticky_note_2_outlined,
-                        size: 19,
-                        color: colors.primary,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        'កំណត់ចំណាំ:',
-                        style: TextStyle(
-                          color: colors.onSurface,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(width: 7),
-                      Expanded(
-                        child: Text(
-                          note.isEmpty ? 'ចុចដើម្បីបញ្ចូល' : note,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: note.isEmpty
-                                ? colors.onSurfaceVariant
-                                : colors.primary,
-                          ),
-                        ),
-                      ),
-                      Icon(
-                        Icons.edit_outlined,
-                        size: 17,
-                        color: colors.onSurfaceVariant,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
         ],
       ),
     );
+  }
+}
+
+class _SaleNoteButton extends StatelessWidget {
+  const _SaleNoteButton({required this.note, required this.onTap});
+
+  final String note;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return CustomPaint(
+      key: const ValueKey('sale-note-dashed-border'),
+      foregroundPainter: _DashedRoundedBorderPainter(
+        color: const Color(0xFF38BDF8),
+        radius: 10,
+      ),
+      child: Material(
+        color: colors.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(10),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          key: const ValueKey('sale-note-button'),
+          onTap: onTap,
+          child: Container(
+            width: double.infinity,
+            constraints: const BoxConstraints(minHeight: 46),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.sticky_note_2_outlined,
+                  size: 19,
+                  color: colors.primary,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    note.isEmpty ? 'បញ្ជូលចំណាំ' : note,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: note.isEmpty
+                          ? colors.onSurfaceVariant
+                          : colors.primary,
+                    ),
+                  ),
+                ),
+                Icon(
+                  Icons.edit_outlined,
+                  size: 17,
+                  color: colors.onSurfaceVariant,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _DashedRoundedBorderPainter extends CustomPainter {
+  const _DashedRoundedBorderPainter({
+    required this.color,
+    required this.radius,
+  });
+
+  final Color color;
+  final double radius;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final path = Path()
+      ..addRRect(
+        RRect.fromRectAndRadius(
+          (Offset.zero & size).deflate(0.6),
+          Radius.circular(radius),
+        ),
+      );
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.2;
+    const dashLength = 6.0;
+    const gapLength = 4.0;
+    for (final metric in path.computeMetrics()) {
+      var distance = 0.0;
+      while (distance < metric.length) {
+        final proposedEnd = distance + dashLength;
+        final end = proposedEnd < metric.length ? proposedEnd : metric.length;
+        canvas.drawPath(metric.extractPath(distance, end), paint);
+        distance += dashLength + gapLength;
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _DashedRoundedBorderPainter oldDelegate) {
+    return oldDelegate.color != color || oldDelegate.radius != radius;
   }
 }
 

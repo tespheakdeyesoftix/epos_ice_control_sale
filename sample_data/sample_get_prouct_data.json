@@ -1,8 +1,9 @@
-[
+ [
     {
       "product_code": "01",
       "product_name": "ទឹកកកដើមធំ",
       "product_category": "ទឹកកកដើម",
+      "revenue_group": "ទឹកកកដើម",
       "price": 15000,
       "unit": "ដើម",
       "color": "#ECAD4B",
@@ -10,63 +11,272 @@
       "multiplier": 1,
       "allow_sum_qty": 1,
       "allow_split_bill": 1,
-      "default_sale_transaction_type": "Sale"
+      "default_sale_transaction_type": "Sale",
+      "is_inventory_product": 1,
+      "allow_free": 0,
+      "allow_return": 1,
+      "allow_change_price": 1,
+      "allow_change_sale_type": 0,
+      "product_units": [
+        {
+          "product_code": "01",
+          "unit": "ដើម",
+          "price": 15000,
+          "multiplier": 1,
+          "base_product_unit": 1,
+          "photo": null
+        }
+      ]
+    },
+    {
+      "product_code": "T02",
+      "product_name": "ធុង - 150L",
+      "product_category": "ធុង",
+      "revenue_group": "ធុង",
+      "price": 40000,
+      "unit": "ធុង",
+      "color": null,
+      "photo": "/files/images (6).jpg",
+      "multiplier": 1,
+      "allow_sum_qty": 0,
+      "allow_split_bill": 0,
+      "default_sale_transaction_type": "Borrow",
+      "is_inventory_product": 1,
+      "allow_free": 1,
+      "allow_return": 1,
+      "allow_change_price": 1,
+      "allow_change_sale_type": 0,
+      "product_units": [
+        {
+          "product_code": "T02",
+          "unit": "ការ៉ុង",
+          "price": 800,
+          "multiplier": 1,
+          "base_product_unit": 1,
+          "photo": null
+        }
+      ]
+    },
+    {
+      "product_code": "C007",
+      "product_name": "ធុង - 200L",
+      "product_category": "ធុង",
+      "revenue_group": "ធុង",
+      "price": 20000,
+      "unit": "ធុង",
+      "color": null,
+      "photo": "/files/images (6).jpg",
+      "multiplier": 1,
+      "allow_sum_qty": 0,
+      "allow_split_bill": 0,
+      "default_sale_transaction_type": "Borrow",
+      "is_inventory_product": 1,
+      "allow_free": 1,
+      "allow_return": 1,
+      "allow_change_price": 1,
+      "allow_change_sale_type": 0,
+      "product_units": [
+        {
+          "product_code": "C007",
+          "unit": "ធុង",
+          "price": 20000,
+          "multiplier": 1,
+          "base_product_unit": 1,
+          "photo": null
+        }
+      ]
+    },
+    {
+      "product_code": "K01",
+      "product_name": "ការ៉ុង - ការ៉ុង",
+      "product_category": "ការ៉ុង",
+      "revenue_group": "ការ៉ុង",
+      "price": 800,
+      "unit": "ការ៉ុង",
+      "color": null,
+      "photo": "/files/images (2).jpg",
+      "multiplier": 25,
+      "allow_sum_qty": 0,
+      "allow_split_bill": 0,
+      "default_sale_transaction_type": "Borrow",
+      "is_inventory_product": 1,
+      "allow_free": 1,
+      "allow_return": 1,
+      "allow_change_price": 1,
+      "allow_change_sale_type": 0,
+      "product_units": [
+        {
+          "product_code": "K01",
+          "unit": "គីឡូ",
+          "price": 300,
+          "multiplier": 1,
+          "base_product_unit": 1,
+          "photo": null
+        }
+      ]
+    },
+    {
+      "product_code": "C003",
+      "product_name": "ទឹកកកអនាម័យ - ថង់",
+      "product_category": "ទឹកកកអនាម័យ",
+      "revenue_group": "ទឹកកកអនាម័យ",
+      "price": 500,
+      "unit": "ថង",
+      "color": null,
+      "photo": "/files/Screenshot 2026-08-17 134407.png",
+      "multiplier": 1,
+      "allow_sum_qty": 0,
+      "allow_split_bill": 0,
+      "default_sale_transaction_type": "Sale",
+      "is_inventory_product": 1,
+      "allow_free": 1,
+      "allow_return": 1,
+      "allow_change_price": 1,
+      "allow_change_sale_type": 0,
+      "product_units": [
+        {
+          "product_code": "C003",
+          "unit": "ធុង",
+          "price": 40000,
+          "multiplier": 1,
+          "base_product_unit": 1,
+          "photo": null
+        }
+      ]
+    },
+    {
+      "product_code": "C005",
+      "product_name": "ធុង - 300L",
+      "product_category": "ធុង",
+      "revenue_group": "ធុង",
+      "price": 60000,
+      "unit": "ធុង",
+      "color": null,
+      "photo": "/files/images (6).jpg",
+      "multiplier": 1,
+      "allow_sum_qty": 0,
+      "allow_split_bill": 0,
+      "default_sale_transaction_type": "Borrow",
+      "is_inventory_product": 1,
+      "allow_free": 1,
+      "allow_return": 1,
+      "allow_change_price": 1,
+      "allow_change_sale_type": 0,
+      "product_units": [
+        {
+          "product_code": "C005",
+          "unit": "ធុង",
+          "price": 60000,
+          "multiplier": 1,
+          "base_product_unit": 1,
+          "photo": null
+        }
+      ]
+    },
+    {
+      "product_code": "T03",
+      "product_name": "ធុង - 450L",
+      "product_category": "ធុង",
+      "revenue_group": "ធុង",
+      "price": 80000,
+      "unit": "ធុង",
+      "color": null,
+      "photo": "/files/images (6).jpg",
+      "multiplier": 1,
+      "allow_sum_qty": 0,
+      "allow_split_bill": 0,
+      "default_sale_transaction_type": "Borrow",
+      "is_inventory_product": 1,
+      "allow_free": 1,
+      "allow_return": 1,
+      "allow_change_price": 1,
+      "allow_change_sale_type": 0,
+      "product_units": [
+        {
+          "product_code": "T03",
+          "unit": "ធុង",
+          "price": 80000,
+          "multiplier": 1,
+          "base_product_unit": 1,
+          "photo": null
+        }
+      ]
+    },
+    {
+      "product_code": "T04",
+      "product_name": "ធុង - 800L",
+      "product_category": "ធុង",
+      "revenue_group": "ធុង",
+      "price": 100000,
+      "unit": "ធុង",
+      "color": null,
+      "photo": "/files/images (7).jpg",
+      "multiplier": 1,
+      "allow_sum_qty": 0,
+      "allow_split_bill": 0,
+      "default_sale_transaction_type": "Borrow",
+      "is_inventory_product": 1,
+      "allow_free": 1,
+      "allow_return": 1,
+      "allow_change_price": 1,
+      "allow_change_sale_type": 0,
+      "product_units": [
+        {
+          "product_code": "T04",
+          "unit": "ធុង",
+          "price": 100000,
+          "multiplier": 1,
+          "base_product_unit": 1,
+          "photo": null
+        }
+      ]
+    },
+    {
+      "product_code": "T05",
+      "product_name": "ធុង - 850L",
+      "product_category": "ធុង",
+      "revenue_group": "ធុង",
+      "price": 110000,
+      "unit": "ធុង",
+      "color": null,
+      "photo": "/files/images (7).jpg",
+      "multiplier": 1,
+      "allow_sum_qty": 0,
+      "allow_split_bill": 0,
+      "default_sale_transaction_type": "Borrow",
+      "is_inventory_product": 1,
+      "allow_free": 1,
+      "allow_return": 1,
+      "allow_change_price": 1,
+      "allow_change_sale_type": 1,
+      "product_units": [
+        {
+          "product_code": "T05",
+          "unit": "ធុង",
+          "price": 110000,
+          "multiplier": 1,
+          "base_product_unit": 1,
+          "photo": null
+        }
+      ]
     },
     {
       "product_code": "02",
       "product_name": "ទឹកកកដើមតូច",
       "product_category": "ទឹកកកដើម",
+      "revenue_group": "ទឹកកកដើម",
       "price": 13500,
       "unit": "ដើម",
       "color": "#ECAD4B",
-      "photo": null,
-      "multiplier": 1,
-      "allow_sum_qty": 1,
-      "allow_split_bill": 1,
-      "default_sale_transaction_type": "Sale"
-    },
-    {
-      "product_code": "03",
-      "product_name": "ទឹកកកអនាម័យគ្រាប់តូច",
-      "product_category": "ទឹកកកអនាម័យ",
-      "price": 250,
-      "unit": "ដើម",
-      "color": "#EC864B",
-      "photo": null,
-      "multiplier": 1,
-      "allow_sum_qty": 1,
-      "allow_split_bill": 1,
-      "default_sale_transaction_type": "Sale"
-    },
-    {
-      "product_code": "04",
-      "product_name": "ទឹកកកអនាម័យគ្រាប់ធំ",
-      "product_category": "ទឹកកកអនាម័យ",
-      "price": 350,
-      "unit": "ដើម",
-      "color": "#EC864B",
-      "photo": null,
+      "photo": "/files/images (4).jpg",
       "multiplier": 1,
       "allow_sum_qty": 1,
       "allow_split_bill": 1,
       "default_sale_transaction_type": "Sale",
-      "product_units": [
-        {
-          "product_code": "04",
-          "unit": "ការ៉ុង",
-          "price": 3500,
-          "multiplier": 25,
-          "base_product_unit": 0,
-          "photo": null
-        },
-        {
-          "product_code": "04",
-          "unit": "ថង",
-          "price": 700,
-          "multiplier": 6,
-          "base_product_unit": 0,
-          "photo": null
-        }
-      ]
+      "is_inventory_product": 1,
+      "allow_free": 0,
+      "allow_return": 1,
+      "allow_change_price": 1,
+      "allow_change_sale_type": 0
     }
   ]

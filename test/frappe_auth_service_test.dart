@@ -20,7 +20,11 @@ void main() {
           'user_type': 'System User',
           'user_image': '/files/administrator.jpg',
           'roles': ['Sales User', 'System Manager'],
-          'employee': {'name': 'EMP0002', 'employee_name': 'Administrator'},
+          'employee': {
+            'name': 'EMP0002',
+            'employee_name': 'Administrator',
+            'change_customer': 1,
+          },
         }),
         200,
         headers: {'content-type': 'application/json'},
@@ -51,6 +55,7 @@ void main() {
     );
     expect(session.roles, ['Sales User', 'System Manager']);
     expect(session.employee['name'], 'EMP0002');
+    expect(session.canChangeCustomer, isTrue);
   });
 
   test('custom login supports null user image', () async {
@@ -76,5 +81,6 @@ void main() {
     );
 
     expect(session.userImageUrl, isEmpty);
+    expect(session.canChangeCustomer, isFalse);
   });
 }

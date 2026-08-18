@@ -112,6 +112,9 @@ class IceSaleApp extends StatelessWidget {
                   outletName: appConfig.outletName,
                   stationName: appConfig.stationName,
                   appSettingController: globalSettingController,
+                  canChangeCustomerProvider: () =>
+                      controller.currentSession.value?.canChangeCustomer ??
+                      false,
                 ),
               );
               Get.lazyPut<AppShellController>(

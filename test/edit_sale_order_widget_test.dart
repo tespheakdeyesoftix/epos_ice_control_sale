@@ -111,4 +111,105 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('quantity-input')), findsNothing);
   });
+
+  testWidgets('customer price permission hides and locks the price', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light,
+        home: const Scaffold(
+          body: EditSaleOrderWidget(
+            canShowPrice: false,
+            customerName: 'អតិថិជន សុខា',
+            saleProduct: SaleProduct(
+              productCode: 'P-PRIVATE',
+              productName: 'Private Price Product',
+              productCategory: 'Test',
+              unit: 'Unit',
+              price: 15500,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('***'), findsOneWidget);
+    expect(find.text('15,500'), findsNothing);
+    expect(
+      find.text('អតិថិជន សុខា មិនអនុញ្ញាតឱ្យកែប្រែតម្លៃទេ។'),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('price-edit-permission-message')),
+      findsOneWidget,
+    );
+    final priceInkWell = tester.widget<InkWell>(
+      find.descendant(
+        of: find.byKey(const ValueKey('edit-sale-price')),
+        matching: find.byType(InkWell),
+      ),
+    );
+    expect(priceInkWell.onTap, isNull);
+  });
+
+  testWidgets('allowed product can switch between Borrow and Sale', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light,
+        home: const Scaffold(
+          body: EditSaleOrderWidget(
+            saleProduct: SaleProduct(
+              productCode: 'CHANGE-TYPE',
+              productName: 'Change Type Product',
+              productCategory: 'Test',
+              unit: 'Unit',
+              price: 0,
+              productPrice: 1000,
+              saleTransactionType: 'Borrow',
+              allowChangeSaleType: true,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final statusChip = find.byKey(
+      const ValueKey('edit-sale-transaction-status'),
+    );
+    expect(find.text('ខ្ចី'), findsOneWidget);
+    await tester.tap(statusChip);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('sale-type-option-sale')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('លក់'), findsOneWidget);
+    expect(find.text('1,000'), findsOneWidget);
+    var priceInkWell = tester.widget<InkWell>(
+      find.descendant(
+        of: find.byKey(const ValueKey('edit-sale-price')),
+        matching: find.byType(InkWell),
+      ),
+    );
+    expect(priceInkWell.onTap, isNotNull);
+
+    await tester.tap(statusChip);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('sale-type-option-borrow')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('ខ្ចី'), findsOneWidget);
+    expect(find.text('0'), findsWidgets);
+    priceInkWell = tester.widget<InkWell>(
+      find.descendant(
+        of: find.byKey(const ValueKey('edit-sale-price')),
+        matching: find.byType(InkWell),
+      ),
+    );
+    expect(priceInkWell.onTap, isNull);
+  });
 }

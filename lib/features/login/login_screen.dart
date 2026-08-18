@@ -190,7 +190,9 @@ class _LoginPanel extends StatelessWidget {
                   const _FieldLabel('ឈ្មោះអ្នកប្រើប្រាស់'),
                   const SizedBox(height: 9),
                   TextField(
+                    key: const ValueKey('login-username-input'),
                     controller: controller.usernameController,
+                    autofocus: true,
                     autofillHints: const [AutofillHints.username],
                     textInputAction: TextInputAction.next,
                     decoration: const InputDecoration(

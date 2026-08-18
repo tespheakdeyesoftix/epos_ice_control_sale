@@ -59,6 +59,8 @@ class AuthSession {
   final String userImageUrl;
   final List<String> roles;
   final Map<String, dynamic> employee;
+
+  bool get canChangeCustomer => _flag(employee['change_customer']);
 }
 
 class FrappeAuthService {
@@ -124,6 +126,12 @@ class FrappeAuthService {
 }
 
 String _text(dynamic value) => value == null ? '' : value.toString().trim();
+
+bool _flag(dynamic value) {
+  if (value is bool) return value;
+  if (value is num) return value == 1;
+  return value?.toString().trim() == '1';
+}
 
 class AuthException implements Exception {
   const AuthException(this.message);

@@ -11,6 +11,8 @@ import 'product.dart';
 import 'sale.dart';
 import 'sale_product.dart';
 
+part 'methods.dart';
+
 class SellController extends GetxController {
   SellController({
     required this.productService,
@@ -19,6 +21,7 @@ class SellController extends GetxController {
     required this.outletName,
     required this.stationName,
     this.appSettingController,
+    this.canChangeCustomerProvider,
   });
 
   final ProductService productService;
@@ -27,6 +30,7 @@ class SellController extends GetxController {
   final String outletName;
   final String stationName;
   final AppSettingController? appSettingController;
+  final bool Function()? canChangeCustomerProvider;
   final products = <Product>[].obs;
   final saleProducts = <SaleProduct>[].obs;
   final isLoading = false.obs;
@@ -44,101 +48,29 @@ class SellController extends GetxController {
   final saleNote = ''.obs;
   final isSaving = false.obs;
   final isDeletingSale = false.obs;
+  final isSearchingBill = false.obs;
   final pendingOrderCount = 0.obs;
   final closedSaleRevision = 0.obs;
   final isLoadingPendingOrders = false.obs;
 
-  List<Product> get filteredProducts {
-    final query = searchQuery.value.trim().toLowerCase();
-    final category = selectedProductCategory.value;
-    return products.where((product) {
-      final matchesCategory =
-          category.isEmpty || product.category.trim() == category;
-      final matchesSearch =
-          query.isEmpty ||
-          product.name.toLowerCase().contains(query) ||
-          product.code.toLowerCase().contains(query) ||
-          product.category.toLowerCase().contains(query);
-      return matchesCategory && matchesSearch;
-    }).toList();
-  }
-
-  List<String> get productCategories {
-    final categories = <String>{};
-    for (final product in products) {
-      final category = product.category.trim();
-      if (category.isNotEmpty) categories.add(category);
-    }
-    return categories.toList(growable: false);
-  }
-
-  int productCountForCategory(String category) {
-    final normalizedCategory = category.trim();
-    if (normalizedCategory.isEmpty) return products.length;
-    return products
-        .where((product) => product.category.trim() == normalizedCategory)
-        .length;
-  }
-
-  Sale get currentSale {
-    final customer = selectedCustomer.value;
-    final driver = selectedDriver.value;
-    final savedSale = openedSale.value;
-    return Sale(
-      name: savedSale?.name ?? '',
-      namingSeries: savedSale?.namingSeries ?? 'SO.YYYY.-.####',
-      outlet: outletName,
-      stockLocation: savedSale?.stockLocation.isNotEmpty == true
-          ? savedSale!.stockLocation
-          : appSettingController?.current?.defaultStockLocation ?? '',
-      seller: savedSale?.seller ?? '',
-      postingDate: postingDate.value,
-      referenceNumber: referenceNumber.value,
-      note: saleNote.value,
-      saleProducts: List.unmodifiable(saleProducts),
-      customer: customer?.name ?? '',
-      customerName: customer?.displayName ?? '',
-      phoneNumber: customer?.phoneNumber1 ?? '',
-      customerGroup: customer?.customerGroup ?? '',
-      customerPhoto: customer?.photo ?? '',
-      canEditBill: customer?.canEditBill ?? false,
-      canShowPrice: customer?.canShowPrice ?? false,
-      canSplitBill: customer?.canSplitBill ?? false,
-      driver: driver?.displayCode ?? '',
-      driverName: driver?.displayName ?? '',
-      driverPhoneNumber: driver?.phoneNumber1 ?? '',
-      plateNumber: plateNumber.value,
-      driverPhoto: driver?.photo ?? '',
-      saleStatus: savedSale?.saleStatus ?? 'Draft',
-      parentBillNumber: savedSale?.parentBillNumber ?? '',
-      totalPayment: savedSale?.totalPayment ?? 0,
-      totalWriteOff: savedSale?.totalWriteOff ?? 0,
-      status: savedSale?.status ?? 'Unpaid',
-      id: savedSale?.id ?? '',
-      enableEditMode: savedSale?.enableEditMode ?? true,
-      station: stationName,
-      lastUpdateStation: stationName,
-    );
-  }
-
-  double get totalQuantity => currentSale.totalQuantity;
-  double get totalSaleQuantity => currentSale.totalSaleQuantity;
-  double get grandTotal => currentSale.totalAmount;
-  bool get hasSelectedCustomer => selectedCustomer.value != null;
-  bool get isNewSale => openedSale.value == null;
-  bool get canOpenPendingOrder => saleProducts.isEmpty && isNewSale;
-
-  Uri? productImage(Product product) => _resolveImage(product.photo);
-
-  Uri? saleProductImage(SaleProduct product) => _resolveImage(product.photo);
-
-  Uri? customerImage(Customer customer) =>
-      customerService.customerImage(customer);
-
-  Uri? _resolveImage(String photo) {
-    if (photo.trim().isEmpty) return null;
-    return productService.baseUri.resolve(photo.trim());
-  }
+  List<Product> get filteredProducts => _filteredProducts;
+  List<String> get productCategories => _productCategories;
+  int productCountForCategory(String category) =>
+      _productCountForCategory(category);
+  Sale get currentSale => _currentSale;
+  double get totalQuantity => _totalQuantity;
+  double get totalSaleQuantity => _totalSaleQuantity;
+  double get grandTotal => _grandTotal;
+  bool get hasSelectedCustomer => _hasSelectedCustomer;
+  bool get isNewSale => _isNewSale;
+  bool get canOpenPendingOrder => _canOpenPendingOrder;
+  bool get isNewSaleDirty => _isNewSaleDirty;
+  bool get isSaleDirty => _isSaleDirty;
+  bool get canSearchBillForEdit => _canSearchBillForEdit;
+  bool get canChangeCustomer => _canChangeCustomer;
+  Uri? productImage(Product product) => _productImage(product);
+  Uri? saleProductImage(SaleProduct product) => _saleProductImage(product);
+  Uri? customerImage(Customer customer) => _customerImage(customer);
 
   @override
   void onInit() {
@@ -185,6 +117,9 @@ class SellController extends GetxController {
   }
 
   Future<void> selectCustomer(Customer customer) async {
+    if (!canChangeCustomer) {
+      throw const CustomerChangePermissionException();
+    }
     selectedCustomer.value = customer;
     customerProductPrices.clear();
     _applyCustomerPrices();
@@ -203,6 +138,16 @@ class SellController extends GetxController {
         isLoadingCustomerProductPrices.value = false;
       }
     }
+  }
+
+  void clearCustomer() {
+    if (!canChangeCustomer) {
+      throw const CustomerChangePermissionException();
+    }
+    selectedCustomer.value = null;
+    customerProductPrices.clear();
+    isLoadingCustomerProductPrices.value = false;
+    _applyCustomerPrices();
   }
 
   void selectDriver(Customer driver) {
@@ -255,33 +200,6 @@ class SellController extends GetxController {
     return true;
   }
 
-  CustomerProductPrice? _customerPriceFor({
-    required String productCode,
-    required String unit,
-  }) {
-    for (final price in customerProductPrices) {
-      if (price.matches(productCode: productCode, unit: unit)) return price;
-    }
-    return null;
-  }
-
-  void _applyCustomerPrices() {
-    final repricedProducts = saleProducts
-        .map((item) {
-          final customerPrice = _customerPriceFor(
-            productCode: item.productCode,
-            unit: item.unit,
-          );
-          return item.copyWith(
-            price: item.isBorrow
-                ? 0
-                : customerPrice?.price ?? item.productPrice ?? item.price,
-          );
-        })
-        .toList(growable: false);
-    saleProducts.assignAll(repricedProducts);
-  }
-
   void remove(SaleProduct item) => saleProducts.removeWhere(
     (candidate) => candidate.productCode == item.productCode,
   );
@@ -303,6 +221,7 @@ class SellController extends GetxController {
     if (!canOpenPendingOrder) {
       throw const PendingOrderOpenValidationException();
     }
+    _validateSaleForEdit(sale);
     if (sale.saleStatus != 'Draft') {
       throw const PendingOrderNotDraftException();
     }
@@ -311,13 +230,14 @@ class SellController extends GetxController {
   }
 
   Future<void> openClosedOrder(String name) async {
-    if (!canOpenPendingOrder) {
+    if (!canSearchBillForEdit) {
       throw const ClosedSaleOpenValidationException();
     }
     final sale = await saleService.getSale(name);
-    if (!canOpenPendingOrder) {
+    if (!canSearchBillForEdit) {
       throw const ClosedSaleOpenValidationException();
     }
+    _validateSaleForEdit(sale);
     if (sale.saleStatus != 'Closed') {
       throw const SaleOrderNotClosedException();
     }
@@ -325,35 +245,28 @@ class SellController extends GetxController {
     _applyOpenedSale(sale);
   }
 
-  void _applyOpenedSale(Sale sale) {
-    openedSale.value = sale;
-    postingDate.value = sale.postingDate ?? _dateOnly(DateTime.now());
-    referenceNumber.value = sale.referenceNumber;
-    saleNote.value = sale.note;
-    saleProducts.assignAll(sale.saleProducts);
-    selectedCustomer.value = sale.customer.isEmpty
-        ? null
-        : Customer(
-            name: sale.customer,
-            customerName: sale.customerName,
-            phoneNumber1: sale.phoneNumber,
-            customerGroup: sale.customerGroup,
-            photo: sale.customerPhoto,
-            canEditBill: sale.canEditBill,
-            canShowPrice: sale.canShowPrice,
-            canSplitBill: sale.canSplitBill,
-          );
-    selectedDriver.value = sale.driver.isEmpty
-        ? null
-        : Customer(
-            name: sale.driver,
-            customerName: sale.driverName,
-            phoneNumber1: sale.driverPhoneNumber,
-            plateNumber: sale.plateNumber,
-            photo: sale.driverPhoto,
-          );
-    plateNumber.value = sale.plateNumber;
-    customerProductPrices.clear();
+  Future<void> searchBillForEdit(String keyword) async {
+    final normalizedKeyword = keyword.trim();
+    if (normalizedKeyword.isEmpty) {
+      throw const BillSearchKeywordException();
+    }
+    if (!canSearchBillForEdit || isSearchingBill.value) {
+      throw const BillSearchValidationException();
+    }
+    isSearchingBill.value = true;
+    try {
+      final sale = await saleService.searchBillForEdit(
+        keyword: normalizedKeyword,
+        outlet: outletName,
+      );
+      if (!canSearchBillForEdit) {
+        throw const BillSearchValidationException();
+      }
+      _validateSaleForEdit(sale);
+      _applyOpenedSale(sale);
+    } finally {
+      isSearchingBill.value = false;
+    }
   }
 
   Future<Map<String, dynamic>> saveOrder() async {
@@ -427,29 +340,3 @@ class SellController extends GetxController {
     saleNote.value = '';
   }
 }
-
-class SaleValidationException implements Exception {
-  const SaleValidationException();
-}
-
-class PendingOrderOpenValidationException implements Exception {
-  const PendingOrderOpenValidationException();
-}
-
-class PendingOrderNotDraftException implements Exception {
-  const PendingOrderNotDraftException();
-}
-
-class ClosedSaleOpenValidationException implements Exception {
-  const ClosedSaleOpenValidationException();
-}
-
-class SaleOrderNotClosedException implements Exception {
-  const SaleOrderNotClosedException();
-}
-
-class SaleDeleteValidationException implements Exception {
-  const SaleDeleteValidationException();
-}
-
-DateTime _dateOnly(DateTime date) => DateTime(date.year, date.month, date.day);

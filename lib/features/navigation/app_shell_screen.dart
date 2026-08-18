@@ -14,6 +14,7 @@ import '../pending_sales/pending_sale_list_screen.dart';
 import '../report/report_screen.dart';
 import '../sale_summary/sale_summary_screen.dart';
 import '../sell/customer.dart';
+import '../sell/sell_controller.dart';
 import '../sell/sell_screen.dart';
 import '../sell/widgets/save_order_success_widget.dart';
 import 'app_destination.dart';
@@ -72,10 +73,18 @@ class AppShellScreen extends GetView<AppShellController> {
                       Navigator.of(dialogContext).pop(_SaleLeaveAction.close),
                 ),
                 const SizedBox(height: 8),
+                const _LeaveActionTile(
+                  key: ValueKey('leave-sale-close-and-print'),
+                  icon: Icons.print_outlined,
+                  title: 'បិទការលក់ និងបោះពុម្ភវិកយបត្រ',
+                  subtitle: 'រក្សាទុកការលក់ ហើយបោះពុម្ពវិក្កយបត្រ',
+                  onTap: null,
+                ),
+                const SizedBox(height: 8),
                 _LeaveActionTile(
                   key: const ValueKey('leave-sale-hold'),
                   icon: Icons.pause_circle_outline_rounded,
-                  title: 'ផ្អាកការលក់',
+                  title: 'ដាក់ក្នុងរង់ចាំ',
                   subtitle: 'រក្សាទុកការលក់ជាព្រាងសម្រាប់បន្តពេលក្រោយ',
                   onTap: () =>
                       Navigator.of(dialogContext).pop(_SaleLeaveAction.hold),
@@ -116,6 +125,13 @@ class AppShellScreen extends GetView<AppShellController> {
     try {
       if (action == _SaleLeaveAction.close && !sell.hasSelectedCustomer) {
         if (!context.mounted) return false;
+        if (!sell.canChangeCustomer) {
+          const error = CustomerChangePermissionException();
+          FrappeResponseHandler.show(
+            FrappeServerMessage(message: error.message, indicator: 'orange'),
+          );
+          return false;
+        }
         final customer = await showSelectCustomerDialog(
           context,
           customerService: sell.customerService,
@@ -139,6 +155,11 @@ class AppShellScreen extends GetView<AppShellController> {
             : 'ផ្អាកការលក់បានជោគជ័យ',
       );
       return context.mounted;
+    } on CustomerChangePermissionException catch (error) {
+      FrappeResponseHandler.show(
+        FrappeServerMessage(message: error.message, indicator: 'orange'),
+      );
+      return false;
     } on FrappeServerMessageException {
       return false;
     } on Exception {
@@ -448,15 +469,22 @@ class _LeaveActionTile extends StatelessWidget {
   final IconData icon;
   final String title;
   final String subtitle;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
   final bool isDestructive;
 
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    final foreground = isDestructive ? colors.error : colors.onSurface;
+    final isEnabled = onTap != null;
+    final foreground = !isEnabled
+        ? colors.onSurfaceVariant.withValues(alpha: 0.55)
+        : isDestructive
+        ? colors.error
+        : colors.onSurface;
     return Material(
-      color: isDestructive
+      color: !isEnabled
+          ? colors.surfaceContainerLow.withValues(alpha: 0.55)
+          : isDestructive
           ? colors.errorContainer.withValues(alpha: 0.45)
           : colors.surfaceContainerLow,
       borderRadius: BorderRadius.circular(12),
@@ -491,7 +519,12 @@ class _LeaveActionTile extends StatelessWidget {
                   ],
                 ),
               ),
-              Icon(Icons.chevron_right_rounded, color: foreground),
+              Icon(
+                isEnabled
+                    ? Icons.chevron_right_rounded
+                    : Icons.schedule_rounded,
+                color: foreground,
+              ),
             ],
           ),
         ),

@@ -14,6 +14,7 @@ class SaleProduct {
     this.photo = '',
     this.baseUnit = '',
     this.allowSplitBill = false,
+    this.allowChangeSaleType = false,
     this.saleTransactionType = 'Sale',
     this.multiplier = 1,
     this.revenueGroup = '',
@@ -51,6 +52,7 @@ class SaleProduct {
       outlet: outlet,
       photo: product.photo,
       allowSplitBill: product.allowSplitBill,
+      allowChangeSaleType: product.allowChangeSaleType,
       saleTransactionType: product.saleTransactionType,
       multiplier: product.multiplier,
       revenueGroup: product.revenueGroup,
@@ -71,6 +73,7 @@ class SaleProduct {
       photo: _text(json['photo']),
       baseUnit: _text(json['base_unit']),
       allowSplitBill: _flag(json['allow_split_bill']),
+      allowChangeSaleType: _flag(json['allow_change_sale_type']),
       saleTransactionType: _saleTransactionType(json),
       unit: _text(json['unit']),
       multiplier: toDoubleValue(json['multiplier'], fallback: 1),
@@ -102,6 +105,7 @@ class SaleProduct {
   final String photo;
   final String baseUnit;
   final bool allowSplitBill;
+  final bool allowChangeSaleType;
   final String saleTransactionType;
   final String unit;
   final double multiplier;
@@ -138,8 +142,13 @@ class SaleProduct {
     double? returnQuantity,
     double? splitQuantity,
     double? price,
+    String? saleTransactionType,
     String? note,
   }) {
+    final nextSaleTransactionType =
+        saleTransactionType ?? this.saleTransactionType;
+    final nextIsBorrow =
+        nextSaleTransactionType.trim().toLowerCase() == 'borrow';
     return SaleProduct(
       productCode: productCode,
       productName: productName,
@@ -148,14 +157,15 @@ class SaleProduct {
       photo: photo,
       baseUnit: baseUnit,
       allowSplitBill: allowSplitBill,
-      saleTransactionType: saleTransactionType,
+      allowChangeSaleType: allowChangeSaleType,
+      saleTransactionType: nextSaleTransactionType,
       unit: unit,
       multiplier: multiplier,
       revenueGroup: revenueGroup,
       allowSumQuantity: allowSumQuantity,
       isInventoryProduct: isInventoryProduct,
       quantity: quantity ?? this.quantity,
-      price: isBorrow ? 0 : price ?? this.price,
+      price: nextIsBorrow ? 0 : price ?? this.price,
       productPrice: productPrice,
       freeQuantity: freeQuantity ?? this.freeQuantity,
       returnQuantity: returnQuantity ?? this.returnQuantity,
@@ -178,6 +188,7 @@ class SaleProduct {
       'photo': photo,
       'base_unit': baseUnit,
       'allow_split_bill': allowSplitBill ? 1 : 0,
+      'allow_change_sale_type': allowChangeSaleType ? 1 : 0,
       'sale_transaction_type': saleTransactionType,
       'unit': unit,
       'multiplier': multiplier,

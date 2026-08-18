@@ -29,6 +29,12 @@ class PendingOrderListDialogWidget extends StatefulWidget {
     this.onView,
     this.onEdit,
     this.onRefreshed,
+    this.saleStatus = 'Draft',
+    this.status = '',
+    this.title = 'បញ្ជីការលក់ដែលបានផ្អាក',
+    this.emptyMessage = 'មិនមានការលក់ដែលបានផ្អាកទេ។',
+    this.titleIcon = Icons.pending_actions_rounded,
+    this.keyPrefix = 'pending-order',
   });
 
   final SaleService saleService;
@@ -37,6 +43,12 @@ class PendingOrderListDialogWidget extends StatefulWidget {
   final ValueChanged<String>? onView;
   final ValueChanged<String>? onEdit;
   final VoidCallback? onRefreshed;
+  final String saleStatus;
+  final String status;
+  final String title;
+  final String emptyMessage;
+  final IconData titleIcon;
+  final String keyPrefix;
 
   @override
   State<PendingOrderListDialogWidget> createState() =>
@@ -84,6 +96,8 @@ class _PendingOrderListDialogWidgetState
         outlet: widget.outlet,
         search: _searchController.text,
         postingDate: _postingDate == null ? '' : _apiDate(_postingDate!),
+        saleStatus: widget.saleStatus,
+        status: widget.status,
         offset: _orders.length,
       );
       if (!mounted) return;
@@ -157,15 +171,12 @@ class _PendingOrderListDialogWidgetState
           child: Row(
             children: [
               if (!widget.embedded) ...[
-                Icon(
-                  Icons.pending_actions_rounded,
-                  color: colors.onInverseSurface,
-                ),
+                Icon(widget.titleIcon, color: colors.onInverseSurface),
                 const SizedBox(width: 10),
               ],
               Expanded(
                 child: Text(
-                  'បញ្ជីការលក់ដែលបានផ្អាក',
+                  widget.title,
                   style: TextStyle(
                     color: widget.embedded
                         ? colors.onSurface
@@ -178,6 +189,7 @@ class _PendingOrderListDialogWidgetState
               _FilterBar(
                 searchController: _searchController,
                 postingDate: _postingDate,
+                darkBackground: !widget.embedded,
                 onSearchChanged: _handleSearchChanged,
                 onClearSearch: () {
                   _searchController.clear();
@@ -233,7 +245,7 @@ class _PendingOrderListDialogWidgetState
       );
     }
     return Dialog(
-      key: const ValueKey('pending-order-list-dialog'),
+      key: ValueKey('${widget.keyPrefix}-list-dialog'),
       insetPadding: const EdgeInsets.all(24),
       clipBehavior: Clip.antiAlias,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
@@ -254,9 +266,9 @@ class _PendingOrderListDialogWidgetState
       );
     }
     if (_orders.isEmpty) {
-      return const _MessageState(
+      return _MessageState(
         icon: Icons.inventory_2_outlined,
-        message: 'មិនមានការលក់ដែលបានផ្អាកទេ។',
+        message: widget.emptyMessage,
       );
     }
 
@@ -304,6 +316,7 @@ class _FilterBar extends StatelessWidget {
   const _FilterBar({
     required this.searchController,
     required this.postingDate,
+    required this.darkBackground,
     required this.onSearchChanged,
     required this.onClearSearch,
     required this.onDateTap,
@@ -312,6 +325,7 @@ class _FilterBar extends StatelessWidget {
 
   final TextEditingController searchController;
   final DateTime? postingDate;
+  final bool darkBackground;
   final ValueChanged<String> onSearchChanged;
   final VoidCallback onClearSearch;
   final VoidCallback onDateTap;
@@ -320,6 +334,18 @@ class _FilterBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
+    final inputBackground = darkBackground
+        ? colors.inverseSurface
+        : colors.surfaceContainerLow;
+    final inputForeground = darkBackground
+        ? colors.onInverseSurface
+        : colors.onSurface;
+    final inputMuted = darkBackground
+        ? colors.onInverseSurface.withValues(alpha: 0.68)
+        : colors.onSurfaceVariant;
+    final inputBorder = darkBackground
+        ? colors.onInverseSurface.withValues(alpha: 0.24)
+        : colors.outlineVariant;
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -330,11 +356,19 @@ class _FilterBar extends StatelessWidget {
             key: const ValueKey('pending-order-search-input'),
             controller: searchController,
             onChanged: onSearchChanged,
+            cursorColor: inputForeground,
+            style: TextStyle(color: inputForeground),
             decoration: InputDecoration(
               hintText: 'Search',
+              hintStyle: TextStyle(color: inputMuted),
               isDense: true,
-              fillColor: colors.surfaceContainerLow,
-              prefixIcon: const Icon(Icons.search_rounded, size: 20),
+              filled: true,
+              fillColor: inputBackground,
+              prefixIcon: Icon(
+                Icons.search_rounded,
+                size: 20,
+                color: inputMuted,
+              ),
               prefixIconConstraints: const BoxConstraints(
                 minWidth: 40,
                 minHeight: 40,
@@ -346,13 +380,33 @@ class _FilterBar extends StatelessWidget {
                       onPressed: onClearSearch,
                       padding: EdgeInsets.zero,
                       visualDensity: VisualDensity.compact,
-                      icon: const Icon(Icons.close_rounded, size: 18),
+                      icon: Icon(
+                        Icons.close_rounded,
+                        size: 18,
+                        color: inputMuted,
+                      ),
                     ),
               suffixIconConstraints: const BoxConstraints(
                 minWidth: 40,
                 minHeight: 40,
               ),
               contentPadding: const EdgeInsets.symmetric(vertical: 10),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: inputBorder),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: inputBorder),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(
+                  color: darkBackground
+                      ? colors.onInverseSurface.withValues(alpha: 0.7)
+                      : colors.primary,
+                ),
+              ),
             ),
           ),
         ),
@@ -361,10 +415,10 @@ class _FilterBar extends StatelessWidget {
           width: 180,
           height: 42,
           child: Material(
-            color: colors.surfaceContainerLow,
+            color: inputBackground,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
-              side: BorderSide(color: colors.outlineVariant),
+              side: BorderSide(color: inputBorder),
             ),
             clipBehavior: Clip.antiAlias,
             child: InkWell(
@@ -377,7 +431,7 @@ class _FilterBar extends StatelessWidget {
                     Icon(
                       Icons.calendar_month_outlined,
                       size: 18,
-                      color: colors.primary,
+                      color: darkBackground ? inputForeground : colors.primary,
                     ),
                     const SizedBox(width: 7),
                     Expanded(
@@ -389,8 +443,8 @@ class _FilterBar extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           color: postingDate == null
-                              ? colors.onSurfaceVariant
-                              : colors.onSurface,
+                              ? inputMuted
+                              : inputForeground,
                           fontSize: 12,
                           fontWeight: postingDate == null
                               ? FontWeight.w400
@@ -555,10 +609,13 @@ class _PendingOrderRow extends StatelessWidget {
                 textAlign: TextAlign.right,
               ),
               _DataCell(
-                '${formatMoney(order.totalAmount)} រៀល',
+                order.customer.trim().isEmpty || order.canShowPrice
+                    ? '${formatMoney(order.totalAmount)} រៀល'
+                    : '***',
                 flex: 17,
                 textAlign: TextAlign.right,
                 emphasized: true,
+                valueKey: ValueKey('pending-order-total-${order.name}'),
               ),
               if (onView != null || onEdit != null)
                 Expanded(
@@ -608,12 +665,14 @@ class _DataCell extends StatelessWidget {
     required this.flex,
     this.textAlign,
     this.emphasized = false,
+    this.valueKey,
   });
 
   final String value;
   final int flex;
   final TextAlign? textAlign;
   final bool emphasized;
+  final Key? valueKey;
 
   @override
   Widget build(BuildContext context) {
@@ -621,6 +680,7 @@ class _DataCell extends StatelessWidget {
     return Expanded(
       flex: flex,
       child: Text(
+        key: valueKey,
         value,
         maxLines: 2,
         overflow: TextOverflow.ellipsis,

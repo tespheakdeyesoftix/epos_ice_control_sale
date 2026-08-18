@@ -13,6 +13,7 @@ class Product {
     this.multiplier = 1,
     this.allowSumQuantity = false,
     this.allowSplitBill = false,
+    this.allowChangeSaleType = false,
     this.saleTransactionType = 'Sale',
     this.isInventoryProduct = false,
     this.cost = 0,
@@ -29,6 +30,7 @@ class Product {
   final double multiplier;
   final bool allowSumQuantity;
   final bool allowSplitBill;
+  final bool allowChangeSaleType;
   final String saleTransactionType;
   final bool isInventoryProduct;
   final double cost;
@@ -46,6 +48,7 @@ class Product {
       multiplier: toDoubleValue(json['multiplier'], fallback: 1),
       allowSumQuantity: toDoubleValue(json['allow_sum_qty']) == 1,
       allowSplitBill: toDoubleValue(json['allow_split_bill']) == 1,
+      allowChangeSaleType: toDoubleValue(json['allow_change_sale_type']) == 1,
       saleTransactionType: _saleTransactionType(json),
       isInventoryProduct: toDoubleValue(json['is_inventory_product']) == 1,
       cost: toDoubleValue(json['cost']),

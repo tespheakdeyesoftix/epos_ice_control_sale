@@ -66,17 +66,55 @@ class SaleService {
     return Sale.fromJson(Map<String, dynamic>.from(data));
   }
 
+  Future<Sale> searchBillForEdit({
+    required String keyword,
+    required String outlet,
+  }) async {
+    final response = await _client
+        .get(
+          baseUri
+              .resolve(ApiEndpoint.searchBillForEdit)
+              .replace(
+                queryParameters: {
+                  'keyword': keyword.trim(),
+                  'outlet': outlet.trim(),
+                },
+              ),
+          headers: const {'Accept': 'application/json'},
+        )
+        .timeout(const Duration(seconds: 30));
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw SaleServiceException(response.statusCode);
+    }
+
+    dynamic payload = jsonDecode(response.body);
+    if (payload is Map && payload.containsKey('message')) {
+      payload = payload['message'];
+    }
+    if (payload is String) payload = jsonDecode(payload);
+    if (payload is Map && payload['doc'] is Map) payload = payload['doc'];
+    if (payload is Map && payload['data'] is Map) payload = payload['data'];
+    if (payload is! Map) throw const SaleServiceException(200);
+    final sale = Sale.fromJson(Map<String, dynamic>.from(payload));
+    if (sale.name.isEmpty) throw const SaleServiceException(200);
+    return sale;
+  }
+
   Future<PendingOrderPage> getPendingOrders({
     required String outlet,
     String search = '',
     String postingDate = '',
+    String saleStatus = 'Draft',
+    String status = '',
     int offset = 0,
     int limit = pendingOrderPageSize,
   }) async {
     final endpoint = baseUri.resolve(ApiEndpoint.sales);
     final filters = <List<dynamic>>[
-      ['sale_status', '=', 'Draft'],
+      ['sale_status', '=', saleStatus],
       ['outlet', '=', outlet],
+      if (status.trim().isNotEmpty) ['status', '=', status.trim()],
       if (postingDate.trim().isNotEmpty)
         ['posting_date', '=', postingDate.trim()],
     ];

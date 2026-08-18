@@ -50,6 +50,8 @@ class PendingSaleListScreen extends GetView<AppShellController> {
         'សូមរក្សាទុកការលក់បច្ចុប្បន្នជាមុនសិន មុននឹងកែបុងដែលបានផ្អាក។',
         indicator: 'orange',
       );
+    } on SaleEditBlockedException catch (error) {
+      _showMessage(error.message, indicator: 'orange');
     } on PendingOrderNotDraftException {
       _showMessage('បុងនេះមិនមែនជាបុងដែលបានផ្អាកទៀតទេ។');
     } on FrappeServerMessageException {

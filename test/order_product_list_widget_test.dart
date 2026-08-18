@@ -53,6 +53,11 @@ void main() {
 
     expect(find.text('លក់'), findsOneWidget);
     expect(find.text('ខ្ចី'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('sale-note-dashed-border')),
+      findsOneWidget,
+    );
+    expect(find.text('បញ្ជូលចំណាំ'), findsOneWidget);
 
     final saleChip = tester.widget<Container>(
       find.byKey(const ValueKey('sale-transaction-type-SALE-01')),

@@ -30,6 +30,7 @@ class Sale {
     this.note = '',
     this.totalPayment = 0,
     this.totalWriteOff = 0,
+    this.totalSplitBill = 0,
     this.status = 'Unpaid',
     this.id = '',
     this.enableEditMode = true,
@@ -78,6 +79,7 @@ class Sale {
       note: _text(json['note']),
       totalPayment: toDoubleValue(json['total_payment']),
       totalWriteOff: toDoubleValue(json['total_write_off']),
+      totalSplitBill: toDoubleValue(json['total_split_bill']).toInt(),
       status: _text(json['status']).isEmpty ? 'Unpaid' : _text(json['status']),
       id: _text(json['id']),
       enableEditMode: json['enable_edit_mode'] == null
@@ -115,6 +117,7 @@ class Sale {
   final String note;
   final double totalPayment;
   final double totalWriteOff;
+  final int totalSplitBill;
   final String status;
   final String id;
   final bool enableEditMode;
@@ -127,7 +130,8 @@ class Sale {
   double get totalSplitQuantity => _sum((item) => item.splitQuantity);
   double get totalSaleQuantity =>
       _sum((item) => item.allowSumQuantity ? item.totalSaleQuantity : 0);
-  double get totalAmount => _sum((item) => item.totalAmount);
+  double get totalAmount =>
+      _sum((item) => item.allowSumQuantity ? item.totalAmount : 0);
   double get balance => totalAmount - totalPayment - totalWriteOff;
 
   double _sum(double Function(SaleProduct) selector) {
@@ -170,6 +174,7 @@ class Sale {
       'total_payment': totalPayment,
       'total_amount': totalAmount,
       'total_write_off': totalWriteOff,
+      'total_split_bill': totalSplitBill,
       'balance': balance,
       'status': status,
       'id': id,

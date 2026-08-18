@@ -114,6 +114,33 @@ void main() {
     expect(page.hasMore, isFalse);
   });
 
+  test('closed order selector filters closed unpaid sales by outlet', () async {
+    late http.Request sentRequest;
+    final client = MockClient((request) async {
+      sentRequest = request;
+      return http.Response(
+        jsonEncode({'data': <dynamic>[]}),
+        200,
+        headers: {'content-type': 'application/json'},
+      );
+    });
+    final service = SaleService(
+      Uri.parse('http://127.0.0.1:8888/'),
+      client: client,
+    );
+
+    await service.getPendingOrders(
+      outlet: 'Main Outlet',
+      saleStatus: 'Closed',
+      status: 'Unpaid',
+    );
+
+    final filters = jsonDecode(sentRequest.url.queryParameters['filters']!);
+    expect(filters[0], ['sale_status', '=', 'Closed']);
+    expect(filters[1], ['outlet', '=', 'Main Outlet']);
+    expect(filters[2], ['status', '=', 'Unpaid']);
+  });
+
   test('ទាញចំនួនការលក់ដែលបានផ្អាកតាមសាខា', () async {
     late http.Request sentRequest;
     final client = MockClient((request) async {
@@ -313,5 +340,44 @@ void main() {
     );
     expect(sentRequest.bodyFields['doc_name'], 'SO-CLOSED-0001');
     expect(sentRequest.bodyFields['deleted_note'], 'បញ្ចូលខុស');
+  });
+
+  test('ស្វែងរកបុងសម្រាប់កែប្រែតាម keyword', () async {
+    late http.Request sentRequest;
+    final client = MockClient((request) async {
+      sentRequest = request;
+      return http.Response(
+        jsonEncode({
+          'message': {
+            'name': 'SO-SEARCH-0001',
+            'doctype': 'Sale',
+            'outlet': 'ទឹកកកដើម',
+            'sale_status': 'Closed',
+            'sale_products': const [],
+          },
+        }),
+        200,
+        headers: {'content-type': 'application/json'},
+      );
+    });
+    final service = SaleService(
+      Uri.parse('http://127.0.0.1:8888/'),
+      client: client,
+    );
+
+    final sale = await service.searchBillForEdit(
+      keyword: ' QR-SO-SEARCH-0001 ',
+      outlet: ' ទឹកកកដើម ',
+    );
+
+    expect(sentRequest.method, 'GET');
+    expect(
+      sentRequest.url.path,
+      '/api/method/ice_control.api.v1.sale.search_bill_for_edit',
+    );
+    expect(sentRequest.url.queryParameters['keyword'], 'QR-SO-SEARCH-0001');
+    expect(sentRequest.url.queryParameters['outlet'], 'ទឹកកកដើម');
+    expect(sale.name, 'SO-SEARCH-0001');
+    expect(sale.saleStatus, 'Closed');
   });
 }

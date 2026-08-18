@@ -10,6 +10,7 @@ class SelectCustomerWidget extends StatelessWidget {
     this.phoneNumber = '',
     this.photoUri,
     this.onTap,
+    this.onClear,
     this.compact = false,
   });
 
@@ -18,6 +19,7 @@ class SelectCustomerWidget extends StatelessWidget {
   final String phoneNumber;
   final Uri? photoUri;
   final VoidCallback? onTap;
+  final VoidCallback? onClear;
   final bool compact;
 
   @override
@@ -53,6 +55,27 @@ class SelectCustomerWidget extends StatelessWidget {
                         fontWeight: FontWeight.w700,
                       ),
                     ),
+                    const Spacer(),
+                    if (onClear != null)
+                      SizedBox.square(
+                        dimension: compact ? 32 : 36,
+                        child: IconButton(
+                          key: const ValueKey('clear-selected-customer'),
+                          tooltip: 'លុបអតិថិជន',
+                          onPressed: onClear,
+                          padding: EdgeInsets.zero,
+                          style: IconButton.styleFrom(
+                            backgroundColor: colors.error.withValues(
+                              alpha: 0.1,
+                            ),
+                          ),
+                          icon: Icon(
+                            Icons.close_rounded,
+                            color: colors.error,
+                            size: 19,
+                          ),
+                        ),
+                      ),
                   ],
                 ),
                 SizedBox(height: compact ? 9 : 13),

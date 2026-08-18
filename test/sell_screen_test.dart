@@ -37,6 +37,7 @@ void main() {
     Map<String, dynamic>? submittedSale;
     String? deletedSaleName;
     String? deletedSaleNote;
+    String? searchedBillKeyword;
     var productRequestCount = 0;
     var pendingOrderCount = 3;
     var pendingOrderRequestCount = 0;
@@ -96,6 +97,9 @@ void main() {
               'driver_phone_number': '099000001',
               'plate_number': '2AB-1001',
               'sale_status': 'Draft',
+              'status': 'Unpaid',
+              'total_split_bill': 0,
+              'can_edit_bill': 1,
               'note': 'Draft note',
               'sale_products': [
                 {
@@ -117,6 +121,40 @@ void main() {
           headers: {'content-type': 'application/json; charset=utf-8'},
         );
       }
+      if (request.url.path ==
+          '/api/method/ice_control.api.v1.sale.search_bill_for_edit') {
+        searchedBillKeyword = request.url.queryParameters['keyword'];
+        expect(request.url.queryParameters['outlet'], 'ទឹកកកដើម');
+        return http.Response(
+          jsonEncode({
+            'message': {
+              'name': 'SO-SEARCH-0001',
+              'doctype': 'Sale',
+              'posting_date': '2026-08-18',
+              'outlet': 'ទឹកកកដើម',
+              'customer': 'CUST-SEARCH',
+              'customer_name': 'អតិថិជនស្វែងរក',
+              'can_edit_bill': 1,
+              'can_show_price': 1,
+              'sale_status': 'Closed',
+              'status': 'Unpaid',
+              'total_split_bill': 0,
+              'sale_products': [
+                {
+                  'product_code': '01',
+                  'product_name': 'ទឹកកកដើមធំ',
+                  'product_category': 'ទឹកកកដើម',
+                  'unit': 'ដើម',
+                  'price': 15000,
+                  'quantity': 2,
+                },
+              ],
+            },
+          }),
+          200,
+          headers: {'content-type': 'application/json; charset=utf-8'},
+        );
+      }
       if (request.url.path == '/api/resource/Sale') {
         pendingOrderListRequestCount++;
         return http.Response(
@@ -125,9 +163,10 @@ void main() {
               {
                 'name': 'SO-DRAFT-0002',
                 'posting_date': '2026-08-16',
-                'customer': 'CUST-002',
+                'customer': '',
                 'customer_name': '',
                 'phone_number': '012000002',
+                'can_show_price': 0,
                 'driver_name': 'អ្នកបើកបរ ខ',
                 'total_sale_quantity': 15,
                 'total_amount': 225000,
@@ -138,6 +177,7 @@ void main() {
                 'customer': 'CUST-001',
                 'customer_name': 'អតិថិជន ក',
                 'phone_number': '012000001',
+                'can_show_price': 1,
                 'driver_name': '',
                 'total_sale_quantity': 10,
                 'total_amount': 150000,
@@ -288,6 +328,62 @@ void main() {
       ),
     );
     expect(newSaleDeleteButton.onPressed, isNull);
+    expect(find.byKey(const ValueKey('cancel-new-sale-button')), findsNothing);
+    expect(find.byKey(const ValueKey('sale-note-button')), findsNothing);
+    await tester.enterText(
+      find.byKey(const ValueKey('sale-bill-search-input')),
+      'QR-SO-SEARCH-0001',
+    );
+    await tester.testTextInput.receiveAction(TextInputAction.search);
+    await tester.pumpAndSettle();
+    expect(searchedBillKeyword, 'QR-SO-SEARCH-0001');
+    expect(sellController.currentSale.name, 'SO-SEARCH-0001');
+    expect(sellController.saleProducts, hasLength(1));
+    expect(
+      find.byKey(const ValueKey('opened-sale-document-banner')),
+      findsOneWidget,
+    );
+    await tester.tap(find.byKey(const ValueKey('cancel-sale-edit-button')));
+    await tester.pumpAndSettle();
+    expect(sellController.isNewSale, isTrue);
+    expect(sellController.saleProducts, isEmpty);
+    expect(
+      tester
+          .widget<TextField>(
+            find.byKey(const ValueKey('sale-bill-search-input')),
+          )
+          .controller!
+          .text,
+      isEmpty,
+    );
+    sellController.updateReferenceNumber('TEMP-NEW-SALE');
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('cancel-new-sale-button')),
+      findsOneWidget,
+    );
+    expect(
+      find.ancestor(
+        of: find.byKey(const ValueKey('cancel-new-sale-button')),
+        matching: find.byKey(const ValueKey('order-product-scroll-view')),
+      ),
+      findsOneWidget,
+    );
+    expect(find.byKey(const ValueKey('sale-note-button')), findsOneWidget);
+    expect(
+      tester.getTopLeft(find.byKey(const ValueKey('sale-note-button'))).dy,
+      greaterThan(
+        tester
+            .getTopLeft(find.byKey(const ValueKey('cancel-new-sale-button')))
+            .dy,
+      ),
+    );
+    await tester.tap(find.byKey(const ValueKey('cancel-new-sale-button')));
+    await tester.pumpAndSettle();
+    expect(sellController.currentSale.referenceNumber, isEmpty);
+    expect(sellController.isNewSaleDirty, isFalse);
+    expect(find.byKey(const ValueKey('cancel-new-sale-button')), findsNothing);
+    expect(find.byKey(const ValueKey('sale-note-button')), findsNothing);
     expect(find.byKey(const ValueKey('product-category-all')), findsOneWidget);
     expect(find.text('ទាំងអស់ (2)'), findsOneWidget);
     expect(find.text('ទឹកកកដើម (1)'), findsOneWidget);
@@ -354,6 +450,22 @@ void main() {
     expect(pendingOrderListRequestCount, 1);
     expect(find.text('SO-DRAFT-0002'), findsOneWidget);
     expect(find.text('SO-DRAFT-0001'), findsOneWidget);
+    expect(
+      tester
+          .widget<Text>(
+            find.byKey(const ValueKey('pending-order-total-SO-DRAFT-0002')),
+          )
+          .data,
+      '225,000 រៀល',
+    );
+    expect(
+      tester
+          .widget<Text>(
+            find.byKey(const ValueKey('pending-order-total-SO-DRAFT-0001')),
+          )
+          .data,
+      '150,000 រៀល',
+    );
     expect(find.text('CUST-001 - អតិថិជន ក'), findsOneWidget);
     expect(find.text('012000001'), findsNothing);
     expect(
@@ -496,6 +608,7 @@ void main() {
     expect(find.text('REF-2026-001'), findsOneWidget);
     expect(sellController.currentSale.referenceNumber, 'REF-2026-001');
 
+    expect(find.text('បញ្ជូលចំណាំ'), findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('sale-note-button')));
     await tester.pumpAndSettle();
     expect(find.text('កំណត់ចំណាំ'), findsOneWidget);
@@ -506,6 +619,7 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('confirm-sale-note')));
     await tester.pumpAndSettle();
     expect(find.text('ដឹកជញ្ជូនមុនម៉ោង ១០ ព្រឹក'), findsOneWidget);
+    expect(find.text('បញ្ជូលចំណាំ'), findsNothing);
     expect(sellController.currentSale.note, 'ដឹកជញ្ជូនមុនម៉ោង ១០ ព្រឹក');
 
     expect(sellController.addProduct(sellController.products.first), isTrue);
@@ -546,6 +660,10 @@ void main() {
     expect(sellController.currentSale.canShowPrice, isTrue);
     expect(sellController.currentSale.canSplitBill, isFalse);
     expect(customerProductPriceRequestCount, 1);
+    expect(
+      find.byKey(const ValueKey('clear-selected-customer')),
+      findsOneWidget,
+    );
 
     await tester.tap(find.text('អ្នកបើកបរ'));
     await tester.pumpAndSettle();

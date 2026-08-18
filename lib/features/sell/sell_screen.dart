@@ -5,6 +5,7 @@ import '../../services/frappe_response_handler.dart';
 import '../../shared/input_number_dialog_widget.dart';
 import '../../shared/note_dialog_widget.dart';
 import '../../shared/select_customer_dialog_widget.dart';
+import '../../shared/select_closed_order_dialog_widget.dart';
 import '../../shared/select_date_dialog_widget.dart';
 import '../../shared/text_input_dialog_widget.dart';
 import '../../utils/helpers.dart';
@@ -22,6 +23,13 @@ import 'widgets/save_order_success_widget.dart';
 
 extension on BuildContext {
   ColorScheme get colors => Theme.of(this).colorScheme;
+}
+
+void _showCustomerChangePermissionDenied() {
+  const error = CustomerChangePermissionException();
+  FrappeResponseHandler.show(
+    FrappeServerMessage(message: error.message, indicator: 'orange'),
+  );
 }
 
 double _checkoutColumnWidth(double availableWidth) {
@@ -80,12 +88,22 @@ class SellScreen extends GetView<SellController> {
                                       .value
                                       ?.canShowPrice ??
                                   true,
+                              onCancelNewOrder: controller.isNewSaleDirty
+                                  ? controller.startNewSale
+                                  : null,
+                              showSaleNote: controller.isSaleDirty,
                               imageUriBuilder: controller.saleProductImage,
                               onRemove: controller.remove,
                               onEdit: (line) async {
+                                final sale = controller.currentSale;
+                                final canShowPrice =
+                                    sale.customer.trim().isEmpty ||
+                                    sale.canShowPrice;
                                 final updated = await showEditSaleOrderDialog(
                                   context,
                                   saleProduct: line,
+                                  canShowPrice: canShowPrice,
+                                  customerName: sale.customerName,
                                 );
                                 if (updated != null) {
                                   controller.updateSaleProduct(updated);
@@ -166,10 +184,134 @@ class SellScreen extends GetView<SellController> {
   }
 }
 
-class _TopBar extends StatelessWidget {
+class _TopBar extends StatefulWidget {
   const _TopBar({required this.controller});
 
   final SellController controller;
+
+  @override
+  State<_TopBar> createState() => _TopBarState();
+}
+
+class _TopBarState extends State<_TopBar> {
+  final _searchController = TextEditingController();
+  final _searchFocusNode = FocusNode();
+
+  SellController get controller => widget.controller;
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _searchFocusNode.dispose();
+    super.dispose();
+  }
+
+  void _selectSearchKeyword() {
+    if (!mounted || _searchController.text.isEmpty) return;
+    _searchController.selection = TextSelection(
+      baseOffset: 0,
+      extentOffset: _searchController.text.length,
+    );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _searchFocusNode.requestFocus();
+      _searchController.selection = TextSelection(
+        baseOffset: 0,
+        extentOffset: _searchController.text.length,
+      );
+    });
+  }
+
+  void _focusSearchField() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _searchFocusNode.requestFocus();
+    });
+  }
+
+  Future<void> _searchBill(String value) async {
+    final keyword = value.trim();
+    if (keyword.isEmpty || controller.isSearchingBill.value) return;
+    try {
+      await controller.searchBillForEdit(keyword);
+      _searchController.clear();
+      _focusSearchField();
+    } on BillSearchValidationException {
+      _selectSearchKeyword();
+      FrappeResponseHandler.show(
+        const FrappeServerMessage(
+          message:
+              'អាចស្វែងរកបុងបានតែនៅពេលការលក់ថ្មីមិនទាន់មានទិន្នន័យប៉ុណ្ណោះ។',
+          indicator: 'orange',
+        ),
+      );
+    } on SaleEditBlockedException catch (error) {
+      _selectSearchKeyword();
+      FrappeResponseHandler.show(
+        FrappeServerMessage(message: error.message, indicator: 'orange'),
+      );
+    } on FrappeServerMessageException {
+      // The shared API client already displayed the server message.
+      _selectSearchKeyword();
+    } on Exception {
+      _selectSearchKeyword();
+      FrappeResponseHandler.show(
+        const FrappeServerMessage(
+          message: 'មិនអាចស្វែងរកបុងនេះបានទេ។',
+          indicator: 'red',
+        ),
+      );
+    }
+  }
+
+  Future<void> _selectClosedOrder() async {
+    final name = await showSelectClosedOrderDialog(
+      context,
+      saleService: controller.saleService,
+      outlet: controller.outletName,
+    );
+    if (name == null || !mounted) {
+      _focusSearchField();
+      return;
+    }
+    try {
+      await controller.openClosedOrder(name);
+      _searchController.clear();
+      _focusSearchField();
+    } on ClosedSaleOpenValidationException {
+      FrappeResponseHandler.show(
+        const FrappeServerMessage(
+          message:
+              'សូមរក្សាទុក ឬបោះបង់ការលក់បច្ចុប្បន្នជាមុនសិន មុននឹងជ្រើសរើសបុងដែលបានបិទ។',
+          indicator: 'orange',
+        ),
+      );
+      _focusSearchField();
+    } on SaleEditBlockedException catch (error) {
+      FrappeResponseHandler.show(
+        FrappeServerMessage(message: error.message, indicator: 'orange'),
+      );
+      _focusSearchField();
+    } on SaleOrderNotClosedException {
+      FrappeResponseHandler.show(
+        const FrappeServerMessage(
+          message: 'បុងនេះមិនមែនជាបុងដែលបានបិទទៀតទេ។',
+          indicator: 'orange',
+        ),
+      );
+      _focusSearchField();
+    } on FrappeServerMessageException {
+      // The shared API client already displayed the server message.
+      _focusSearchField();
+    } on Exception {
+      FrappeResponseHandler.show(
+        const FrappeServerMessage(
+          message: 'មិនអាចបើកបុងដែលបានបិទនេះបានទេ។',
+          indicator: 'red',
+        ),
+      );
+      _focusSearchField();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -223,29 +365,57 @@ class _TopBar extends StatelessWidget {
           const SizedBox(width: 20),
           Expanded(
             child: Center(
-              child: SizedBox(
-                width: 320,
-                height: 42,
-                child: TextField(
-                  onChanged: controller.updateSearch,
-                  decoration: InputDecoration(
-                    hintText: 'Search',
-                    isDense: true,
-                    prefixIcon: const Icon(Icons.search_rounded, size: 20),
-                    prefixIconConstraints: const BoxConstraints(
-                      minWidth: 40,
-                      minHeight: 40,
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(vertical: 10),
-                    fillColor: context.colors.surfaceContainerLow,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(
-                        color: context.colors.outlineVariant,
+              child: Obx(
+                () => SizedBox(
+                  width: 320,
+                  height: 42,
+                  child: TextField(
+                    key: const ValueKey('sale-bill-search-input'),
+                    controller: _searchController,
+                    focusNode: _searchFocusNode,
+                    autofocus: true,
+                    enabled: !controller.isSearchingBill.value,
+                    textInputAction: TextInputAction.search,
+                    onSubmitted: _searchBill,
+                    decoration: InputDecoration(
+                      hintText: 'ស្កេន ឬបញ្ចូលលេខបុង',
+                      isDense: true,
+                      prefixIcon: const Icon(Icons.search_rounded, size: 20),
+                      prefixIconConstraints: const BoxConstraints(
+                        minWidth: 40,
+                        minHeight: 40,
+                      ),
+                      suffixIcon: controller.isSearchingBill.value
+                          ? const Padding(
+                              padding: EdgeInsets.all(11),
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : IconButton(
+                              key: const ValueKey('select-closed-order-button'),
+                              tooltip: 'ជ្រើសរើសបុងដែលបានបិទ',
+                              onPressed: _selectClosedOrder,
+                              padding: EdgeInsets.zero,
+                              visualDensity: VisualDensity.compact,
+                              icon: const Icon(
+                                Icons.receipt_long_outlined,
+                                size: 19,
+                              ),
+                            ),
+                      suffixIconConstraints: const BoxConstraints(
+                        minWidth: 40,
+                        minHeight: 40,
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                      fillColor: context.colors.surfaceContainerLow,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(
+                          color: context.colors.outlineVariant,
+                        ),
                       ),
                     ),
                   ),
@@ -288,6 +458,13 @@ class _TopBar extends StatelessWidget {
                       borderRadius: 12,
                       backgroundColor: context.colors.inverseSurface,
                       duration: const Duration(seconds: 4),
+                    );
+                  } on SaleEditBlockedException catch (error) {
+                    FrappeResponseHandler.show(
+                      FrappeServerMessage(
+                        message: error.message,
+                        indicator: 'orange',
+                      ),
                     );
                   } on FrappeServerMessageException {
                     // The shared API client already displayed the server message.
@@ -584,12 +761,23 @@ class _CheckoutPanel extends StatelessWidget {
       );
       if (selectNow != true || !context.mounted) return;
 
+      if (!controller.canChangeCustomer) {
+        _showCustomerChangePermissionDenied();
+        return;
+      }
+
       final selected = await showSelectCustomerDialog(
         context,
         customerService: controller.customerService,
         selectionType: CustomerSelectionType.customer,
       );
-      if (selected != null) await controller.selectCustomer(selected);
+      if (selected != null) {
+        try {
+          await controller.selectCustomer(selected);
+        } on CustomerChangePermissionException {
+          _showCustomerChangePermissionDenied();
+        }
+      }
       return;
     }
 
@@ -672,13 +860,32 @@ class _CheckoutPanel extends StatelessWidget {
                 ? null
                 : controller.customerImage(customer),
             compact: compact,
+            onClear: customer == null
+                ? null
+                : () {
+                    try {
+                      controller.clearCustomer();
+                    } on CustomerChangePermissionException {
+                      _showCustomerChangePermissionDenied();
+                    }
+                  },
             onTap: () async {
+              if (!controller.canChangeCustomer) {
+                _showCustomerChangePermissionDenied();
+                return;
+              }
               final selected = await showSelectCustomerDialog(
                 context,
                 customerService: controller.customerService,
                 selectionType: CustomerSelectionType.customer,
               );
-              if (selected != null) await controller.selectCustomer(selected);
+              if (selected != null) {
+                try {
+                  await controller.selectCustomer(selected);
+                } on CustomerChangePermissionException {
+                  _showCustomerChangePermissionDenied();
+                }
+              }
             },
           );
         }),

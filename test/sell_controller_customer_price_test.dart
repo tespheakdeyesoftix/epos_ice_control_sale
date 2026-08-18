@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:ice_control_sale/features/sell/customer.dart';
 import 'package:ice_control_sale/features/sell/product.dart';
+import 'package:ice_control_sale/features/sell/sale.dart';
 import 'package:ice_control_sale/features/sell/sell_controller.dart';
 import 'package:ice_control_sale/services/customer_service.dart';
 import 'package:ice_control_sale/services/product_service.dart';
@@ -96,5 +97,56 @@ void main() {
     );
     expect(controller.saleProducts.first.price, 15000);
     expect(controller.saleProducts.last.price, 3000);
+
+    await controller.selectCustomer(customer);
+    expect(controller.saleProducts.first.price, 12500);
+    controller.clearCustomer();
+    expect(controller.selectedCustomer.value, isNull);
+    expect(controller.customerProductPrices, isEmpty);
+    expect(controller.saleProducts.first.price, 15000);
+  });
+
+  test('change_customer permission applies only while editing', () async {
+    var hasPermission = false;
+    final client = MockClient(
+      (_) async => http.Response(
+        jsonEncode(<dynamic>[]),
+        200,
+        headers: {'content-type': 'application/json'},
+      ),
+    );
+    final baseUri = Uri.parse('http://127.0.0.1:8888/');
+    final controller = SellController(
+      productService: ProductService(baseUri, client: client),
+      customerService: CustomerService(baseUri, client: client),
+      saleService: SaleService(baseUri, client: client),
+      outletName: 'Main Outlet',
+      stationName: 'Cashier 01',
+      canChangeCustomerProvider: () => hasPermission,
+    );
+    const first = Customer(name: 'C001', customerName: 'Customer One');
+    const second = Customer(name: 'C002', customerName: 'Customer Two');
+
+    await controller.selectCustomer(first);
+    expect(controller.selectedCustomer.value?.name, 'C001');
+
+    controller.openedSale.value = const Sale(
+      name: 'SO-EDIT-001',
+      outlet: 'Main Outlet',
+      saleProducts: [],
+    );
+    await expectLater(
+      controller.selectCustomer(second),
+      throwsA(isA<CustomerChangePermissionException>()),
+    );
+    expect(
+      controller.clearCustomer,
+      throwsA(isA<CustomerChangePermissionException>()),
+    );
+    expect(controller.selectedCustomer.value?.name, 'C001');
+
+    hasPermission = true;
+    controller.clearCustomer();
+    expect(controller.selectedCustomer.value, isNull);
   });
 }

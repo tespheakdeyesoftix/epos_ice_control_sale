@@ -104,6 +104,14 @@ void main() {
       find.byKey(const ValueKey('edit-pending-order-SO-DRAFT-0001')),
       findsOneWidget,
     );
+    expect(
+      tester
+          .widget<Text>(
+            find.byKey(const ValueKey('pending-order-total-SO-DRAFT-0001')),
+          )
+          .data,
+      '***',
+    );
 
     await tester.tap(
       find.byKey(const ValueKey('view-pending-order-SO-DRAFT-0001')),
@@ -209,6 +217,30 @@ void main() {
     expect(
       find.byKey(const ValueKey('unfinished-sale-navigation-dialog')),
       findsOneWidget,
+    );
+    final closeAndPrint = find.byKey(
+      const ValueKey('leave-sale-close-and-print'),
+    );
+    expect(closeAndPrint, findsOneWidget);
+    expect(
+      tester.getTopLeft(closeAndPrint).dy,
+      greaterThan(
+        tester.getTopLeft(find.byKey(const ValueKey('leave-sale-close'))).dy,
+      ),
+    );
+    expect(
+      tester.getTopLeft(closeAndPrint).dy,
+      lessThan(
+        tester.getTopLeft(find.byKey(const ValueKey('leave-sale-hold'))).dy,
+      ),
+    );
+    expect(
+      tester
+          .widget<InkWell>(
+            find.descendant(of: closeAndPrint, matching: find.byType(InkWell)),
+          )
+          .onTap,
+      isNull,
     );
     await tester.tap(find.byKey(const ValueKey('leave-sale-continue')));
     await tester.pumpAndSettle();
@@ -366,6 +398,7 @@ Future<_ShellHarness> _pumpShell(
             'customer': 'C457',
             'customer_name': 'អតិថិជន C457',
             'phone_number': '012345678',
+            'can_show_price': 0,
             'driver_name': 'អ្នកបើកបរ 01',
             'total_sale_quantity': 2,
             'total_amount': 30000,
@@ -380,6 +413,9 @@ Future<_ShellHarness> _pumpShell(
           'outlet': 'ទឹកកកដើម',
           'posting_date': '2026-08-18',
           'sale_status': 'Draft',
+          'status': 'Unpaid',
+          'total_split_bill': 0,
+          'can_edit_bill': 1,
           'customer': 'C457',
           'customer_name': 'អតិថិជន C457',
           'phone_number': '012345678',
@@ -404,6 +440,9 @@ Future<_ShellHarness> _pumpShell(
           'outlet': 'ទឹកកកដើម',
           'posting_date': '2026-08-18',
           'sale_status': 'Closed',
+          'status': 'Unpaid',
+          'total_split_bill': 0,
+          'can_edit_bill': 1,
           'customer': 'C457',
           'customer_name': 'អតិថិជន C457',
           'phone_number': '012345678',

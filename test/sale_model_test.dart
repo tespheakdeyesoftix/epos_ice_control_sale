@@ -65,7 +65,7 @@ void main() {
   });
 
   test(
-    'total sale quantity includes only products that allow quantity sum',
+    'Sale quantity and amount include only products that allow quantity sum',
     () {
       const included = SaleProduct(
         productCode: '01',
@@ -90,7 +90,8 @@ void main() {
 
       expect(sale.totalSaleQuantity, 8);
       expect(sale.toJson()['total_sale_quantity'], 8);
-      expect(sale.totalAmount, 220000);
+      expect(sale.totalAmount, 120000);
+      expect(sale.toJson()['total_amount'], 120000);
     },
   );
 }
