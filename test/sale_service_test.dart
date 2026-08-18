@@ -137,6 +137,92 @@ void main() {
     expect(count, 7);
   });
 
+  test('ទាញចំនួនការលក់ Closed របស់ថ្ងៃនេះតាមសាខា', () async {
+    late http.Request sentRequest;
+    final client = MockClient((request) async {
+      sentRequest = request;
+      return http.Response(
+        jsonEncode({'message': 9}),
+        200,
+        headers: {'content-type': 'application/json'},
+      );
+    });
+    final service = SaleService(
+      Uri.parse('http://127.0.0.1:8888/'),
+      client: client,
+    );
+
+    final count = await service.getTodayClosedSaleCount('ទឹកកកដើម');
+
+    expect(
+      sentRequest.url.path,
+      '/api/method/frappe.desk.reportview.get_count',
+    );
+    expect(sentRequest.url.queryParameters['doctype'], 'Sale');
+    expect(sentRequest.url.queryParameters['fields'], '[]');
+    expect(sentRequest.url.queryParameters['distinct'], 'false');
+    final filters = jsonDecode(sentRequest.url.queryParameters['filters']!);
+    expect(filters[0], ['Sale', 'outlet', '=', 'ទឹកកកដើម']);
+    expect(filters[1], ['Sale', 'sale_status', '=', 'Closed']);
+    expect(filters[2], ['Sale', 'posting_date', 'Timespan', 'today']);
+    expect(count, 9);
+  });
+
+  test('ទាញបញ្ជីការលក់ Closed តាមសាខាជាមួយព័ត៌មានអ្នកបង្កើត', () async {
+    late http.Request sentRequest;
+    final client = MockClient((request) async {
+      sentRequest = request;
+      return http.Response(
+        jsonEncode({
+          'data': [
+            {
+              'name': 'SO-CLOSED-0001',
+              'posting_date': '2026-08-18',
+              'customer': 'C457',
+              'customer_name': 'Customer A',
+              'sale_status': 'Closed',
+              'owner': 'Administrator',
+              'creation': '2026-08-18 08:30:00',
+              'total_sale_quantity': 12,
+              'total_amount': 180000,
+            },
+          ],
+        }),
+        200,
+        headers: {'content-type': 'application/json'},
+      );
+    });
+    final service = SaleService(
+      Uri.parse('http://127.0.0.1:8888/'),
+      client: client,
+    );
+
+    final page = await service.getClosedSales(
+      outlet: 'ទឹកកកដើម',
+      search: 'C457',
+      startDate: '2026-08-17',
+      endDate: '2026-08-18',
+      offset: 30,
+    );
+
+    final filters = jsonDecode(sentRequest.url.queryParameters['filters']!);
+    expect(filters[0], ['sale_status', '=', 'Closed']);
+    expect(filters[1], ['outlet', '=', 'ទឹកកកដើម']);
+    expect(filters[2], ['posting_date', '>=', '2026-08-17']);
+    expect(filters[3], ['posting_date', '<=', '2026-08-18']);
+    expect(sentRequest.url.queryParameters['limit_start'], '30');
+    final fields = jsonDecode(sentRequest.url.queryParameters['fields']!);
+    expect(fields, containsAll(['sale_status', 'owner', 'creation']));
+    expect(
+      sentRequest.url.queryParameters['order_by'],
+      'posting_date desc, creation desc',
+    );
+    expect(page.items.single.name, 'SO-CLOSED-0001');
+    expect(page.items.single.saleStatus, 'Closed');
+    expect(page.items.single.owner, 'Administrator');
+    expect(page.items.single.creation, DateTime(2026, 8, 18, 8, 30));
+  });
+
   test('រក្សាទុក Sale និង sale_products តាម Frappe API', () async {
     late http.Request sentRequest;
     final client = MockClient((request) async {

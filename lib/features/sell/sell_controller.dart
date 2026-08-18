@@ -44,6 +44,7 @@ class SellController extends GetxController {
   final saleNote = ''.obs;
   final isSaving = false.obs;
   final pendingOrderCount = 0.obs;
+  final closedSaleRevision = 0.obs;
   final isLoadingPendingOrders = false.obs;
 
   List<Product> get filteredProducts {
@@ -305,6 +306,25 @@ class SellController extends GetxController {
       throw const PendingOrderNotDraftException();
     }
 
+    _applyOpenedSale(sale);
+  }
+
+  Future<void> openClosedOrder(String name) async {
+    if (!canOpenPendingOrder) {
+      throw const ClosedSaleOpenValidationException();
+    }
+    final sale = await saleService.getSale(name);
+    if (!canOpenPendingOrder) {
+      throw const ClosedSaleOpenValidationException();
+    }
+    if (sale.saleStatus != 'Closed') {
+      throw const SaleOrderNotClosedException();
+    }
+
+    _applyOpenedSale(sale);
+  }
+
+  void _applyOpenedSale(Sale sale) {
     openedSale.value = sale;
     postingDate.value = sale.postingDate ?? _dateOnly(DateTime.now());
     referenceNumber.value = sale.referenceNumber;
@@ -343,6 +363,7 @@ class SellController extends GetxController {
     try {
       final savedOrder = await saleService.saveOrder(currentSale);
       await loadPendingOrderCount();
+      closedSaleRevision.value++;
       return savedOrder;
     } finally {
       isSaving.value = false;
@@ -390,6 +411,14 @@ class PendingOrderOpenValidationException implements Exception {
 
 class PendingOrderNotDraftException implements Exception {
   const PendingOrderNotDraftException();
+}
+
+class ClosedSaleOpenValidationException implements Exception {
+  const ClosedSaleOpenValidationException();
+}
+
+class SaleOrderNotClosedException implements Exception {
+  const SaleOrderNotClosedException();
 }
 
 DateTime _dateOnly(DateTime date) => DateTime(date.year, date.month, date.day);

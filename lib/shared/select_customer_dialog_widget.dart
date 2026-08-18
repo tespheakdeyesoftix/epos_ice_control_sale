@@ -220,7 +220,7 @@ class _SelectCustomerDialogWidgetState
           Expanded(
             child: Center(
               child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 430),
+                constraints: const BoxConstraints(maxWidth: 300),
                 child: SizedBox(
                   height: 38,
                   child: TextField(
@@ -232,9 +232,8 @@ class _SelectCustomerDialogWidgetState
                     style: TextStyle(color: colors.onInverseSurface),
                     cursorColor: colors.onInverseSurface,
                     decoration: InputDecoration(
-                      hintText: isDriver
-                          ? 'ស្វែងរកអ្នកបើកបរ'
-                          : 'ស្វែងរកអតិថិជន',
+                      hintText: 'Search',
+                      isDense: true,
                       hintStyle: TextStyle(
                         color: colors.onInverseSurface.withValues(alpha: 0.68),
                       ),

@@ -328,22 +328,34 @@ class _FilterBar extends StatelessWidget {
       child: Row(
         children: [
           SizedBox(
-            width: 360,
+            width: 280,
+            height: 42,
             child: TextField(
               key: const ValueKey('pending-order-search-input'),
               controller: searchController,
               onChanged: onSearchChanged,
               decoration: InputDecoration(
-                hintText: 'ស្វែងរកលេខឯកសារ អតិថិជន ឬលេខទូរសព្ទ',
-                prefixIcon: const Icon(Icons.search_rounded),
+                hintText: 'Search',
+                isDense: true,
+                prefixIcon: const Icon(Icons.search_rounded, size: 20),
+                prefixIconConstraints: const BoxConstraints(
+                  minWidth: 40,
+                  minHeight: 40,
+                ),
                 suffixIcon: searchController.text.isEmpty
                     ? null
                     : IconButton(
                         key: const ValueKey('clear-pending-order-search'),
                         onPressed: onClearSearch,
-                        icon: const Icon(Icons.close_rounded),
+                        padding: EdgeInsets.zero,
+                        visualDensity: VisualDensity.compact,
+                        icon: const Icon(Icons.close_rounded, size: 18),
                       ),
-                contentPadding: const EdgeInsets.symmetric(vertical: 13),
+                suffixIconConstraints: const BoxConstraints(
+                  minWidth: 40,
+                  minHeight: 40,
+                ),
+                contentPadding: const EdgeInsets.symmetric(vertical: 10),
               ),
             ),
           ),

@@ -20,4 +20,21 @@ void main() {
     );
     expect(colorFromHex('invalid', fallback: Colors.blue), Colors.blue);
   });
+
+  test('បង្ហាញរយៈពេលចាប់ពីពេលបង្កើតជាភាសាខ្មែរ', () {
+    final now = DateTime(2026, 8, 18, 12);
+    expect(formatTimeAgo(now, now: now), 'ឥឡូវនេះ');
+    expect(
+      formatTimeAgo(now.subtract(const Duration(minutes: 15)), now: now),
+      'មុន 15 នាទី',
+    );
+    expect(
+      formatTimeAgo(now.subtract(const Duration(hours: 3)), now: now),
+      'មុន 3 ម៉ោង',
+    );
+    expect(
+      formatTimeAgo(now.subtract(const Duration(days: 2)), now: now),
+      'មុន 2 ថ្ងៃ',
+    );
+  });
 }

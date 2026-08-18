@@ -10,5 +10,6 @@ abstract final class ApiEndpoint {
   static const saveOrder = 'api/method/ice_control.api.v1.sale.save_order';
   static const totalPendingOrder =
       'api/method/ice_control.api.v1.sale.get_total_pending_order';
+  static const reportViewCount = 'api/method/frappe.desk.reportview.get_count';
   static const setting = 'api/method/ice_control.api.v1.utils.get_setting';
 }

@@ -7,6 +7,7 @@ import 'app/app_routes.dart';
 import 'app/app_setting_controller.dart';
 import 'app/app_theme.dart';
 import 'app/theme_controller.dart';
+import 'features/closed_sales/closed_sale_controller.dart';
 import 'features/login/login_controller.dart';
 import 'features/login/login_screen.dart';
 import 'features/navigation/app_shell_controller.dart';
@@ -116,6 +117,12 @@ class IceSaleApp extends StatelessWidget {
               Get.lazyPut<AppShellController>(
                 () => AppShellController(
                   sellController: Get.find<SellController>(),
+                ),
+              );
+              Get.lazyPut<ClosedSaleController>(
+                () => ClosedSaleController(
+                  sellController: Get.find<SellController>(),
+                  appShellController: Get.find<AppShellController>(),
                 ),
               );
             }

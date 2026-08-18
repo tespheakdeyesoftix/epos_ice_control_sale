@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 import '../app/api_endpoint.dart';
+import '../features/closed_sales/closed_sale.dart';
 import '../features/sell/pending_order.dart';
 import '../features/sell/sale.dart';
 
@@ -10,6 +11,13 @@ class PendingOrderPage {
   const PendingOrderPage({required this.items, required this.hasMore});
 
   final List<PendingOrder> items;
+  final bool hasMore;
+}
+
+class ClosedSalePage {
+  const ClosedSalePage({required this.items, required this.hasMore});
+
+  final List<ClosedSale> items;
   final bool hasMore;
 }
 
@@ -29,6 +37,12 @@ class SaleService {
     'driver_name',
     'total_sale_quantity',
     'total_amount',
+  ];
+  static const _closedSaleFields = [
+    ..._pendingOrderFields,
+    'sale_status',
+    'owner',
+    'creation',
   ];
 
   Future<Sale> getSale(String name) async {
@@ -107,6 +121,63 @@ class SaleService {
     return PendingOrderPage(items: orders, hasMore: rows.length == limit);
   }
 
+  Future<ClosedSalePage> getClosedSales({
+    required String outlet,
+    String search = '',
+    String startDate = '',
+    String endDate = '',
+    int offset = 0,
+    int limit = pendingOrderPageSize,
+  }) async {
+    final endpoint = baseUri.resolve(ApiEndpoint.sales);
+    final filters = <List<dynamic>>[
+      ['sale_status', '=', 'Closed'],
+      ['outlet', '=', outlet],
+      if (startDate.trim().isNotEmpty) ['posting_date', '>=', startDate.trim()],
+      if (endDate.trim().isNotEmpty) ['posting_date', '<=', endDate.trim()],
+    ];
+    final queryParameters = <String, String>{
+      'fields': jsonEncode(_closedSaleFields),
+      'filters': jsonEncode(filters),
+      'order_by': 'posting_date desc, creation desc',
+      'limit_start': '$offset',
+      'limit_page_length': '$limit',
+    };
+    final trimmedSearch = search.trim();
+    if (trimmedSearch.isNotEmpty) {
+      queryParameters['or_filters'] = jsonEncode([
+        for (final field in const [
+          'name',
+          'customer_name',
+          'customer',
+          'phone_number',
+        ])
+          [field, 'like', '%$trimmedSearch%'],
+      ]);
+    }
+    final response = await _client
+        .get(
+          endpoint.replace(queryParameters: queryParameters),
+          headers: const {'Accept': 'application/json'},
+        )
+        .timeout(const Duration(seconds: 30));
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw SaleServiceException(response.statusCode);
+    }
+
+    final payload = jsonDecode(response.body);
+    final rows = payload is Map && payload['data'] is List
+        ? payload['data'] as List<dynamic>
+        : const <dynamic>[];
+    final sales = rows
+        .whereType<Map>()
+        .map((row) => ClosedSale.fromJson(Map<String, dynamic>.from(row)))
+        .where((sale) => sale.name.isNotEmpty)
+        .toList(growable: false);
+    return ClosedSalePage(items: sales, hasMore: rows.length == limit);
+  }
+
   Future<int> getTotalPendingOrder(String outlet) async {
     final endpoint = baseUri.resolve(ApiEndpoint.totalPendingOrder);
     final response = await _client
@@ -127,6 +198,43 @@ class SaleService {
     if (payload is Map) {
       payload = payload['total_pending_order'] ?? payload['count'];
     }
+    final count = payload is num
+        ? payload.toInt()
+        : int.tryParse(payload?.toString().trim() ?? '');
+    if (count == null) throw const SaleServiceException(200);
+    return count < 0 ? 0 : count;
+  }
+
+  Future<int> getTodayClosedSaleCount(String outlet) async {
+    final endpoint = baseUri.resolve(ApiEndpoint.reportViewCount);
+    final filters = <List<dynamic>>[
+      ['Sale', 'outlet', '=', outlet],
+      ['Sale', 'sale_status', '=', 'Closed'],
+      ['Sale', 'posting_date', 'Timespan', 'today'],
+    ];
+    final response = await _client
+        .get(
+          endpoint.replace(
+            queryParameters: {
+              'doctype': 'Sale',
+              'filters': jsonEncode(filters),
+              'fields': '[]',
+              'distinct': 'false',
+            },
+          ),
+          headers: const {'Accept': 'application/json'},
+        )
+        .timeout(const Duration(seconds: 30));
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw SaleServiceException(response.statusCode);
+    }
+
+    dynamic payload = jsonDecode(response.body);
+    if (payload is Map && payload.containsKey('message')) {
+      payload = payload['message'];
+    }
+    if (payload is Map) payload = payload['count'];
     final count = payload is num
         ? payload.toInt()
         : int.tryParse(payload?.toString().trim() ?? '');

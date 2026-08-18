@@ -8,6 +8,7 @@ import '../../shared/network_image.dart';
 import '../../shared/select_customer_dialog_widget.dart';
 import '../../shared/user_profile_widget.dart';
 import '../closed_sales/closed_sale_list_screen.dart';
+import '../closed_sales/closed_sale_controller.dart';
 import '../login/login_controller.dart';
 import '../pending_sales/pending_sale_list_screen.dart';
 import '../report/report_screen.dart';
@@ -182,6 +183,7 @@ class AppShellScreen extends GetView<AppShellController> {
         : null;
     final loginController = Get.find<LoginController>();
     final themeController = Get.find<ThemeController>();
+    final closedSaleController = Get.find<ClosedSaleController>();
     return Scaffold(
       body: SafeArea(
         child: Obx(() {
@@ -264,6 +266,9 @@ class AppShellScreen extends GetView<AppShellController> {
                                   .sellController
                                   .pendingOrderCount
                                   .value,
+                              closedCount: closedSaleController
+                                  .todayClosedSaleCount
+                                  .value,
                             ),
                           ),
                           label: Text(destination.label),
@@ -301,18 +306,28 @@ class _RailDestinationIcon extends StatelessWidget {
   const _RailDestinationIcon({
     required this.destination,
     required this.pendingCount,
+    required this.closedCount,
   });
 
   final AppDestination destination;
   final int pendingCount;
+  final int closedCount;
 
   @override
   Widget build(BuildContext context) {
-    if (destination != AppDestination.pendingSales) {
+    final badgeCount = switch (destination) {
+      AppDestination.pendingSales => pendingCount,
+      AppDestination.closedSales => closedCount,
+      _ => null,
+    };
+    if (badgeCount == null) {
       return Icon(destination.icon);
     }
     final colors = Theme.of(context).colorScheme;
-    final countLabel = pendingCount > 99 ? '99+' : pendingCount.toString();
+    final countLabel = badgeCount > 99 ? '99+' : badgeCount.toString();
+    final keyPrefix = destination == AppDestination.pendingSales
+        ? 'pending'
+        : 'closed-sale';
     return SizedBox(
       width: 34,
       height: 32,
@@ -321,7 +336,7 @@ class _RailDestinationIcon extends StatelessWidget {
         children: [
           Positioned.fill(child: Icon(destination.icon)),
           Positioned(
-            key: const ValueKey('pending-rail-badge'),
+            key: ValueKey('$keyPrefix-rail-badge'),
             top: -5,
             right: -5,
             child: Container(
@@ -335,7 +350,7 @@ class _RailDestinationIcon extends StatelessWidget {
               ),
               child: Text(
                 countLabel,
-                key: const ValueKey('pending-rail-count'),
+                key: ValueKey('$keyPrefix-rail-count'),
                 style: TextStyle(
                   color: colors.onError,
                   fontSize: 9,

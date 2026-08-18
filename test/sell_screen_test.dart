@@ -9,6 +9,7 @@ import 'package:ice_control_sale/app/app_theme.dart';
 import 'package:ice_control_sale/app/app_setting.dart';
 import 'package:ice_control_sale/app/app_setting_controller.dart';
 import 'package:ice_control_sale/app/theme_controller.dart';
+import 'package:ice_control_sale/features/closed_sales/closed_sale_controller.dart';
 import 'package:ice_control_sale/features/login/login_controller.dart';
 import 'package:ice_control_sale/features/navigation/app_destination.dart';
 import 'package:ice_control_sale/features/navigation/app_shell_controller.dart';
@@ -231,6 +232,12 @@ void main() {
     Get.put<SellController>(sellController);
     final shellController = AppShellController(sellController: sellController);
     Get.put<AppShellController>(shellController);
+    Get.lazyPut<ClosedSaleController>(
+      () => ClosedSaleController(
+        sellController: sellController,
+        appShellController: shellController,
+      ),
+    );
 
     await tester.pumpWidget(
       GetMaterialApp(

@@ -200,21 +200,27 @@ class _TopBar extends StatelessWidget {
           const SizedBox(width: 20),
           Expanded(
             child: Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 430),
+              child: SizedBox(
+                width: 320,
+                height: 42,
                 child: TextField(
                   onChanged: controller.updateSearch,
                   decoration: InputDecoration(
-                    hintText: 'ស្វែងរកទំនិញតាមឈ្មោះ ឬលេខកូដ',
-                    prefixIcon: Icon(Icons.search_rounded),
-                    contentPadding: const EdgeInsets.symmetric(vertical: 14),
+                    hintText: 'Search',
+                    isDense: true,
+                    prefixIcon: const Icon(Icons.search_rounded, size: 20),
+                    prefixIconConstraints: const BoxConstraints(
+                      minWidth: 40,
+                      minHeight: 40,
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(vertical: 10),
                     fillColor: context.colors.surfaceContainerLow,
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
+                      borderRadius: BorderRadius.circular(12),
                       borderSide: BorderSide.none,
                     ),
                     enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
+                      borderRadius: BorderRadius.circular(12),
                       borderSide: BorderSide(
                         color: context.colors.outlineVariant,
                       ),

@@ -7,6 +7,7 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:ice_control_sale/app/app_theme.dart';
 import 'package:ice_control_sale/app/theme_controller.dart';
+import 'package:ice_control_sale/features/closed_sales/closed_sale_controller.dart';
 import 'package:ice_control_sale/features/login/login_controller.dart';
 import 'package:ice_control_sale/features/navigation/app_destination.dart';
 import 'package:ice_control_sale/features/navigation/app_shell_controller.dart';
@@ -62,6 +63,16 @@ void main() {
 
     expect(find.byKey(const ValueKey('pending-rail-badge')), findsOneWidget);
     expect(find.byKey(const ValueKey('pending-rail-count')), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('closed-sale-rail-badge')),
+      findsOneWidget,
+    );
+    expect(
+      tester
+          .widget<Text>(find.byKey(const ValueKey('closed-sale-rail-count')))
+          .data,
+      '4',
+    );
 
     await _tapDestination(tester, AppDestination.pendingSales);
     expect(
@@ -105,6 +116,67 @@ void main() {
     expect(harness.shell.selectedDestination.value, AppDestination.sale);
     expect(harness.sell.openedSale.value?.name, 'SO-DRAFT-0001');
   });
+
+  testWidgets(
+    'closed sales screen lists metadata and opens order for editing',
+    (tester) async {
+      final harness = await _pumpShell(tester);
+
+      await _tapDestination(tester, AppDestination.closedSales);
+      final closedSaleController = Get.find<ClosedSaleController>();
+      expect(closedSaleController.sales.single.name, 'SO-CLOSED-0001');
+      expect(
+        find.byKey(const ValueKey('closed-sale-list-screen')),
+        findsOneWidget,
+      );
+      expect(
+        tester
+            .getSize(find.byKey(const ValueKey('closed-sale-app-bar')))
+            .height,
+        82,
+      );
+      final searchHeight = tester
+          .getSize(find.byKey(const ValueKey('closed-sale-search-input')))
+          .height;
+      expect(
+        tester
+            .getSize(
+              find.byKey(const ValueKey('closed-sale-start-date-filter')),
+            )
+            .height,
+        searchHeight,
+      );
+      expect(
+        tester
+            .getSize(find.byKey(const ValueKey('closed-sale-end-date-filter')))
+            .height,
+        searchHeight,
+      );
+      expect(
+        find.byKey(const ValueKey('closed-sale-SO-CLOSED-0001')),
+        findsOneWidget,
+      );
+      expect(find.text('Administrator'), findsOneWidget);
+      expect(find.text('បានបិទ'), findsOneWidget);
+
+      final viewButton = tester.widget<OutlinedButton>(
+        find.byKey(const ValueKey('view-closed-sale-SO-CLOSED-0001')),
+      );
+      expect(viewButton.onPressed, isNull);
+
+      await tester.drag(
+        find.byKey(const ValueKey('closed-sale-horizontal-scroll')),
+        const Offset(-650, 0),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey('edit-closed-sale-SO-CLOSED-0001')),
+      );
+      await tester.pumpAndSettle();
+      expect(harness.shell.selectedDestination.value, AppDestination.sale);
+      expect(harness.sell.openedSale.value?.name, 'SO-CLOSED-0001');
+    },
+  );
 
   testWidgets('empty navigation and unfinished Continue and Clear actions', (
     tester,
@@ -251,7 +323,30 @@ Future<_ShellHarness> _pumpShell(
         '/api/method/ice_control.api.v1.sale.get_total_pending_order') {
       return _jsonResponse({'message': 1});
     }
+    if (request.url.path == '/api/method/frappe.desk.reportview.get_count') {
+      return _jsonResponse({'message': 4});
+    }
     if (request.url.path == '/api/resource/Sale') {
+      final filters = request.url.queryParameters['filters'] ?? '';
+      if (filters.contains('Closed')) {
+        return _jsonResponse({
+          'data': [
+            {
+              'name': 'SO-CLOSED-0001',
+              'posting_date': '2026-08-18',
+              'customer': 'C457',
+              'customer_name': 'អតិថិជន C457',
+              'phone_number': '012345678',
+              'driver_name': 'អ្នកបើកបរ 01',
+              'total_sale_quantity': 2,
+              'total_amount': 30000,
+              'sale_status': 'Closed',
+              'owner': 'Administrator',
+              'creation': '2026-08-18 08:30:00',
+            },
+          ],
+        });
+      }
       return _jsonResponse({
         'data': [
           {
@@ -274,6 +369,30 @@ Future<_ShellHarness> _pumpShell(
           'outlet': 'ទឹកកកដើម',
           'posting_date': '2026-08-18',
           'sale_status': 'Draft',
+          'customer': 'C457',
+          'customer_name': 'អតិថិជន C457',
+          'phone_number': '012345678',
+          'sale_products': [
+            {
+              'product_code': '01',
+              'product_name': 'ទឹកកកដើមធំ',
+              'product_category': 'ទឹកកកដើម',
+              'unit': 'ដើម',
+              'quantity': 2,
+              'price': 15000,
+              'allow_sum_qty': 1,
+            },
+          ],
+        },
+      });
+    }
+    if (request.url.path == '/api/resource/Sale/SO-CLOSED-0001') {
+      return _jsonResponse({
+        'data': {
+          'name': 'SO-CLOSED-0001',
+          'outlet': 'ទឹកកកដើម',
+          'posting_date': '2026-08-18',
+          'sale_status': 'Closed',
           'customer': 'C457',
           'customer_name': 'អតិថិជន C457',
           'phone_number': '012345678',
@@ -351,6 +470,9 @@ Future<_ShellHarness> _pumpShell(
   Get.put<SellController>(sell);
   final shell = AppShellController(sellController: sell);
   Get.put<AppShellController>(shell);
+  Get.lazyPut<ClosedSaleController>(
+    () => ClosedSaleController(sellController: sell, appShellController: shell),
+  );
 
   await tester.pumpWidget(
     GetMaterialApp(

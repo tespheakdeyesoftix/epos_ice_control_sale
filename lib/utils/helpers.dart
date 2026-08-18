@@ -18,6 +18,21 @@ String formatQuantity(num value) {
       : decimal.toString();
 }
 
+String formatTimeAgo(DateTime? value, {DateTime? now}) {
+  if (value == null) return '-';
+  final current = now ?? DateTime.now();
+  final created = value.isUtc ? value.toLocal() : value;
+  final difference = current.difference(created);
+  if (difference.isNegative || difference.inMinutes < 1) return 'ឥឡូវនេះ';
+  if (difference.inHours < 1) return 'មុន ${difference.inMinutes} នាទី';
+  if (difference.inDays < 1) return 'មុន ${difference.inHours} ម៉ោង';
+  if (difference.inDays < 30) return 'មុន ${difference.inDays} ថ្ងៃ';
+  if (difference.inDays < 365) {
+    return 'មុន ${difference.inDays ~/ 30} ខែ';
+  }
+  return 'មុន ${difference.inDays ~/ 365} ឆ្នាំ';
+}
+
 Color colorFromHex(String value, {required Color fallback}) {
   final hex = value.replaceFirst('#', '');
   final parsed = int.tryParse(hex, radix: 16);
