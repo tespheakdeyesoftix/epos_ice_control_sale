@@ -613,10 +613,10 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('កំណត់ចំណាំ'), findsOneWidget);
     await tester.enterText(
-      find.byKey(const ValueKey('sale-note-input')),
+      find.byKey(const ValueKey('note-dialog-input')),
       'ដឹកជញ្ជូនមុនម៉ោង ១០ ព្រឹក',
     );
-    await tester.tap(find.byKey(const ValueKey('confirm-sale-note')));
+    await tester.tap(find.byKey(const ValueKey('confirm-note-dialog')));
     await tester.pumpAndSettle();
     expect(find.text('ដឹកជញ្ជូនមុនម៉ោង ១០ ព្រឹក'), findsOneWidget);
     expect(find.text('បញ្ជូលចំណាំ'), findsNothing);

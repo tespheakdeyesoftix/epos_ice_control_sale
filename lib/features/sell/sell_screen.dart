@@ -199,24 +199,19 @@ class SellScreen extends GetView<SellController> {
                                 }
                               },
                               onNoteTap: () async {
-                                final value = await showTextInputDialog(
+                                await showNoteDialog(
                                   context,
-                                  title: 'កំណត់ចំណាំ',
-                                  labelText: 'កំណត់ចំណាំការលក់',
-                                  hintText: 'បញ្ចូលកំណត់ចំណាំ',
-                                  initialValue: controller.saleNote.value,
-                                  icon: Icons.sticky_note_2_outlined,
-                                  maxLength: 500,
-                                  minLines: 4,
-                                  maxLines: 7,
-                                  inputKey: const ValueKey('sale-note-input'),
-                                  confirmButtonKey: const ValueKey(
-                                    'confirm-sale-note',
-                                  ),
+                                  promptTitle: 'កំណត់ចំណាំការលក់',
+                                  presetKey: 'sale_note',
+                                  userKey: Get.find<LoginController>()
+                                      .localStorageUserKey,
+                                  initialNote: controller.saleNote.value,
+                                  allowDeletingSavedNotes: true,
+                                  onSubmit: (note) {
+                                    controller.updateSaleNote(note);
+                                    return true;
+                                  },
                                 );
-                                if (value != null) {
-                                  controller.updateSaleNote(value);
-                                }
                               },
                             ),
                           ),
@@ -1347,9 +1342,7 @@ class _BottomBar extends StatelessWidget {
     final saleName = controller.currentSale.name;
     if (saleName.trim().isEmpty) return;
     try {
-      controller.validateDeleteBillPermission(
-        saleStatus: controller.currentSale.saleStatus,
-      );
+      controller.validateDeleteBillPermission();
     } on DeleteBillPermissionException {
       _showDeleteBillPermissionDenied();
       return;

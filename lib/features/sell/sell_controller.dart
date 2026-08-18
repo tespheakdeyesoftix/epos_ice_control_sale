@@ -242,8 +242,7 @@ class SellController extends GetxController {
     }
   }
 
-  void validateDeleteBillPermission({required String saleStatus}) {
-    if (saleStatus.trim().toLowerCase() == 'draft') return;
+  void validateDeleteBillPermission() {
     if (!canDeleteBill) {
       throw const DeleteBillPermissionException();
     }
@@ -388,6 +387,7 @@ class SellController extends GetxController {
   }
 
   Future<void> deleteOpenedSale(String deletedNote) async {
+    validateDeleteBillPermission();
     final sale = openedSale.value;
     if (sale == null ||
         sale.name.trim().isEmpty ||
@@ -395,7 +395,6 @@ class SellController extends GetxController {
         isSaving.value) {
       throw const SaleDeleteValidationException();
     }
-    validateDeleteBillPermission(saleStatus: sale.saleStatus);
     isDeletingSale.value = true;
     try {
       await saleService.deleteSale(

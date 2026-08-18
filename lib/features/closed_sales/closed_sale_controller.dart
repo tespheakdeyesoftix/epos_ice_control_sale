@@ -217,7 +217,7 @@ class ClosedSaleController extends GetxController {
 
   bool checkDeleteBillPermission() {
     try {
-      sellController.validateDeleteBillPermission(saleStatus: 'Closed');
+      sellController.validateDeleteBillPermission();
       return true;
     } on DeleteBillPermissionException catch (error) {
       _showMessage(error.message, indicator: 'orange');
