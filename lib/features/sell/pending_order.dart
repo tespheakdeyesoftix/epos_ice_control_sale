@@ -7,6 +7,7 @@ class PendingOrder {
     this.customer = '',
     this.customerName = '',
     this.phoneNumber = '',
+    this.canShowPrice = false,
     this.driverName = '',
     this.totalSaleQuantity = 0,
     this.totalAmount = 0,
@@ -19,6 +20,7 @@ class PendingOrder {
       customer: _text(json['customer']),
       customerName: _text(json['customer_name']),
       phoneNumber: _text(json['phone_number']),
+      canShowPrice: toDoubleValue(json['can_show_price']) == 1,
       driverName: _text(json['driver_name']),
       totalSaleQuantity: toDoubleValue(json['total_sale_quantity']),
       totalAmount: toDoubleValue(json['total_amount']),
@@ -30,6 +32,7 @@ class PendingOrder {
   final String customer;
   final String customerName;
   final String phoneNumber;
+  final bool canShowPrice;
   final String driverName;
   final double totalSaleQuantity;
   final double totalAmount;

@@ -34,6 +34,7 @@ class SaleService {
     'customer',
     'customer_name',
     'phone_number',
+    'can_show_price',
     'driver_name',
     'total_sale_quantity',
     'total_amount',

@@ -14,6 +14,7 @@ import 'package:ice_control_sale/features/login/login_controller.dart';
 import 'package:ice_control_sale/features/navigation/app_destination.dart';
 import 'package:ice_control_sale/features/navigation/app_shell_controller.dart';
 import 'package:ice_control_sale/features/navigation/app_shell_screen.dart';
+import 'package:ice_control_sale/features/sell/customer.dart';
 import 'package:ice_control_sale/features/sell/sell_controller.dart';
 import 'package:ice_control_sale/features/sell/sell_screen.dart';
 import 'package:ice_control_sale/services/customer_service.dart';
@@ -559,7 +560,7 @@ void main() {
     expect(sellController.currentSale.driverPhoneNumber, '012345678');
     expect(sellController.currentSale.plateNumber, '2AB-1234');
     expect(find.text('CU.0001 - អតិថិជន សុខា'), findsNWidgets(2));
-    expect(find.text('012345678 • 2AB-1234'), findsOneWidget);
+    expect(find.text('ស្លាកលេខ: 2AB-1234'), findsOneWidget);
     expect(find.text('ប្តូរស្លាក់លេខឡាន'), findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('change-plate-number-button')));
     await tester.pumpAndSettle();
@@ -570,7 +571,7 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('confirm-plate-number')));
     await tester.pumpAndSettle();
     expect(sellController.currentSale.plateNumber, '2CD-5678');
-    expect(find.text('012345678 • 2CD-5678'), findsOneWidget);
+    expect(find.text('ស្លាកលេខ: 2CD-5678'), findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('clear-selected-driver')));
     await tester.pumpAndSettle();
     expect(sellController.currentSale.driver, isEmpty);
@@ -591,6 +592,32 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('ទឹកកកដើមធំ'), findsNWidgets(2));
+    expect(find.text('1.5 x 15,000 / ដើម'), findsOneWidget);
+    expect(find.text('22,500 រៀល'), findsWidgets);
+    final visibleCustomer = sellController.selectedCustomer.value!;
+    sellController.selectedCustomer.value = const Customer(
+      name: 'PRIVATE-CUSTOMER',
+      customerName: 'អតិថិជនតម្លៃសម្ងាត់',
+      canShowPrice: false,
+    );
+    await tester.pumpAndSettle();
+    expect(sellController.currentSale.canShowPrice, isFalse);
+    expect(sellController.currentSale.toJson()['can_show_price'], 0);
+    expect(find.text('1.5 x *** / ដើម'), findsOneWidget);
+    expect(
+      tester
+          .widget<Text>(find.byKey(const ValueKey('order-product-total-01')))
+          .data,
+      '***',
+    );
+    expect(
+      tester
+          .widget<Text>(find.byKey(const ValueKey('sale-summary-total-amount')))
+          .data,
+      '***',
+    );
+    sellController.selectedCustomer.value = visibleCustomer;
+    await tester.pumpAndSettle();
     expect(find.text('1.5 x 15,000 / ដើម'), findsOneWidget);
     expect(find.text('22,500 រៀល'), findsWidgets);
     final productNameCenter = tester.getCenter(
@@ -716,6 +743,7 @@ void main() {
       findsOneWidget,
     );
     expect(submittedSale?['customer'], 'CU.0001');
+    expect(submittedSale?['can_show_price'], 1);
     expect(submittedSale?['sale_status'], 'Closed');
     expect(submittedSale?['reference_number'], 'REF-2026-001');
     expect(submittedSale?['note'], 'ដឹកជញ្ជូនមុនម៉ោង ១០ ព្រឹក');

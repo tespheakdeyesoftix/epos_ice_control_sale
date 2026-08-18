@@ -74,6 +74,12 @@ class SellScreen extends GetView<SellController> {
                               referenceNumber: controller.referenceNumber.value,
                               note: controller.saleNote.value,
                               compact: compactLayout,
+                              showPrices:
+                                  controller
+                                      .selectedCustomer
+                                      .value
+                                      ?.canShowPrice ??
+                                  true,
                               imageUriBuilder: controller.saleProductImage,
                               onRemove: controller.remove,
                               onEdit: (line) async {
@@ -1057,8 +1063,13 @@ class _BottomBar extends StatelessWidget {
                       flex: 5,
                       child: _SaleSummaryMetric(
                         label: 'ទឹកប្រាក់សរុប',
-                        value: '${formatMoney(controller.grandTotal)} រៀល',
+                        value:
+                            (controller.selectedCustomer.value?.canShowPrice ??
+                                true)
+                            ? '${formatMoney(controller.grandTotal)} រៀល'
+                            : '***',
                         valueFontSize: 28,
+                        valueKey: const ValueKey('sale-summary-total-amount'),
                       ),
                     ),
                   ],
@@ -1198,11 +1209,13 @@ class _SaleSummaryMetric extends StatelessWidget {
     required this.label,
     required this.value,
     required this.valueFontSize,
+    this.valueKey,
   });
 
   final String label;
   final String value;
   final double valueFontSize;
+  final Key? valueKey;
 
   @override
   Widget build(BuildContext context) {
@@ -1227,6 +1240,7 @@ class _SaleSummaryMetric extends StatelessWidget {
               fit: BoxFit.scaleDown,
               alignment: Alignment.centerLeft,
               child: Text(
+                key: valueKey,
                 value,
                 maxLines: 1,
                 style: TextStyle(

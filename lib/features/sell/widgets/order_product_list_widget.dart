@@ -19,6 +19,7 @@ class OrderProductListWidget extends StatelessWidget {
     required this.note,
     this.date,
     this.compact = false,
+    this.showPrices = true,
   });
 
   final List<SaleProduct> lines;
@@ -32,6 +33,7 @@ class OrderProductListWidget extends StatelessWidget {
   final String note;
   final DateTime? date;
   final bool compact;
+  final bool showPrices;
 
   @override
   Widget build(BuildContext context) {
@@ -194,6 +196,7 @@ class OrderProductListWidget extends StatelessWidget {
                         onRemove: () => onRemove(line),
                         onEdit: () => onEdit(line),
                         compact: compact,
+                        showPrices: showPrices,
                       );
                     },
                   ),
@@ -271,6 +274,7 @@ class _OrderProductLine extends StatelessWidget {
     required this.onRemove,
     required this.onEdit,
     required this.compact,
+    required this.showPrices,
   });
 
   final SaleProduct line;
@@ -278,6 +282,7 @@ class _OrderProductLine extends StatelessWidget {
   final VoidCallback onRemove;
   final VoidCallback onEdit;
   final bool compact;
+  final bool showPrices;
 
   @override
   Widget build(BuildContext context) {
@@ -358,7 +363,7 @@ class _OrderProductLine extends StatelessWidget {
                               ),
                             ),
                             Text(
-                              '${formatQuantity(line.totalSaleQuantity)} x ${formatMoney(line.price)} / ${line.unit}',
+                              '${formatQuantity(line.totalSaleQuantity)} x ${showPrices ? formatMoney(line.price) : '***'} / ${line.unit}',
                               style: TextStyle(
                                 color: colors.onSurfaceVariant,
                                 fontSize: 12,
@@ -386,7 +391,9 @@ class _OrderProductLine extends StatelessWidget {
                         top: 0,
                         right: 0,
                         child: Text(
-                          '${formatMoney(line.totalAmount)} រៀល',
+                          showPrices
+                              ? '${formatMoney(line.totalAmount)} រៀល'
+                              : '***',
                           key: ValueKey(
                             'order-product-total-${line.productCode}',
                           ),

@@ -65,6 +65,7 @@ void main() {
               'name': 'SO-DRAFT-0001',
               'posting_date': '2026-08-15',
               'customer_name': 'Customer A',
+              'can_show_price': 0,
               'driver_name': 'Driver A',
               'total_sale_quantity': 10,
               'total_amount': 150000,
@@ -97,6 +98,7 @@ void main() {
     final fields = jsonDecode(sentRequest.url.queryParameters['fields']!);
     expect(fields, contains('customer'));
     expect(fields, contains('phone_number'));
+    expect(fields, contains('can_show_price'));
     final orFilters = jsonDecode(
       sentRequest.url.queryParameters['or_filters']!,
     );
@@ -108,6 +110,7 @@ void main() {
     expect(page.items.single.name, 'SO-DRAFT-0001');
     expect(page.items.single.totalSaleQuantity, 10);
     expect(page.items.single.totalAmount, 150000);
+    expect(page.items.single.canShowPrice, isFalse);
     expect(page.hasMore, isFalse);
   });
 

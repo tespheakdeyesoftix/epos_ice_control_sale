@@ -69,4 +69,51 @@ void main() {
       const Color(0xFFF79009),
     );
   });
+
+  testWidgets('masks unit prices and totals without removing their widgets', (
+    tester,
+  ) async {
+    const product = SaleProduct(
+      productCode: 'PRIVATE-01',
+      productName: 'Private price product',
+      productCategory: 'Ice',
+      unit: 'Unit',
+      price: 15000,
+      quantity: 2,
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light,
+        home: Scaffold(
+          body: SizedBox(
+            width: 360,
+            height: 520,
+            child: OrderProductListWidget(
+              lines: const [product],
+              imageUriBuilder: (_) => null,
+              onRemove: (_) {},
+              onEdit: (_) {},
+              onDateTap: () {},
+              onReferenceTap: () {},
+              referenceNumber: '',
+              onNoteTap: () {},
+              note: '',
+              showPrices: false,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('2 x *** / Unit'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('order-product-total-PRIVATE-01')),
+      findsOneWidget,
+    );
+    expect(find.text('***'), findsOneWidget);
+    expect(find.textContaining('15,000'), findsNothing);
+    expect(find.textContaining('30,000'), findsNothing);
+  });
 }
