@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import 'setting_controller.dart';
+import 'receipt_template_manager_screen.dart';
 import 'widgets/print_settings_dialog.dart';
-import 'widgets/receipt_template_manager_screen.dart';
 import 'widgets/setting_card.dart';
 
 class SettingScreen extends GetView<SettingController> {

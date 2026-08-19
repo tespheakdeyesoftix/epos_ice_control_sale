@@ -358,6 +358,15 @@ class ReceiptTemplateRenderer {
             'ទូរស័ព្ទ៖ ${sale.phoneNumber.trim()}',
         ].join('  ');
         return _textWidget(value, block, contentWidth: contentWidth);
+      case ReceiptBlockType.table:
+        return _genericTable(
+          block,
+          sale: sale,
+          business: business,
+          seller: seller,
+          template: template,
+          contentWidth: contentWidth,
+        );
       case ReceiptBlockType.productTable:
         return _productTable(sale, block, contentWidth);
       case ReceiptBlockType.totals:
@@ -647,6 +656,7 @@ class ReceiptTemplateRenderer {
       block.type == ReceiptBlockType.row ||
           block.type == ReceiptBlockType.column ||
           block.type == ReceiptBlockType.container ||
+          block.type == ReceiptBlockType.table ||
           block.type == ReceiptBlockType.productTable
       ? const ReceiptInsetsMm(0, 0, 0, 0)
       : block.resolvedPadding;
@@ -709,6 +719,556 @@ class ReceiptTemplateRenderer {
           index: pw.FlexColumnWidth(columns[index].width),
       },
       children: rows,
+    );
+  }
+
+  static Future<pw.Widget> _genericTable(
+    ReceiptBlock block, {
+    required Sale sale,
+    required AppSetting business,
+    required String seller,
+    required ReceiptTemplate template,
+    required double contentWidth,
+  }) async {
+    final source = block.properties['source']?.toString().trim() ?? '';
+    return source.isEmpty
+        ? _staticTable(
+            block,
+            sale: sale,
+            business: business,
+            seller: seller,
+            template: template,
+            contentWidth: contentWidth,
+          )
+        : _dynamicTable(
+            block,
+            source: source,
+            sale: sale,
+            business: business,
+            seller: seller,
+            template: template,
+            contentWidth: contentWidth,
+          );
+  }
+
+  static Future<pw.Widget> _dynamicTable(
+    ReceiptBlock block, {
+    required String source,
+    required Sale sale,
+    required AppSetting business,
+    required String seller,
+    required ReceiptTemplate template,
+    required double contentWidth,
+  }) async {
+    final rawRows = _resolveRawField(
+      source,
+      sale,
+      business,
+      seller,
+      template: template,
+    );
+    final rows = rawRows is List
+        ? rawRows
+              .whereType<Map>()
+              .map((row) => Map<String, dynamic>.from(row))
+              .toList(growable: false)
+        : const <Map<String, dynamic>>[];
+    final rawColumns = block.properties['columns'];
+    final columns = rawColumns is List
+        ? rawColumns
+              .whereType<Map>()
+              .map((column) => Map<String, dynamic>.from(column))
+              .where((column) => _jsonBool(column['visible'], fallback: true))
+              .where(
+                (column) => _conditionMatches(
+                  column['show_if'],
+                  null,
+                  sale,
+                  business,
+                  seller,
+                  template,
+                ),
+              )
+              .toList(growable: false)
+        : const <Map<String, dynamic>>[];
+    if (columns.isEmpty) return pw.SizedBox();
+
+    final tableRows = <pw.TableRow>[];
+    if (_jsonBool(block.properties['header'], fallback: true)) {
+      final headerCells = <pw.Widget>[];
+      for (final column in columns) {
+        headerCells.add(
+          await _genericTableCell(
+            column['label']?.toString() ?? '',
+            column,
+            block,
+            contentWidth,
+            forceBold: _jsonBool(
+              block.properties['header_bold'],
+              fallback: true,
+            ),
+            fallbackBackground: '#eeeeee',
+          ),
+        );
+      }
+      tableRows.add(
+        pw.TableRow(
+          repeat: _jsonBool(block.properties['repeat_header'], fallback: true),
+          children: headerCells,
+        ),
+      );
+    }
+    for (var rowIndex = 0; rowIndex < rows.length; rowIndex++) {
+      final row = rows[rowIndex];
+      final cells = <pw.Widget>[];
+      for (final column in columns) {
+        final fieldname =
+            column['fieldname']?.toString().trim().isNotEmpty == true
+            ? column['fieldname'].toString().trim()
+            : column['key']?.toString().trim() ?? '';
+        const protectedPriceFields = {
+          'price',
+          'product_price',
+          'sub_total',
+          'amount',
+          'total_amount',
+          'cost',
+          'total_cost',
+        };
+        final automaticMask =
+            source == 'sale.sale_products' &&
+            !sale.canShowPrice &&
+            protectedPriceFields.contains(fieldname);
+        final displayValue = _tableValue(
+          column,
+          row,
+          rowIndex,
+          fieldname,
+          sale,
+          business,
+          seller,
+          template,
+          automaticMask: automaticMask,
+        );
+        cells.add(
+          await _genericTableCell(displayValue, column, block, contentWidth),
+        );
+      }
+      tableRows.add(pw.TableRow(children: cells));
+    }
+    return _tableWidget(block, columns, tableRows);
+  }
+
+  static Future<pw.Widget> _staticTable(
+    ReceiptBlock block, {
+    required Sale sale,
+    required AppSetting business,
+    required String seller,
+    required ReceiptTemplate template,
+    required double contentWidth,
+  }) async {
+    final rawRows = block.properties['rows'];
+    if (rawRows is! List) return pw.SizedBox();
+    final visibleRows = rawRows
+        .whereType<Map>()
+        .map((row) => Map<String, dynamic>.from(row))
+        .where(
+          (row) =>
+              _jsonBool(row['visible'], fallback: true) &&
+              _conditionMatches(
+                row['show_if'],
+                null,
+                sale,
+                business,
+                seller,
+                template,
+              ),
+        )
+        .toList(growable: false);
+    final columnCount = visibleRows.fold<int>(0, (maximum, row) {
+      final cells = row['cells'];
+      return cells is List && cells.length > maximum ? cells.length : maximum;
+    });
+    if (columnCount == 0) return pw.SizedBox();
+    final widths = block.properties['column_widths'];
+    final columns = List.generate(columnCount, (index) {
+      final width = widths is List && index < widths.length
+          ? _jsonDouble(widths[index], fallback: 1)
+          : 1.0;
+      return <String, dynamic>{'width': width};
+    });
+    final tableRows = <pw.TableRow>[];
+    for (var rowIndex = 0; rowIndex < visibleRows.length; rowIndex++) {
+      final row = visibleRows[rowIndex];
+      final rawCells = row['cells'];
+      if (rawCells is! List) continue;
+      final cells = <pw.Widget>[];
+      for (var columnIndex = 0; columnIndex < columnCount; columnIndex++) {
+        final cell =
+            columnIndex < rawCells.length && rawCells[columnIndex] is Map
+            ? Map<String, dynamic>.from(rawCells[columnIndex] as Map)
+            : <String, dynamic>{};
+        final visible =
+            _jsonBool(cell['visible'], fallback: true) &&
+            _conditionMatches(
+              cell['show_if'],
+              null,
+              sale,
+              business,
+              seller,
+              template,
+            );
+        final value = visible
+            ? _tableValue(
+                cell,
+                null,
+                rowIndex,
+                cell['fieldname']?.toString().trim() ?? '',
+                sale,
+                business,
+                seller,
+                template,
+              )
+            : '';
+        cells.add(
+          await _genericTableCell(
+            value,
+            {...row, ...cell},
+            block,
+            contentWidth,
+            forceBold: _jsonBool(
+              row['header'],
+              fallback:
+                  rowIndex == 0 &&
+                  _jsonBool(block.properties['header'], fallback: false),
+            ),
+          ),
+        );
+      }
+      final isHeader = _jsonBool(
+        row['header'],
+        fallback:
+            rowIndex == 0 &&
+            _jsonBool(block.properties['header'], fallback: false),
+      );
+      tableRows.add(
+        pw.TableRow(
+          repeat:
+              isHeader &&
+              _jsonBool(block.properties['repeat_header'], fallback: true),
+          children: cells,
+        ),
+      );
+    }
+    return _tableWidget(block, columns, tableRows);
+  }
+
+  static pw.Widget _tableWidget(
+    ReceiptBlock block,
+    List<Map<String, dynamic>> columns,
+    List<pw.TableRow> rows,
+  ) {
+    final border = _jsonBool(block.properties['border'], fallback: true);
+    final borderWidth = _jsonDouble(
+      block.properties['border_width'],
+      fallback: 0.4,
+    ).clamp(0.0, double.infinity);
+    return pw.Table(
+      border: border ? pw.TableBorder.all(width: borderWidth) : null,
+      columnWidths: {
+        for (var index = 0; index < columns.length; index++)
+          index: pw.FlexColumnWidth(
+            _jsonDouble(
+              columns[index]['flex'] ?? columns[index]['width'],
+              fallback: 1,
+            ).clamp(0.01, double.infinity),
+          ),
+      },
+      children: rows,
+    );
+  }
+
+  static Future<pw.Widget> _genericTableCell(
+    String value,
+    Map<String, dynamic> cell,
+    ReceiptBlock block,
+    double contentWidth, {
+    bool forceBold = false,
+    String? fallbackBackground,
+  }) async {
+    final parsedPadding = ReceiptInsetsMm.tryParse(
+      cell['padding'] ?? block.properties['cell_padding'],
+    );
+    final padding = parsedPadding == null || parsedPadding.isNegative
+        ? const ReceiptInsetsMm(1, 1, 1, 1)
+        : parsedPadding;
+    final alignment = cell['alignment']?.toString() ?? block.alignment;
+    final background = _pdfColor(
+      cell['background_color']?.toString() ?? fallbackBackground,
+    );
+    final child = pw.Padding(
+      padding: _edgeInsets(padding),
+      child: pw.Align(
+        alignment: _alignment(alignment),
+        child: await ReceiptRasterText.create(
+          value,
+          fontSize: _jsonDouble(cell['font_size'], fallback: block.fontSize),
+          fontWeight: forceBold || _jsonBool(cell['bold'], fallback: block.bold)
+              ? pw.FontWeight.bold
+              : pw.FontWeight.normal,
+          textAlign: _textAlign(alignment),
+          maxWidth: contentWidth,
+        ),
+      ),
+    );
+    return background == null
+        ? child
+        : pw.Container(color: background, child: child);
+  }
+
+  static String _tableValue(
+    Map<String, dynamic> cell,
+    Map<String, dynamic>? row,
+    int rowIndex,
+    String fieldname,
+    Sale sale,
+    AppSetting business,
+    String seller,
+    ReceiptTemplate template, {
+    bool automaticMask = false,
+  }) {
+    final text = cell['text']?.toString() ?? '';
+    Object? value;
+    if (text.isNotEmpty) {
+      value = text.replaceAllMapped(RegExp(r'\{\{\s*([a-zA-Z0-9_.]+)\s*\}\}'), (
+        match,
+      ) {
+        final key = match.group(1) ?? '';
+        return (_mapValue(row, key) ??
+                _resolveRawField(
+                  key,
+                  sale,
+                  business,
+                  seller,
+                  template: template,
+                ) ??
+                '')
+            .toString();
+      });
+    } else if (fieldname == 'index') {
+      value = rowIndex + 1;
+    } else {
+      value =
+          _mapValue(row, fieldname) ??
+          _resolveRawField(
+            fieldname,
+            sale,
+            business,
+            seller,
+            template: template,
+          );
+    }
+    final type = cell['type']?.toString();
+    final isCurrency = type?.trim().toLowerCase() == 'currency';
+    final shouldMask =
+        isCurrency &&
+        _maskEnabled(
+          cell['mask'],
+          defaultValue: automaticMask,
+          row: row,
+          sale: sale,
+          business: business,
+          seller: seller,
+          template: template,
+        );
+    final formatted = shouldMask
+        ? (cell['mask_text']?.toString().trim().isNotEmpty == true
+              ? cell['mask_text'].toString().trim()
+              : '***')
+        : _formatTableValue(value, type);
+    final displayValue = _withCurrencySymbol(
+      formatted,
+      type,
+      business.currencySymbol,
+    );
+    return '${cell['label']?.toString() ?? ''}$displayValue';
+  }
+
+  static bool _maskEnabled(
+    Object? mask, {
+    required bool defaultValue,
+    required Map<String, dynamic>? row,
+    required Sale sale,
+    required AppSetting business,
+    required String seller,
+    required ReceiptTemplate template,
+  }) {
+    if (mask == null) return defaultValue;
+    if (mask is bool) return mask;
+    if (mask is num) return mask != 0;
+    final expression = mask.toString().trim();
+    if (expression.isEmpty) return defaultValue;
+    final literal = expression.toLowerCase();
+    if (const {'true', '1', 'yes'}.contains(literal)) return true;
+    if (const {'false', '0', 'no'}.contains(literal)) return false;
+
+    final comparison = RegExp(
+      r'^(.+?)\s*(==|!=)\s*(.+)$',
+    ).firstMatch(expression);
+    if (comparison != null) {
+      final actual = _tableConditionValue(
+        comparison.group(1) ?? '',
+        row,
+        sale,
+        business,
+        seller,
+        template,
+      );
+      final expected = _conditionLiteral(comparison.group(3) ?? '');
+      final equals = _conditionValuesEqual(actual, expected);
+      return comparison.group(2) == '!=' ? !equals : equals;
+    }
+
+    return _truthy(
+      _tableConditionValue(expression, row, sale, business, seller, template),
+    );
+  }
+
+  static Object? _tableConditionValue(
+    String fieldname,
+    Map<String, dynamic>? row,
+    Sale sale,
+    AppSetting business,
+    String seller,
+    ReceiptTemplate template,
+  ) =>
+      _mapValue(row, fieldname.trim()) ??
+      _resolveRawField(
+        fieldname.trim(),
+        sale,
+        business,
+        seller,
+        template: template,
+      );
+
+  static Object? _conditionLiteral(String source) {
+    final value = source.trim();
+    if ((value.startsWith('"') && value.endsWith('"')) ||
+        (value.startsWith("'") && value.endsWith("'"))) {
+      return value.substring(1, value.length - 1);
+    }
+    if (value.toLowerCase() == 'true') return true;
+    if (value.toLowerCase() == 'false') return false;
+    if (value.toLowerCase() == 'null') return null;
+    return num.tryParse(value) ?? value;
+  }
+
+  static bool _conditionValuesEqual(Object? actual, Object? expected) {
+    if (actual is num && expected is num) return actual == expected;
+    if (actual is bool && expected is num) {
+      return (actual ? 1 : 0) == expected;
+    }
+    if (actual is num && expected is bool) {
+      return actual == (expected ? 1 : 0);
+    }
+    return actual?.toString().trim().toLowerCase() ==
+        expected?.toString().trim().toLowerCase();
+  }
+
+  static String _withCurrencySymbol(
+    String value,
+    String? type,
+    String currencySymbol,
+  ) {
+    final symbol = currencySymbol.trim();
+    if (value.trim().isEmpty ||
+        symbol.isEmpty ||
+        type?.trim().toLowerCase() != 'currency') {
+      return value;
+    }
+    return '${value.trim()} $symbol';
+  }
+
+  static Object? _mapValue(Map<String, dynamic>? row, String fieldname) {
+    if (row == null || fieldname.isEmpty) return null;
+    Object? value = row;
+    for (final part in fieldname.split('.')) {
+      if (value is! Map || !value.containsKey(part)) return null;
+      value = value[part];
+    }
+    return value;
+  }
+
+  static String _formatTableValue(Object? value, String? type) {
+    if (value == null) return '';
+    final normalized = type?.trim().toLowerCase() ?? 'text';
+    if (normalized == 'date') return _formatDateValue(value);
+    if (normalized == 'currency') {
+      final number = value is num ? value : num.tryParse(value.toString());
+      return number == null ? value.toString() : formatMoney(number);
+    }
+    if (normalized == 'quantity' || normalized == 'number') {
+      final number = value is num ? value : num.tryParse(value.toString());
+      return number == null ? value.toString() : formatQuantity(number);
+    }
+    return value.toString().trim();
+  }
+
+  static bool _conditionMatches(
+    Object? rawCondition,
+    Map<String, dynamic>? row,
+    Sale sale,
+    AppSetting business,
+    String seller,
+    ReceiptTemplate template,
+  ) {
+    var condition = rawCondition?.toString().trim() ?? '';
+    if (condition.isEmpty) return true;
+    final inverted = condition.startsWith('!');
+    if (inverted) condition = condition.substring(1).trim();
+    final value =
+        _mapValue(row, condition) ??
+        _resolveRawField(condition, sale, business, seller, template: template);
+    final matches = _truthy(value);
+    return inverted ? !matches : matches;
+  }
+
+  static bool _jsonBool(Object? value, {required bool fallback}) {
+    if (value == null) return fallback;
+    if (value is bool) return value;
+    if (value is num) return value != 0;
+    return const {
+      'true',
+      '1',
+      'yes',
+    }.contains(value.toString().trim().toLowerCase());
+  }
+
+  static double _jsonDouble(Object? value, {required double fallback}) =>
+      value is num ? value.toDouble() : double.tryParse('$value') ?? fallback;
+
+  static bool _truthy(Object? value) => switch (value) {
+    null => false,
+    bool flag => flag,
+    num number => number != 0,
+    _ => !const {
+      '',
+      '0',
+      'false',
+      'no',
+      'null',
+    }.contains(value.toString().trim().toLowerCase()),
+  };
+
+  static PdfColor? _pdfColor(String? value) {
+    final source = value?.trim().replaceFirst('#', '') ?? '';
+    if (source.length != 6) return null;
+    final color = int.tryParse(source, radix: 16);
+    if (color == null) return null;
+    return PdfColor(
+      ((color >> 16) & 0xff) / 255,
+      ((color >> 8) & 0xff) / 255,
+      (color & 0xff) / 255,
     );
   }
 

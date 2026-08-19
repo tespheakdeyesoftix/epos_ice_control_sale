@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
-import '../receipt_template_controller.dart';
-import 'receipt_template_editor.dart';
+import 'receipt_template_controller.dart';
+import 'widgets/receipt_template_editor.dart';
 
 class ReceiptTemplateManagerScreen extends GetView<ReceiptTemplateController> {
   const ReceiptTemplateManagerScreen({super.key});

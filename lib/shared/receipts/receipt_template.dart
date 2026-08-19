@@ -127,6 +127,7 @@ enum ReceiptBlockType {
   text('text', 'Text'),
   date('date', 'Date'),
   customerInfo('customer_info', 'Customer information'),
+  table('table', 'Table'),
   productTable('product_table', 'Product table'),
   totals('totals', 'Summary totals'),
   barcode('barcode', 'Barcode'),
@@ -712,6 +713,26 @@ Map<String, dynamic> _normalizeBlockJson(Map<String, dynamic> source) {
     case 'token_text':
       json['type'] = 'text';
   }
+  if (_text(json['type']) == 'table') {
+    final properties = json['properties'] is Map
+        ? Map<String, dynamic>.from(json['properties'] as Map)
+        : <String, dynamic>{};
+    for (final key in const [
+      'source',
+      'header',
+      'border',
+      'header_bold',
+      'repeat_header',
+      'cell_padding',
+      'border_width',
+      'column_widths',
+      'rows',
+      'columns',
+    ]) {
+      if (json.containsKey(key)) properties[key] = json.remove(key);
+    }
+    if (properties.isNotEmpty) json['properties'] = properties;
+  }
   final child = json['child'];
   if (child is Map) {
     json['child'] = _normalizeBlockJson(Map<String, dynamic>.from(child));
@@ -736,6 +757,59 @@ void _validateBlockJson(Map<String, dynamic> json, String path, int depth) {
   final knownTypes = ReceiptBlockType.values.map((type) => type.key).toSet();
   if (!knownTypes.contains(_text(json['type']))) {
     throw FormatException('$path has an unknown type.');
+  }
+  if (_text(json['type']) == ReceiptBlockType.table.key) {
+    final properties = json['properties'];
+    if (properties is! Map) {
+      throw FormatException('$path.table requires rows or source/columns.');
+    }
+    final source = _text(properties['source']);
+    final rows = properties['rows'];
+    final columns = properties['columns'];
+    if (source.isEmpty && rows is! List) {
+      throw FormatException('$path.table requires rows or source.');
+    }
+    if (source.isNotEmpty && columns is! List) {
+      throw FormatException('$path.table with source requires columns.');
+    }
+    if (rows != null && rows is! List) {
+      throw FormatException('$path.table rows must be a JSON array.');
+    }
+    if (columns != null && columns is! List) {
+      throw FormatException('$path.table columns must be a JSON array.');
+    }
+    if (columns is List) {
+      for (var index = 0; index < columns.length; index++) {
+        if (columns[index] is! Map) {
+          throw FormatException(
+            '$path.table columns[$index] must be a JSON object.',
+          );
+        }
+      }
+    }
+    if (rows is List) {
+      for (var rowIndex = 0; rowIndex < rows.length; rowIndex++) {
+        final row = rows[rowIndex];
+        if (row is! Map) {
+          throw FormatException(
+            '$path.table rows[$rowIndex] must be a JSON object.',
+          );
+        }
+        final cells = row['cells'];
+        if (cells is! List) {
+          throw FormatException(
+            '$path.table rows[$rowIndex].cells must be a JSON array.',
+          );
+        }
+        for (var cellIndex = 0; cellIndex < cells.length; cellIndex++) {
+          if (cells[cellIndex] is! Map) {
+            throw FormatException(
+              '$path.table rows[$rowIndex].cells[$cellIndex] must be a JSON object.',
+            );
+          }
+        }
+      }
+    }
   }
   for (final property in const ['margin', 'padding']) {
     if (json.containsKey(property) &&
@@ -808,9 +882,14 @@ void _validateBlockLayout(
   if (!isTopLevel && block.position == ReceiptPositionMode.absolute) {
     errors.add('$path: only top-level blocks can use absolute positioning.');
   }
-  if (block.type == ReceiptBlockType.productTable &&
+  final isDynamicTable =
+      block.type == ReceiptBlockType.table &&
+      _text(block.properties['source']).isNotEmpty;
+  if ((block.type == ReceiptBlockType.productTable || isDynamicTable) &&
       (!isTopLevel || block.position != ReceiptPositionMode.flow)) {
-    errors.add('$path: product_table must be a top-level flow block.');
+    errors.add(
+      '$path: dynamic table and product_table must be top-level flow blocks.',
+    );
   }
   if (block.flex <= 0) errors.add('$path: flex must be positive.');
   if (block.gapMm < 0) errors.add('$path: gap_mm cannot be negative.');

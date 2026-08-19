@@ -126,6 +126,68 @@ void main() {
     expect(template.blocks.single.showIf, 'sale.posting_date');
   });
 
+  test('accepts static and dynamic table top-level properties', () {
+    final layout = ReceiptTemplate.standardA6.toLayoutJson();
+    layout['blocks'] = [
+      {
+        'type': 'table',
+        'border': false,
+        'column_widths': [1, 2],
+        'rows': [
+          {
+            'cells': [
+              {'text': 'Invoice:'},
+              {'fieldname': 'sale.name'},
+            ],
+          },
+        ],
+      },
+      {
+        'type': 'table',
+        'source': 'sale.sale_products',
+        'columns': [
+          {'fieldname': 'product_name', 'label': 'Product'},
+          {'fieldname': 'total_amount', 'type': 'currency'},
+        ],
+      },
+    ];
+
+    final template = ReceiptTemplate.standardA6.applyLayoutJson(layout);
+
+    expect(template.blocks.map((block) => block.type), [
+      ReceiptBlockType.table,
+      ReceiptBlockType.table,
+    ]);
+    expect(template.blocks.first.properties['rows'], isA<List<dynamic>>());
+    expect(template.blocks.first.properties['border'], isFalse);
+    expect(template.blocks.last.properties['source'], 'sale.sale_products');
+    expect(template.layoutErrors(), isEmpty);
+  });
+
+  test('rejects malformed table rows and dynamic columns', () {
+    final layout = ReceiptTemplate.standardA6.toLayoutJson();
+    layout['blocks'] = [
+      {
+        'type': 'table',
+        'rows': [
+          {'cells': 'not-a-list'},
+        ],
+      },
+    ];
+    expect(
+      () => ReceiptTemplate.standardA6.applyLayoutJson(layout),
+      throwsA(isA<FormatException>()),
+    );
+
+    layout['blocks'] = [
+      {'type': 'table', 'source': 'sale.sale_products'},
+    ];
+    expect(
+      () => ReceiptTemplate.standardA6.applyLayoutJson(layout),
+      throwsA(isA<FormatException>()),
+    );
+  });
+
   test('parses and serializes recursively nested layout blocks', () {
     final layout = ReceiptTemplate.standardA6.toLayoutJson();
     layout['blocks'] = [

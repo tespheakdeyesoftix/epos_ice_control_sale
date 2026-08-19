@@ -336,9 +336,14 @@ class ReceiptTemplateHelpDialog extends StatelessWidget {
                     'Legacy combined customer block. fields values: customer, phone.',
                   ),
                   _ReferenceRow(
+                    'table',
+                    'rows, or source + columns',
+                    'Generic static or dynamic table. A dynamic table must be a top-level flow block.',
+                  ),
+                  _ReferenceRow(
                     'product_table',
                     'properties.columns',
-                    'Multi-page product table. Must be a top-level flow block.',
+                    'Backward-compatible specialized Sale Product table. New templates may use table with source sale.sale_products.',
                   ),
                   _ReferenceRow(
                     'totals',
@@ -823,6 +828,161 @@ class ReceiptTemplateHelpDialog extends StatelessWidget {
               ),
             ),
             const _HelpSection(
+              title: 'Generic table: properties and examples',
+              initiallyExpanded: true,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Table options may be written directly on the table block as shown below, or inside properties. Direct options are normalized into properties when parsed.',
+                  ),
+                  SizedBox(height: 8),
+                  _ReferenceTable(
+                    rows: [
+                      _ReferenceRow(
+                        'source',
+                        'List field, optional',
+                        'When present, creates one row for every item. Example: sale.sale_products or setting.payment_types.',
+                      ),
+                      _ReferenceRow(
+                        'columns',
+                        'Array; dynamic table',
+                        'Column definitions using fieldname (or key), label, flex/width, type, alignment, visible, and show_if.',
+                      ),
+                      _ReferenceRow(
+                        'rows',
+                        'Array; static table',
+                        'Fixed rows. Each row contains cells and may use visible, show_if, header, and background_color.',
+                      ),
+                      _ReferenceRow(
+                        'cells',
+                        'Array; static row',
+                        'Cell definitions using text or fieldname, label, type, alignment, font_size, bold, visible, show_if, padding, and background_color.',
+                      ),
+                      _ReferenceRow(
+                        'column_widths',
+                        'Number array',
+                        'Static-table relative widths, for example [1, 2]. Dynamic columns use flex or width individually.',
+                      ),
+                      _ReferenceRow(
+                        'header',
+                        'Boolean; dynamic default true',
+                        'Shows column labels for a dynamic table. For a static table, treats the first row as a header.',
+                      ),
+                      _ReferenceRow(
+                        'header_bold',
+                        'Boolean; default true',
+                        'Controls dynamic header font weight.',
+                      ),
+                      _ReferenceRow(
+                        'repeat_header',
+                        'Boolean; default true',
+                        'Repeats the header when a top-level table continues on another page.',
+                      ),
+                      _ReferenceRow(
+                        'border',
+                        'Boolean; default true',
+                        'Shows or hides all table borders.',
+                      ),
+                      _ReferenceRow(
+                        'border_width',
+                        'Number; default 0.4',
+                        'Border thickness in PDF points.',
+                      ),
+                      _ReferenceRow(
+                        'cell_padding',
+                        'Number or "L T R B"',
+                        'Default cell padding in millimetres. A cell padding value overrides it.',
+                      ),
+                      _ReferenceRow(
+                        'type',
+                        'text, date, number, quantity, currency',
+                        'Formats a static cell or dynamic column value. currency automatically appends setting.currency_symbol. Unknown/omitted types render text.',
+                      ),
+                      _ReferenceRow(
+                        'mask',
+                        'true, false, field, or comparison',
+                        'Currency only. true masks the value; false always shows it. A field/expression masks when it evaluates true, for example sale.can_show_price != 1.',
+                      ),
+                      _ReferenceRow(
+                        'mask_text',
+                        'Text; default ***',
+                        'Replacement displayed when mask is true. The currency symbol is still appended.',
+                      ),
+                      _ReferenceRow(
+                        'background_color',
+                        '#RRGGBB',
+                        'Optional row or cell background. Cell color overrides row color.',
+                      ),
+                      _ReferenceRow(
+                        'show_if',
+                        'Field or !field',
+                        'Hides a static row/cell or dynamic column based on receipt data.',
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 12),
+                  Text('Static label/value table:'),
+                  SizedBox(height: 6),
+                  SelectableText('''{
+  "type": "table",
+  "border": false,
+  "column_widths": [1, 2],
+  "cell_padding": "1 1 1 1",
+  "rows": [
+    {
+      "cells": [
+        {"text": "Invoice No:", "bold": true},
+        {"fieldname": "sale.name", "alignment": "right"}
+      ]
+    },
+    {
+      "cells": [
+        {"text": "Posting Date:", "bold": true},
+        {"type": "date", "fieldname": "sale.posting_date", "alignment": "right"}
+      ]
+    },
+    {
+      "show_if": "sale.driver_name",
+      "cells": [
+        {"text": "Driver:", "bold": true},
+        {"fieldname": "sale.driver_name", "alignment": "right"}
+      ]
+    },
+    {
+      "cells": [
+        {"text": "Customer:", "bold": true},
+        {"text": "{{sale.customer_name}} {{sale.phone_number}}", "alignment": "right"}
+      ]
+    }
+  ]
+}''', style: TextStyle(fontFamily: 'monospace')),
+                  SizedBox(height: 12),
+                  Text('Dynamic Sale Product table:'),
+                  SizedBox(height: 6),
+                  SelectableText('''{
+  "type": "table",
+  "source": "sale.sale_products",
+  "header": true,
+  "repeat_header": true,
+  "border": true,
+  "cell_padding": 1,
+  "columns": [
+    {"fieldname": "index", "label": "No.", "flex": 0.5, "alignment": "center"},
+    {"fieldname": "product_name", "label": "Product", "flex": 2.5},
+    {"fieldname": "total_sale_quantity", "label": "Qty", "type": "quantity", "flex": 1, "alignment": "center"},
+    {"fieldname": "price", "label": "Price", "type": "currency", "mask": false, "flex": 1.2, "alignment": "right"},
+    {"fieldname": "total_amount", "label": "Amount", "type": "currency", "mask": "sale.can_show_price != 1", "mask_text": "HIDDEN", "flex": 1.4, "alignment": "right"}
+  ]
+}''', style: TextStyle(fontFamily: 'monospace')),
+                  SizedBox(height: 8),
+                  Text(
+                    'For sale.sale_products, price/amount/cost fields automatically mask when sale.can_show_price is false if mask is omitted. Set mask=false to override, mask=true to always mask, or use a condition such as "sale.can_show_price == 1" or "sale.can_show_price != 1". The condition result directly controls masking.',
+                  ),
+                ],
+              ),
+            ),
+            const _HelpSection(
               title: 'Sale Product object and product_table columns',
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -973,7 +1133,7 @@ class ReceiptTemplateHelpDialog extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    '• product_table must remain a top-level flow block so rows can continue across pages.',
+                    '• A dynamic table and product_table must remain top-level flow blocks so rows can continue across pages.',
                   ),
                   Text('• Only top-level blocks may use absolute positioning.'),
                   Text(

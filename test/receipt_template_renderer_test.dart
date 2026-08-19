@@ -163,4 +163,96 @@ void main() {
       'print_template.template_logo': '/files/customer-logo.png',
     });
   });
+
+  test('renders static and dynamic generic tables', () async {
+    final layout = ReceiptTemplate.standardA6.toLayoutJson();
+    layout['blocks'] = [
+      {
+        'type': 'table',
+        'border': false,
+        'column_widths': [1, 2],
+        'rows': [
+          {
+            'cells': [
+              {'text': 'Invoice:', 'bold': true},
+              {'fieldname': 'sale.name', 'alignment': 'right'},
+            ],
+          },
+          {
+            'cells': [
+              {'text': 'Date:', 'bold': true},
+              {
+                'type': 'date',
+                'fieldname': 'sale.posting_date',
+                'alignment': 'right',
+              },
+            ],
+          },
+          {
+            'cells': [
+              {'text': 'Total:', 'bold': true},
+              {
+                'type': 'currency',
+                'fieldname': 'sale.total_amount',
+                'mask': true,
+                'mask_text': 'PRIVATE',
+                'alignment': 'right',
+              },
+            ],
+          },
+        ],
+      },
+      {
+        'type': 'table',
+        'source': 'sale.sale_products',
+        'header': true,
+        'repeat_header': true,
+        'columns': [
+          {'fieldname': 'index', 'label': 'No.', 'flex': 0.5},
+          {'fieldname': 'product_name', 'label': 'Product', 'flex': 2},
+          {
+            'fieldname': 'total_sale_quantity',
+            'label': 'Qty',
+            'type': 'quantity',
+          },
+          {
+            'fieldname': 'total_amount',
+            'label': 'Amount',
+            'type': 'currency',
+            'mask': 'sale.can_show_price != 1',
+            'mask_text': 'HIDDEN',
+            'alignment': 'right',
+          },
+        ],
+      },
+    ];
+    final template = ReceiptTemplate.standardA6.applyLayoutJson(layout);
+    final sale = Sale(
+      name: 'SO-TABLE',
+      outlet: 'Main',
+      postingDate: DateTime(2026, 8, 19),
+      canShowPrice: true,
+      saleProducts: const [
+        SaleProduct(
+          productCode: 'ICE',
+          productName: 'Ice',
+          productCategory: 'Ice',
+          unit: 'Bag',
+          price: 5000,
+          quantity: 2,
+          allowSumQuantity: true,
+        ),
+      ],
+    );
+
+    final bytes = await ReceiptTemplateRenderer.buildPdf(
+      sale: sale,
+      business: const AppSetting(raw: {}, currencySymbol: r'$'),
+      sellerFallback: '',
+      template: template,
+    );
+
+    expect(bytes, isNotEmpty);
+    expect(bytes.take(4), orderedEquals('%PDF'.codeUnits));
+  });
 }
