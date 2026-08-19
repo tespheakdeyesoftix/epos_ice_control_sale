@@ -8,12 +8,16 @@ Future<void> showSaveOrderSuccessDialog(
   BuildContext context, {
   required Map<String, dynamic> savedOrder,
   String title = 'រក្សាទុកការលក់បានជោគជ័យ',
+  bool Function()? pauseCountdown,
 }) {
   return showDialog<void>(
     context: context,
     barrierDismissible: false,
-    builder: (_) =>
-        SaveOrderSuccessWidget(savedOrder: savedOrder, title: title),
+    builder: (_) => SaveOrderSuccessWidget(
+      savedOrder: savedOrder,
+      title: title,
+      pauseCountdown: pauseCountdown,
+    ),
   );
 }
 
@@ -23,11 +27,13 @@ class SaveOrderSuccessWidget extends StatefulWidget {
     required this.savedOrder,
     this.title = 'រក្សាទុកការលក់បានជោគជ័យ',
     this.secondsToClose = 5,
+    this.pauseCountdown,
   });
 
   final Map<String, dynamic> savedOrder;
   final String title;
   final int secondsToClose;
+  final bool Function()? pauseCountdown;
 
   @override
   State<SaveOrderSuccessWidget> createState() => _SaveOrderSuccessWidgetState();
@@ -51,6 +57,8 @@ class _SaveOrderSuccessWidgetState extends State<SaveOrderSuccessWidget> {
     _secondsRemaining = widget.secondsToClose;
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (!mounted) return;
+      if (widget.pauseCountdown?.call() == true) return;
+      if (ModalRoute.of(context)?.isCurrent != true) return;
       if (_secondsRemaining <= 1) {
         timer.cancel();
         Navigator.of(context).pop();

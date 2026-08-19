@@ -247,9 +247,11 @@ class ReceiptA6Widget {
   ) async {
     final details = <String>[
       if (product.freeQuantity > 0)
-        'ថែម/Free៖ ${formatQuantity(product.freeQuantity)}',
+        'ថែម៖ ${_quantityWithUnit(product.freeQuantity, product.unit)}',
       if (product.returnQuantity > 0)
-        'សល់មកវិញ៖ ${formatQuantity(product.returnQuantity)}',
+        'សល់មកវិញ ${_quantityWithUnit(product.returnQuantity, product.unit)}',
+      if (product.splitQuantity > 0)
+        'ចំនួនបំបែក៖ ${_quantityWithUnit(product.splitQuantity, product.unit)}',
       if (product.note.trim().isNotEmpty) product.note.trim(),
     ];
     return pw.TableRow(
@@ -269,7 +271,7 @@ class ReceiptA6Widget {
               ),
               if (details.isNotEmpty)
                 await ReceiptRasterText.create(
-                  details.join(' | '),
+                  details.join('\n'),
                   fontSize: 6.5,
                   maxWidth: 100,
                 ),
@@ -291,6 +293,11 @@ class ReceiptA6Widget {
       ],
     );
   }
+
+  static String _quantityWithUnit(double quantity, String unit) => [
+    formatQuantity(quantity),
+    if (unit.trim().isNotEmpty) unit.trim(),
+  ].join(' ');
 
   static Future<pw.Widget> _totals(Sale sale, AppSetting business) async {
     final currencySymbol = business.currencySymbol.trim();

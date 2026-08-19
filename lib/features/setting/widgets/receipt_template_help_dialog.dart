@@ -991,6 +991,10 @@ class ReceiptTemplateHelpDialog extends StatelessWidget {
                     'Each properties.columns item supports key, label, width, alignment (left/center/right), and visible. All fields below can be used as key.',
                   ),
                   SizedBox(height: 8),
+                  Text(
+                    'The default product_table automatically shows non-zero Free, Return, and Split quantities on separate lines below the product name, with the product unit after each quantity. If one is configured as its own column, it is not repeated below the name.',
+                  ),
+                  SizedBox(height: 8),
                   _ReferenceTable(
                     rows: [
                       _ReferenceRow(

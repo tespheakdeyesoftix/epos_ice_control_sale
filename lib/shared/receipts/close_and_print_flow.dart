@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../app/app_setting.dart';
@@ -43,20 +45,28 @@ Future<bool> showCloseAndPrintFlow(
     sellController.startNewSale();
     if (!context.mounted) return true;
 
-    final printed = await _printWithRetry(
-      context,
-      printService: printService,
-      savedOrder: savedOrder,
-      business: business,
-      sellerFallback: sellerFallback,
-      copies: copies,
-    );
-    if (printed && context.mounted) {
-      await showSaveOrderSuccessDialog(
+    var printPending = true;
+    unawaited(
+      showSaveOrderSuccessDialog(
         context,
         savedOrder: savedOrder,
-        title: 'បានបិទការលក់ និងបោះពុម្ពវិក្កយបត្រដោយជោគជ័យ',
+        pauseCountdown: () => printPending,
+      ),
+    );
+    await Future<void>.delayed(Duration.zero);
+    if (!context.mounted) return true;
+
+    try {
+      await _printWithRetry(
+        context,
+        printService: printService,
+        savedOrder: savedOrder,
+        business: business,
+        sellerFallback: sellerFallback,
+        copies: copies,
       );
+    } finally {
+      printPending = false;
     }
     return true;
   } on CustomerChangePermissionException catch (error) {
@@ -190,8 +200,9 @@ Future<bool> _printWithRetry(
         copies: copies,
       );
       return true;
-    } on Exception {
+    } on Exception catch (error) {
       if (!context.mounted) return false;
+      final details = _describePrintFailure(error);
       final retry = await showDialog<bool>(
         context: context,
         barrierDismissible: false,
@@ -199,9 +210,7 @@ Future<bool> _printWithRetry(
           key: const ValueKey('receipt-print-failed-dialog'),
           icon: const Icon(Icons.print_disabled_outlined),
           title: const Text('មិនអាចបោះពុម្ពបាន'),
-          content: const Text(
-            'បុងត្រូវបានរក្សាទុករួចហើយ ប៉ុន្តែមិនអាចបោះពុម្ពវិក្កយបត្របានទេ។ សូមពិនិត្យម៉ាស៊ីនបោះពុម្ពលំនាំដើម។',
-          ),
+          content: _PrintFailureContent(details: details),
           actions: [
             TextButton(
               key: const ValueKey('close-print-failure'),
@@ -221,4 +230,144 @@ Future<bool> _printWithRetry(
     }
   }
   return false;
+}
+
+_PrintFailureDetails _describePrintFailure(Exception error) {
+  if (error is! ReceiptPrintException) {
+    return _PrintFailureDetails(
+      reason: 'The receipt could not be prepared or sent to the printer.',
+      action:
+          'Check the receipt template and printer connection, then try again.',
+      technicalMessage: error.toString(),
+    );
+  }
+  final (reason, action) = switch (error.failure) {
+    ReceiptPrintFailure.invalidSale => (
+      'The saved sale has no invoice number.',
+      'Refresh the sale or contact your administrator before retrying.',
+    ),
+    ReceiptPrintFailure.noPrintersFound => (
+      'Windows did not report any installed printers.',
+      'Connect the printer and install its Windows driver.',
+    ),
+    ReceiptPrintFailure.noDefaultPrinter => (
+      'No available default printer is configured.',
+      'Select a printer in Print Settings or set a Windows default printer.',
+    ),
+    ReceiptPrintFailure.configuredPrinterNotFound => (
+      'The selected printer name or driver no longer exists.',
+      'Check the printer name and driver, then select it again in Print Settings.',
+    ),
+    ReceiptPrintFailure.printerOffline => (
+      'The selected printer is offline or turned off.',
+      'Turn it on, reconnect its cable or network, and wait until Windows shows it online.',
+    ),
+    ReceiptPrintFailure.invalidPrinterPort => (
+      'The configured printer port is missing or incorrect.',
+      'Check the USB/network port in Windows Printer Properties and select the printer again.',
+    ),
+    ReceiptPrintFailure.printerDriverNotFound => (
+      'The printer driver is missing or cannot be loaded.',
+      'Install or repair the correct Windows printer driver.',
+    ),
+    ReceiptPrintFailure.printerServiceUnavailable => (
+      'The Windows Print Spooler service is unavailable.',
+      'Start or restart the Print Spooler service, then retry.',
+    ),
+    ReceiptPrintFailure.printerDiscoveryFailed => (
+      'The app could not read the Windows printer list.',
+      'Check Windows printing services and app permission, then retry.',
+    ),
+    ReceiptPrintFailure.printRejected => (
+      'Windows or the printer rejected the print job.',
+      'Check the print queue, paper, connection, driver, and printer status.',
+    ),
+  };
+  return _PrintFailureDetails(
+    reason: reason,
+    action: action,
+    printerName: error.printerName,
+    technicalMessage: error.technicalMessage,
+  );
+}
+
+class _PrintFailureDetails {
+  const _PrintFailureDetails({
+    required this.reason,
+    required this.action,
+    this.printerName = '',
+    this.technicalMessage = '',
+  });
+
+  final String reason;
+  final String action;
+  final String printerName;
+  final String technicalMessage;
+}
+
+class _PrintFailureContent extends StatelessWidget {
+  const _PrintFailureContent({required this.details});
+
+  final _PrintFailureDetails details;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return SizedBox(
+      width: 480,
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'The sale was saved successfully, but the receipt was not printed.',
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Reason',
+              style: TextStyle(
+                color: colors.error,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(details.reason),
+            if (details.printerName.trim().isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Text('Printer: ${details.printerName.trim()}'),
+            ],
+            const SizedBox(height: 14),
+            const Text(
+              'What to do',
+              style: TextStyle(fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 4),
+            Text(details.action),
+            if (details.technicalMessage.trim().isNotEmpty) ...[
+              const SizedBox(height: 10),
+              ExpansionTile(
+                tilePadding: EdgeInsets.zero,
+                childrenPadding: EdgeInsets.zero,
+                title: const Text('Technical details'),
+                children: [
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: SelectableText(
+                      details.technicalMessage.trim(),
+                      style: TextStyle(
+                        color: colors.onSurfaceVariant,
+                        fontFamily: 'monospace',
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
 }

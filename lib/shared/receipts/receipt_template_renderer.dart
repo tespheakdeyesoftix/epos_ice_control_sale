@@ -700,15 +700,28 @@ class ReceiptTemplateRenderer {
     for (var index = 0; index < sale.saleProducts.length; index++) {
       final product = sale.saleProducts[index];
       final cells = <pw.Widget>[];
+      final columnKeys = columns.map((column) => column.key).toSet();
       for (final column in columns) {
-        cells.add(
-          await _tableCell(
-            _productValue(column.key, index, product, sale.canShowPrice),
-            column.align,
-            false,
-            column.width,
-          ),
-        );
+        if (column.key == 'product_name') {
+          cells.add(
+            await _productNameCell(
+              product,
+              column.width,
+              showFree: !columnKeys.contains('free_quantity'),
+              showReturn: !columnKeys.contains('return_quantity'),
+              showSplit: !columnKeys.contains('split_quantity'),
+            ),
+          );
+        } else {
+          cells.add(
+            await _tableCell(
+              _productValue(column.key, index, product, sale.canShowPrice),
+              column.align,
+              false,
+              column.width,
+            ),
+          );
+        }
       }
       rows.add(pw.TableRow(children: cells));
     }
@@ -1296,6 +1309,47 @@ class ReceiptTemplateRenderer {
       ),
     );
   }
+
+  static Future<pw.Widget> _productNameCell(
+    SaleProduct product,
+    double flex, {
+    required bool showFree,
+    required bool showReturn,
+    required bool showSplit,
+  }) async {
+    final details = <String>[
+      if (showFree && product.freeQuantity > 0)
+        'ថែម ${_quantityWithUnit(product.freeQuantity, product.unit)}',
+      if (showReturn && product.returnQuantity > 0)
+        'សល់មកវិញ៖ ${_quantityWithUnit(product.returnQuantity, product.unit)}',
+      if (showSplit && product.splitQuantity > 0)
+        'ចំនួនបំបែក៖ ${_quantityWithUnit(product.splitQuantity, product.unit)}',
+    ];
+    return pw.Padding(
+      padding: const pw.EdgeInsets.all(2.5),
+      child: pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          await ReceiptRasterText.create(
+            product.productName,
+            fontSize: 8,
+            maxWidth: 75 * flex,
+          ),
+          if (details.isNotEmpty)
+            await ReceiptRasterText.create(
+              details.join('\n'),
+              fontSize: 6.5,
+              maxWidth: 75 * flex,
+            ),
+        ],
+      ),
+    );
+  }
+
+  static String _quantityWithUnit(double quantity, String unit) => [
+    formatQuantity(quantity),
+    if (unit.trim().isNotEmpty) unit.trim(),
+  ].join(' ');
 
   static Future<pw.Widget> _totals(
     Sale sale,

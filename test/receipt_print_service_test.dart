@@ -3,9 +3,11 @@ import 'dart:typed_data';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ice_control_sale/app/app_setting.dart';
 import 'package:ice_control_sale/features/sell/sale.dart';
+import 'package:ice_control_sale/services/print_preference_store.dart';
 import 'package:ice_control_sale/services/receipt_print_service.dart';
 import 'package:ice_control_sale/shared/receipts/receipt_template.dart';
 import 'package:pdf/pdf.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   const business = AppSetting(
@@ -161,6 +163,150 @@ void main() {
     );
   });
 
+  test('reports when Windows has no installed printers', () async {
+    final service = ReceiptPrintService(
+      gateway: _FakePrinterGateway(printers: const []),
+    );
+
+    await expectLater(
+      service.printSavedOrder(
+        savedOrder: _savedSale,
+        business: business,
+        sellerFallback: '',
+      ),
+      throwsA(
+        isA<ReceiptPrintException>().having(
+          (error) => error.failure,
+          'failure',
+          ReceiptPrintFailure.noPrintersFound,
+        ),
+      ),
+    );
+  });
+
+  test('reports an offline selected printer before sending the job', () async {
+    final service = ReceiptPrintService(
+      gateway: _FakePrinterGateway(printers: const []),
+    );
+
+    await expectLater(
+      service.printA6Pdf(
+        bytes: Uint8List.fromList(const [1]),
+        documentName: 'SO.pdf',
+        printer: const ReceiptPrinterInfo(
+          url: 'printer://offline',
+          name: 'Offline A6',
+          isDefault: true,
+          isAvailable: false,
+        ),
+      ),
+      throwsA(
+        isA<ReceiptPrintException>()
+            .having(
+              (error) => error.failure,
+              'failure',
+              ReceiptPrintFailure.printerOffline,
+            )
+            .having((error) => error.printerName, 'printerName', 'Offline A6'),
+      ),
+    );
+  });
+
+  test('reports when the configured printer name no longer exists', () async {
+    SharedPreferences.setMockInitialValues({});
+    final preferences = await SharedPreferences.getInstance();
+    final store = PrintPreferenceStore(
+      preferences: preferences,
+      serverKey: 'test-server',
+      stationName: 'POS-1',
+    );
+    await store.write(
+      'Main Outlet',
+      const PrintPreference(
+        printerUrl: 'printer://removed',
+        printerName: 'Removed Driver',
+      ),
+    );
+    final service = ReceiptPrintService(
+      gateway: _FakePrinterGateway(
+        printers: const [
+          ReceiptPrinterInfo(
+            url: 'printer://default',
+            name: 'Default A6',
+            isDefault: true,
+            isAvailable: true,
+          ),
+        ],
+      ),
+      preferenceStore: store,
+    );
+
+    await expectLater(
+      service.printSavedOrder(
+        savedOrder: _savedSale,
+        business: business,
+        sellerFallback: '',
+      ),
+      throwsA(
+        isA<ReceiptPrintException>()
+            .having(
+              (error) => error.failure,
+              'failure',
+              ReceiptPrintFailure.configuredPrinterNotFound,
+            )
+            .having(
+              (error) => error.printerName,
+              'printerName',
+              'Removed Driver',
+            ),
+      ),
+    );
+  });
+
+  test('classifies a printer port failure and preserves details', () async {
+    final gateway = _FakePrinterGateway(
+      printers: const [
+        ReceiptPrinterInfo(
+          url: 'printer://default',
+          name: 'Default A6',
+          isDefault: true,
+          isAvailable: true,
+        ),
+      ],
+      printError: Exception('The specified printer port is unknown'),
+    );
+    final service = ReceiptPrintService(
+      gateway: gateway,
+      pdfBuilder:
+          ({
+            required Sale sale,
+            required AppSetting business,
+            required String sellerFallback,
+          }) async => Uint8List.fromList(const [1]),
+    );
+
+    await expectLater(
+      service.printSavedOrder(
+        savedOrder: _savedSale,
+        business: business,
+        sellerFallback: '',
+      ),
+      throwsA(
+        isA<ReceiptPrintException>()
+            .having(
+              (error) => error.failure,
+              'failure',
+              ReceiptPrintFailure.invalidPrinterPort,
+            )
+            .having(
+              (error) => error.technicalMessage,
+              'technicalMessage',
+              contains('port'),
+            ),
+      ),
+    );
+  });
+
   test('builds selected paper size and copies as one print job', () async {
     final gateway = _FakePrinterGateway(
       printers: const [
@@ -220,10 +366,15 @@ const _savedSale = <String, dynamic>{
 };
 
 class _FakePrinterGateway implements ReceiptPrinterGateway {
-  _FakePrinterGateway({required this.printers, this.printResult = true});
+  _FakePrinterGateway({
+    required this.printers,
+    this.printResult = true,
+    this.printError,
+  });
 
   final List<ReceiptPrinterInfo> printers;
   final bool printResult;
+  final Exception? printError;
   int printCalls = 0;
   ReceiptPrinterInfo? printedPrinter;
   String? printedDocumentName;
@@ -239,6 +390,7 @@ class _FakePrinterGateway implements ReceiptPrinterGateway {
     required String documentName,
     required PdfPageFormat format,
   }) async {
+    if (printError case final error?) throw error;
     printCalls++;
     printedPrinter = printer;
     printedDocumentName = documentName;

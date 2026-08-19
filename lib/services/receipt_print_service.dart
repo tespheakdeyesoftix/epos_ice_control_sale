@@ -123,7 +123,11 @@ class ReceiptPrintService extends GetxService {
   Future<List<ReceiptPrinterInfo>> listPrinters() => _gateway.listPrinters();
 
   Future<ReceiptPrinterInfo?> findDefaultPrinter() async {
-    final printers = await _gateway.listPrinters();
+    final printers = await _listPrinters();
+    return _findDefaultPrinter(printers);
+  }
+
+  ReceiptPrinterInfo? _findDefaultPrinter(List<ReceiptPrinterInfo> printers) {
     final preferredName = preferredPrinterName.trim().toLowerCase();
     if (preferredName.isNotEmpty) {
       for (final printer in printers) {
@@ -149,14 +153,30 @@ class ReceiptPrintService extends GetxService {
     if (target == null) {
       throw const ReceiptPrintException(ReceiptPrintFailure.noDefaultPrinter);
     }
-    final printed = await _gateway.printPdf(
-      printer: target,
-      bytes: bytes,
-      documentName: documentName,
-      format: format,
-    );
+    if (!target.isAvailable) {
+      throw ReceiptPrintException(
+        ReceiptPrintFailure.printerOffline,
+        printerName: target.name,
+      );
+    }
+    late bool printed;
+    try {
+      printed = await _gateway.printPdf(
+        printer: target,
+        bytes: bytes,
+        documentName: documentName,
+        format: format,
+      );
+    } on ReceiptPrintException {
+      rethrow;
+    } on Exception catch (error) {
+      throw _classifyGatewayError(error, printerName: target.name);
+    }
     if (!printed) {
-      throw const ReceiptPrintException(ReceiptPrintFailure.printRejected);
+      throw ReceiptPrintException(
+        ReceiptPrintFailure.printRejected,
+        printerName: target.name,
+      );
     }
   }
 
@@ -173,12 +193,51 @@ class ReceiptPrintService extends GetxService {
     }
 
     final preference = preferenceStore?.read(sale.outlet);
-    final printers = await _gateway.listPrinters();
-    final preferredLocalPrinter = preference == null
-        ? null
-        : _findPrinter(printers, preference.printerUrl, preference.printerName);
-    final defaultPrinter = preferredLocalPrinter ?? await findDefaultPrinter();
+    final printers = await _listPrinters();
+    if (printers.isEmpty) {
+      throw const ReceiptPrintException(ReceiptPrintFailure.noPrintersFound);
+    }
+    ReceiptPrinterInfo? preferredLocalPrinter;
+    if (preference != null &&
+        (preference.printerUrl.trim().isNotEmpty ||
+            preference.printerName.trim().isNotEmpty)) {
+      preferredLocalPrinter = _findPrinter(
+        printers,
+        preference.printerUrl,
+        preference.printerName,
+        availableOnly: false,
+      );
+      if (preferredLocalPrinter == null) {
+        final failure = preference.printerName.trim().isEmpty
+            ? ReceiptPrintFailure.invalidPrinterPort
+            : ReceiptPrintFailure.configuredPrinterNotFound;
+        throw ReceiptPrintException(
+          failure,
+          printerName: preference.printerName,
+          technicalMessage: preference.printerUrl,
+        );
+      }
+      if (!preferredLocalPrinter.isAvailable) {
+        throw ReceiptPrintException(
+          ReceiptPrintFailure.printerOffline,
+          printerName: preferredLocalPrinter.name,
+          technicalMessage: preferredLocalPrinter.url,
+        );
+      }
+    }
+    final defaultPrinter =
+        preferredLocalPrinter ?? _findDefaultPrinter(printers);
     if (defaultPrinter == null) {
+      final unavailableDefault = printers.where(
+        (printer) => printer.isDefault && !printer.isAvailable,
+      );
+      if (unavailableDefault.isNotEmpty) {
+        throw ReceiptPrintException(
+          ReceiptPrintFailure.printerOffline,
+          printerName: unavailableDefault.first.name,
+          technicalMessage: unavailableDefault.first.url,
+        );
+      }
       throw const ReceiptPrintException(ReceiptPrintFailure.noDefaultPrinter);
     }
 
@@ -227,10 +286,11 @@ class ReceiptPrintService extends GetxService {
   ReceiptPrinterInfo? _findPrinter(
     List<ReceiptPrinterInfo> printers,
     String url,
-    String name,
-  ) {
+    String name, {
+    bool availableOnly = true,
+  }) {
     for (final printer in printers) {
-      if (!printer.isAvailable) continue;
+      if (availableOnly && !printer.isAvailable) continue;
       if (url.trim().isNotEmpty && printer.url == url) return printer;
       if (name.trim().isNotEmpty &&
           printer.name.trim().toLowerCase() == name.trim().toLowerCase()) {
@@ -238,6 +298,42 @@ class ReceiptPrintService extends GetxService {
       }
     }
     return null;
+  }
+
+  Future<List<ReceiptPrinterInfo>> _listPrinters() async {
+    try {
+      return await _gateway.listPrinters();
+    } on ReceiptPrintException {
+      rethrow;
+    } on Exception catch (error) {
+      throw _classifyGatewayError(error, discovery: true);
+    }
+  }
+
+  ReceiptPrintException _classifyGatewayError(
+    Object error, {
+    String printerName = '',
+    bool discovery = false,
+  }) {
+    final message = error.toString().trim();
+    final normalized = message.toLowerCase();
+    final failure =
+        normalized.contains('offline') || normalized.contains('not available')
+        ? ReceiptPrintFailure.printerOffline
+        : normalized.contains('port') || normalized.contains('usb')
+        ? ReceiptPrintFailure.invalidPrinterPort
+        : normalized.contains('driver') || normalized.contains('not installed')
+        ? ReceiptPrintFailure.printerDriverNotFound
+        : normalized.contains('spooler') || normalized.contains('print service')
+        ? ReceiptPrintFailure.printerServiceUnavailable
+        : discovery
+        ? ReceiptPrintFailure.printerDiscoveryFailed
+        : ReceiptPrintFailure.printRejected;
+    return ReceiptPrintException(
+      failure,
+      printerName: printerName,
+      technicalMessage: message,
+    );
   }
 
   Future<ReceiptTemplate> _resolveTemplate(
@@ -267,10 +363,27 @@ class ReceiptPrintService extends GetxService {
   }
 }
 
-enum ReceiptPrintFailure { invalidSale, noDefaultPrinter, printRejected }
+enum ReceiptPrintFailure {
+  invalidSale,
+  noPrintersFound,
+  noDefaultPrinter,
+  configuredPrinterNotFound,
+  printerOffline,
+  invalidPrinterPort,
+  printerDriverNotFound,
+  printerServiceUnavailable,
+  printerDiscoveryFailed,
+  printRejected,
+}
 
 class ReceiptPrintException implements Exception {
-  const ReceiptPrintException(this.failure);
+  const ReceiptPrintException(
+    this.failure, {
+    this.printerName = '',
+    this.technicalMessage = '',
+  });
 
   final ReceiptPrintFailure failure;
+  final String printerName;
+  final String technicalMessage;
 }
