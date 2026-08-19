@@ -15,6 +15,8 @@ import 'features/login/login_screen.dart';
 import 'features/navigation/app_shell_controller.dart';
 import 'features/navigation/app_shell_screen.dart';
 import 'features/sell/sell_controller.dart';
+import 'features/setting/receipt_template_controller.dart';
+import 'features/setting/setting_controller.dart';
 import 'services/frappe_auth_service.dart';
 import 'services/frappe_session_client.dart';
 import 'services/note_preset_repository.dart';
@@ -22,7 +24,9 @@ import 'services/customer_service.dart';
 import 'services/sale_service.dart';
 import 'services/setting_service.dart';
 import 'services/product_service.dart';
+import 'services/print_preference_store.dart';
 import 'services/receipt_print_service.dart';
+import 'services/receipt_template_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -44,6 +48,12 @@ Future<void> main() async {
       config: config,
       configurationError: configurationError,
       themeController: ThemeController(preferences: preferences),
+      preferences: preferences,
+      printPreferenceStore: PrintPreferenceStore(
+        preferences: preferences,
+        serverKey: config?.baseUri.toString() ?? 'unconfigured',
+        stationName: config?.stationName ?? '',
+      ),
     ),
   );
 }
@@ -55,12 +65,16 @@ class IceSaleApp extends StatelessWidget {
     this.configurationError,
     this.themeController,
     this.appSettingController,
+    this.printPreferenceStore,
+    this.preferences,
   });
 
   final AppConfig? config;
   final String? configurationError;
   final ThemeController? themeController;
   final AppSettingController? appSettingController;
+  final PrintPreferenceStore? printPreferenceStore;
+  final SharedPreferences? preferences;
 
   @override
   Widget build(BuildContext context) {
@@ -87,6 +101,13 @@ class IceSaleApp extends StatelessWidget {
       outletName: config?.outletName ?? '',
       sessionOutletController: sessionOutletController,
     );
+    final receiptTemplateService = config == null
+        ? null
+        : ReceiptTemplateService(
+            config!.baseUri,
+            client: sessionClient,
+            preferences: preferences,
+          );
 
     return GetMaterialApp(
       title: 'ប្រព័ន្ធគ្រប់គ្រងការលក់ទឹកកក',
@@ -95,7 +116,39 @@ class IceSaleApp extends StatelessWidget {
         Get.put<ThemeController>(appThemeController, permanent: true);
         Get.put<AppSettingController>(globalSettingController, permanent: true);
         Get.put<LoginController>(controller, permanent: true);
-        Get.put<ReceiptPrintService>(ReceiptPrintService(), permanent: true);
+        if (printPreferenceStore != null) {
+          Get.put<PrintPreferenceStore>(printPreferenceStore!, permanent: true);
+        }
+        if (receiptTemplateService != null) {
+          Get.put<ReceiptTemplateService>(
+            receiptTemplateService,
+            permanent: true,
+          );
+        }
+        Get.put<ReceiptPrintService>(
+          ReceiptPrintService(
+            templateService: receiptTemplateService,
+            preferenceStore: printPreferenceStore,
+          ),
+          permanent: true,
+        );
+        Get.lazyPut<SettingController>(
+          () => SettingController(
+            loginController: controller,
+            appSettingController: globalSettingController,
+            printService: Get.find<ReceiptPrintService>(),
+          ),
+          fenix: true,
+        );
+        if (receiptTemplateService != null) {
+          Get.lazyPut<ReceiptTemplateController>(
+            () => ReceiptTemplateController(
+              service: receiptTemplateService,
+              appSettingController: globalSettingController,
+            ),
+            fenix: true,
+          );
+        }
         Get.put<SessionOutletController>(
           sessionOutletController,
           permanent: true,

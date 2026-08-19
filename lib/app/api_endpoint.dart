@@ -112,4 +112,10 @@ abstract final class ApiEndpoint {
   /// Returns: the setting object, optionally wrapped in `message`, including
   /// company details, logo, stock location, currency, and payment types.
   static const setting = 'api/method/ice_control.api.v1.utils.get_setting';
+
+  /// Lists and saves configurable receipt layouts.
+  static const printTemplates = 'api/resource/POS Print Template';
+
+  static String printTemplate(String name) =>
+      '$printTemplates/${Uri.encodeComponent(name)}';
 }

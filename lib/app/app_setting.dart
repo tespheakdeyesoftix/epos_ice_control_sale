@@ -18,6 +18,7 @@ class AppSetting {
     this.secondCurrency = '',
     this.secondCurrencySymbol = '',
     this.exchangeRate = 1,
+    this.defaultPrintTemplate = '',
     this.paymentTypes = const [],
   });
 
@@ -40,6 +41,7 @@ class AppSetting {
       secondCurrency: _text(json['second_currency']),
       secondCurrencySymbol: _text(json['second_currency_symbol']),
       exchangeRate: toDoubleValue(json['exchange_rate'], fallback: 1),
+      defaultPrintTemplate: _text(json['default_print_template']),
       paymentTypes: paymentRows is List
           ? paymentRows
                 .whereType<Map>()
@@ -69,6 +71,7 @@ class AppSetting {
   final String secondCurrency;
   final String secondCurrencySymbol;
   final double exchangeRate;
+  final String defaultPrintTemplate;
   final List<Map<String, dynamic>> paymentTypes;
 }
 

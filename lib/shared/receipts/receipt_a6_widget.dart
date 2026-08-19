@@ -19,6 +19,7 @@ class ReceiptA6Widget {
     required Sale sale,
     required AppSetting business,
     String sellerFallback = '',
+    int copies = 1,
   }) async {
     final document = pw.Document(
       title: sale.name.isEmpty ? 'Invoice' : sale.name,
@@ -30,23 +31,24 @@ class ReceiptA6Widget {
     final seller = sale.seller.trim().isNotEmpty
         ? sale.seller.trim()
         : sellerFallback.trim();
-    final receipt = await _receipt(
-      sale: sale,
-      business: business,
-      seller: seller,
-    );
-
-    document.addPage(
-      pw.Page(
-        pageFormat: pageFormat,
-        margin: const pw.EdgeInsets.all(_margin),
-        build: (_) => pw.SizedBox(
-          width: contentWidth,
-          height: contentHeight,
-          child: receipt,
+    for (var copy = 0; copy < copies.clamp(1, 3); copy++) {
+      final receipt = await _receipt(
+        sale: sale,
+        business: business,
+        seller: seller,
+      );
+      document.addPage(
+        pw.Page(
+          pageFormat: pageFormat,
+          margin: const pw.EdgeInsets.all(_margin),
+          build: (_) => pw.SizedBox(
+            width: contentWidth,
+            height: contentHeight,
+            child: receipt,
+          ),
         ),
-      ),
-    );
+      );
+    }
     return document.save();
   }
 

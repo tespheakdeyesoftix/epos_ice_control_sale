@@ -22,6 +22,7 @@
     "outlet": "ទឹកកកដើម",
     "default_unit": "ដើម",
     "default_stock_location": "ទឹកកកដើម",
+    "default_print_template": "Standard A6",
     "currency": "KHR",
     "second_currency_symbol": "$",
     "payment_types": [

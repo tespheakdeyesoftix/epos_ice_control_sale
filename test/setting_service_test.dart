@@ -24,6 +24,7 @@ void main() {
             'default_currency': 'KHR',
             'currency_symbol': '៛',
             'exchange_rate': 1,
+            'default_print_template': 'Standard A6',
             'payment_types': [
               {'name': 'Riel', 'currency': 'KHR', 'exchange_rate': 1},
             ],
@@ -57,6 +58,7 @@ void main() {
     expect(setting.outlet, 'ទឹកកកដើម');
     expect(setting.defaultStockLocation, 'ឃ្លាំងទឹកកកដើម');
     expect(setting.paymentTypes, hasLength(1));
+    expect(setting.defaultPrintTemplate, 'Standard A6');
     expect(setting.raw['default_unit'], 'ដើម');
     expect(
       service.resolveImage(setting.photo).toString(),

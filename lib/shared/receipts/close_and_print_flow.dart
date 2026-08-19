@@ -27,8 +27,16 @@ Future<bool> showCloseAndPrintFlow(
     }
 
     if (!context.mounted) return false;
-    final confirmed = await _confirmCloseAndPrint(context);
-    if (!confirmed || !context.mounted) return false;
+    final defaultCopies =
+        printService.preferenceStore
+            ?.read(sellController.currentSale.outlet)
+            .copies ??
+        1;
+    final copies = await _confirmCloseAndPrint(
+      context,
+      defaultCopies: defaultCopies,
+    );
+    if (copies == null || !context.mounted) return false;
 
     final savedOrder = await sellController.saveOrder();
     savedSuccessfully = true;
@@ -41,6 +49,7 @@ Future<bool> showCloseAndPrintFlow(
       savedOrder: savedOrder,
       business: business,
       sellerFallback: sellerFallback,
+      copies: copies,
     );
     if (printed && context.mounted) {
       await showSaveOrderSuccessDialog(
@@ -112,31 +121,56 @@ Future<Customer?> _selectRequiredCustomer(
   );
 }
 
-Future<bool> _confirmCloseAndPrint(BuildContext context) async {
-  final confirmed = await showDialog<bool>(
+Future<int?> _confirmCloseAndPrint(
+  BuildContext context, {
+  required int defaultCopies,
+}) async {
+  var selectedCopies = defaultCopies.clamp(1, 3);
+  return showDialog<int>(
     context: context,
-    builder: (dialogContext) => AlertDialog(
-      key: const ValueKey('confirm-close-and-print-dialog'),
-      icon: const Icon(Icons.print_outlined),
-      title: const Text('បញ្ជាក់ការបិទ និងបោះពុម្ព'),
-      content: const Text(
-        'តើអ្នកប្រាកដថាចង់បិទការលក់ និងបោះពុម្ពវិក្កយបត្រនេះមែនទេ?',
+    builder: (dialogContext) => StatefulBuilder(
+      builder: (context, setState) => AlertDialog(
+        key: const ValueKey('confirm-close-and-print-dialog'),
+        icon: const Icon(Icons.print_outlined),
+        title: const Text('បញ្ជាក់ការបិទ និងបោះពុម្ព'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Text(
+              'តើអ្នកប្រាកដថាចង់បិទការលក់ និងបោះពុម្ពវិក្កយបត្រនេះមែនទេ?',
+            ),
+            const SizedBox(height: 18),
+            const Text('ចំនួនច្បាប់ចម្លង'),
+            const SizedBox(height: 8),
+            SegmentedButton<int>(
+              key: const ValueKey('print-copy-selector'),
+              segments: const [
+                ButtonSegment(value: 1, label: Text('1')),
+                ButtonSegment(value: 2, label: Text('2')),
+                ButtonSegment(value: 3, label: Text('3')),
+              ],
+              selected: {selectedCopies},
+              onSelectionChanged: (value) =>
+                  setState(() => selectedCopies = value.first),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('បោះបង់'),
+          ),
+          FilledButton.icon(
+            key: const ValueKey('confirm-close-and-print'),
+            onPressed: () => Navigator.of(dialogContext).pop(selectedCopies),
+            icon: const Icon(Icons.print_rounded),
+            label: const Text('បិទ និងបោះពុម្ព'),
+          ),
+        ],
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(dialogContext).pop(false),
-          child: const Text('បោះបង់'),
-        ),
-        FilledButton.icon(
-          key: const ValueKey('confirm-close-and-print'),
-          onPressed: () => Navigator.of(dialogContext).pop(true),
-          icon: const Icon(Icons.print_rounded),
-          label: const Text('បិទ និងបោះពុម្ព'),
-        ),
-      ],
     ),
   );
-  return confirmed == true;
 }
 
 Future<bool> _printWithRetry(
@@ -145,6 +179,7 @@ Future<bool> _printWithRetry(
   required Map<String, dynamic> savedOrder,
   required AppSetting business,
   required String sellerFallback,
+  required int copies,
 }) async {
   while (context.mounted) {
     try {
@@ -152,6 +187,7 @@ Future<bool> _printWithRetry(
         savedOrder: savedOrder,
         business: business,
         sellerFallback: sellerFallback,
+        copies: copies,
       );
       return true;
     } on Exception {

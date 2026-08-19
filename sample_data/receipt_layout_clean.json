@@ -1,0 +1,383 @@
+{
+  "version": 1,
+  "page": {
+    "size": "A6",
+    "orientation": "Portrait",
+    "margin_mm": 5.0
+  },
+  "blocks": [
+    {
+      "id": "image_1787127422467453",
+      "type": "image",
+      "visible": true,
+      "alignment": "left",
+      "font_size": 9.0,
+      "bold": false,
+      "position": "absolute",
+      "x_mm": 0.0,
+      "y_mm": 0.0,
+      "width_mm": 25.0,
+      "height_mm": 20.0,
+      "z_index": 0,
+      "repeat": "first_page",
+      "overflow": "clip",
+      "spacing_after": 4.0,
+      "fieldname": "print_template.template_logo"
+    },
+    {
+      "id": "text_1787127422468454",
+      "type": "text",
+      "visible": true,
+      "alignment": "center",
+      "font_size": 15.0,
+      "bold": true,
+      "position": "flow",
+      "margin": "10 0 0 0",
+      "spacing_after": 2.0,
+      "text": "{{business_name_kh}}\n{{business_name_en}}"
+    },
+    {
+      "id": "text_1787127422468454",
+      "type": "text",
+      "visible": true,
+      "alignment": "center",
+      "font_size": 20.0,
+      "bold": true,
+      "position": "flow",
+      "spacing_after": 4.0,
+      "text": "វិកយប័ត្រ"
+    },
+    {
+      "id": "row_1787127422468454",
+      "type": "row",
+      "visible": true,
+      "alignment": "left",
+      "font_size": 9.0,
+      "bold": false,
+      "position": "flow",
+      "gap_mm": 3.0,
+      "margin": "0 2 0 2",
+      "padding": "2 2 2 2",
+      "spacing_after": 4.0,
+      "children": [
+        {
+          "id": "text_1787127422468454",
+          "type": "text",
+          "visible": true,
+          "alignment": "left",
+          "font_size": 9.0,
+          "bold": false,
+          "position": "flow",
+          "spacing_after": 0.0,
+          "text": "{{address}}\n{{phone_number_1}}"
+        },
+        {
+          "id": "column_1787127422468454",
+          "type": "column",
+          "visible": true,
+          "alignment": "left",
+          "font_size": 9.0,
+          "bold": false,
+          "position": "flow",
+          "gap_mm": 1.0,
+          "spacing_after": 4.0,
+          "children": [
+            {
+              "id": "row_1787127422468454",
+              "type": "row",
+              "visible": true,
+              "alignment": "left",
+              "font_size": 9.0,
+              "bold": false,
+              "position": "flow",
+              "gap_mm": 2.0,
+              "spacing_after": 0.0,
+              "children": [
+                {
+                  "id": "text_1787127422468454",
+                  "type": "text",
+                  "visible": true,
+                  "alignment": "left",
+                  "font_size": 9.0,
+                  "bold": true,
+                  "position": "flow",
+                  "spacing_after": 0.0,
+                  "text": "លេខ:"
+                },
+                {
+                  "id": "text_1787127422468454",
+                  "type": "text",
+                  "visible": true,
+                  "alignment": "left",
+                  "font_size": 9.0,
+                  "bold": false,
+                  "position": "flow",
+                  "spacing_after": 0.0,
+                  "fieldname": "sale.name"
+                }
+              ]
+            },
+            {
+              "id": "row_1787127422468454",
+              "type": "row",
+              "visible": true,
+              "alignment": "left",
+              "font_size": 9.0,
+              "bold": false,
+              "position": "flow",
+              "gap_mm": 2.0,
+              "spacing_after": 0.0,
+              "children": [
+                {
+                  "id": "text_1787127422468454",
+                  "type": "text",
+                  "visible": true,
+                  "alignment": "left",
+                  "font_size": 9.0,
+                  "bold": true,
+                  "position": "flow",
+                  "spacing_after": 0.0,
+                  "text": "កាលបរិច្ឆេទ:"
+                },
+                {
+                  "id": "date_1787127422468454",
+                  "type": "date",
+                  "visible": true,
+                  "alignment": "left",
+                  "font_size": 9.0,
+                  "bold": false,
+                  "position": "flow",
+                  "spacing_after": 0.0,
+                  "fieldname": "sale.posting_date"
+                }
+              ]
+            },
+            {
+              "id": "row_1787127422468454",
+              "type": "row",
+              "visible": true,
+              "alignment": "left",
+              "font_size": 9.0,
+              "bold": false,
+              "position": "flow",
+              "gap_mm": 2.0,
+              "spacing_after": 0.0,
+              "children": [
+                {
+                  "id": "text_1787127422468454",
+                  "type": "text",
+                  "visible": true,
+                  "alignment": "left",
+                  "font_size": 9.0,
+                  "bold": true,
+                  "position": "flow",
+                  "spacing_after": 0.0,
+                  "text": "អ្នកលក់:"
+                },
+                {
+                  "id": "text_1787127422468454",
+                  "type": "text",
+                  "visible": true,
+                  "alignment": "left",
+                  "font_size": 9.0,
+                  "bold": false,
+                  "position": "flow",
+                  "spacing_after": 0.0,
+                  "fieldname": "seller"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "customer_info_1787127422468454",
+      "type": "customer_info",
+      "visible": true,
+      "alignment": "left",
+      "font_size": 10.0,
+      "bold": true,
+      "position": "flow",
+      "spacing_after": 4.0
+    },
+    {
+      "id": "product_table_1787127422468454",
+      "type": "product_table",
+      "visible": true,
+      "alignment": "left",
+      "font_size": 9.0,
+      "bold": false,
+      "position": "flow",
+      "spacing_after": 4.0
+    },
+    {
+      "id": "row_1787127422468454",
+      "type": "row",
+      "visible": true,
+      "alignment": "left",
+      "font_size": 9.0,
+      "bold": false,
+      "position": "flow",
+      "gap_mm": 4.0,
+      "margin": "0 2 0 2",
+      "spacing_after": 4.0,
+      "children": [
+        {
+          "id": "column_1787127422468454",
+          "type": "column",
+          "visible": true,
+          "alignment": "left",
+          "font_size": 9.0,
+          "bold": false,
+          "position": "flow",
+          "gap_mm": 2.0,
+          "spacing_after": 0.0,
+          "children": [
+            {
+              "id": "barcode_1787127422469453",
+              "type": "barcode",
+              "visible": true,
+              "alignment": "left",
+              "font_size": 9.0,
+              "bold": false,
+              "position": "flow",
+              "height_mm": 10.0,
+              "spacing_after": 0.0
+            },
+            {
+              "id": "notes_1787127422469453",
+              "type": "notes",
+              "visible": true,
+              "alignment": "left",
+              "font_size": 9.0,
+              "bold": false,
+              "position": "flow",
+              "spacing_after": 0.0
+            }
+          ]
+        },
+        {
+          "id": "totals_1787127422469453",
+          "type": "totals",
+          "visible": true,
+          "alignment": "right",
+          "font_size": 9.0,
+          "bold": false,
+          "position": "flow",
+          "spacing_after": 0.0
+        }
+      ]
+    },
+{
+  "id": "signatures_row",
+  "type": "row",
+  "position": "absolute",
+  "x_mm": 0,
+  "y_mm": 110,
+  "width_mm": 95,
+  "height_mm": 25,
+  "repeat": "last_page",
+  "overflow": "shrink",
+  "gap_mm": 6,
+  "children": [
+    {
+      "id": "seller_signature",
+      "type": "column",
+      "flex": 1,
+      "spacing_after": 0,
+      "children": [
+        {
+          "type": "spacer",
+          "height_mm": 8,
+          "spacing_after": 0
+        },
+        {
+          "type": "divider",
+          "spacing_after": 2
+        },
+        {
+          "type": "text",
+          "text": "អ្នកលក់",
+          "alignment": "center",
+          "font_size": 9,
+          "bold": true,
+          "spacing_after": 0
+        },
+        {
+          "type": "text",
+          "fieldname": "seller",
+          "alignment": "center",
+          "font_size": 8,
+          "spacing_after": 0
+        }
+      ]
+    },
+    {
+      "id": "driver_signature",
+      "type": "column",
+      "flex": 1,
+      "spacing_after": 0,
+      "children": [
+        {
+          "type": "spacer",
+          "height_mm": 8,
+          "spacing_after": 0
+        },
+        {
+          "type": "divider",
+          "spacing_after": 2
+        },
+        {
+          "type": "text",
+          "text": "អ្នកបើកបរ",
+          "alignment": "center",
+          "font_size": 9,
+          "bold": true,
+          "spacing_after": 0
+        },
+        {
+          "type": "text",
+          "fieldname": "sale.driver_name",
+          "alignment": "center",
+          "font_size": 8,
+          "spacing_after": 0
+        }
+      ]
+    },
+    {
+      "id": "customer_signature",
+      "type": "column",
+      "flex": 1,
+      "spacing_after": 0,
+      "children": [
+        {
+          "type": "spacer",
+          "height_mm": 8,
+          "spacing_after": 0
+        },
+        {
+          "type": "divider",
+          "spacing_after": 2
+        },
+        {
+          "type": "text",
+          "text": "អតិថិជន",
+          "alignment": "center",
+          "font_size": 9,
+          "bold": true,
+          "spacing_after": 0
+        },
+        {
+          "type": "text",
+          "fieldname": "sale.customer_name",
+          "alignment": "center",
+          "font_size": 8,
+          "spacing_after": 0
+        }
+      ]
+    }
+  ]
+}
+  ]
+}

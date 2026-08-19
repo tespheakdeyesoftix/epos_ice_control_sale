@@ -15,6 +15,7 @@ import '../closed_sales/closed_sale_controller.dart';
 import '../login/login_controller.dart';
 import '../pending_sales/pending_sale_list_screen.dart';
 import '../report/report_screen.dart';
+import '../setting/setting_screen.dart';
 import '../sale_summary/sale_summary_screen.dart';
 import '../sell/customer.dart';
 import '../sell/sell_controller.dart';
@@ -272,7 +273,11 @@ class AppShellScreen extends GetView<AppShellController> {
                         IconButton(
                           key: const ValueKey('rail-settings-button'),
                           tooltip: 'ការកំណត់',
-                          onPressed: () {},
+                          onPressed: () => Navigator.of(context).push(
+                            MaterialPageRoute<void>(
+                              builder: (_) => const SettingScreen(),
+                            ),
+                          ),
                           icon: const Icon(Icons.settings_outlined),
                         ),
                         SizedBox(
