@@ -63,6 +63,7 @@ class SellController extends GetxController {
   final referenceNumber = ''.obs;
   final saleNote = ''.obs;
   final isSaving = false.obs;
+  final isPrinting = false.obs;
   final isDeletingSale = false.obs;
   final isSearchingBill = false.obs;
   final pendingOrderCount = 0.obs;

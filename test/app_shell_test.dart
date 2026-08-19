@@ -240,7 +240,7 @@ void main() {
             find.descendant(of: closeAndPrint, matching: find.byType(InkWell)),
           )
           .onTap,
-      isNull,
+      isNotNull,
     );
     await tester.tap(find.byKey(const ValueKey('leave-sale-continue')));
     await tester.pumpAndSettle();

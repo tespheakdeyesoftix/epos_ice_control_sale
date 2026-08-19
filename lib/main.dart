@@ -22,6 +22,7 @@ import 'services/customer_service.dart';
 import 'services/sale_service.dart';
 import 'services/setting_service.dart';
 import 'services/product_service.dart';
+import 'services/receipt_print_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -94,6 +95,7 @@ class IceSaleApp extends StatelessWidget {
         Get.put<ThemeController>(appThemeController, permanent: true);
         Get.put<AppSettingController>(globalSettingController, permanent: true);
         Get.put<LoginController>(controller, permanent: true);
+        Get.put<ReceiptPrintService>(ReceiptPrintService(), permanent: true);
         Get.put<SessionOutletController>(
           sessionOutletController,
           permanent: true,

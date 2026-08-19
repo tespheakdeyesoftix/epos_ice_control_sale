@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../app/app_setting.dart';
 import '../../app/app_theme.dart';
 import '../../services/frappe_response_handler.dart';
+import '../../services/receipt_print_service.dart';
 import '../../shared/input_number_dialog_widget.dart';
 import '../../shared/note_dialog_widget.dart';
 import '../../shared/select_customer_dialog_widget.dart';
@@ -10,6 +12,7 @@ import '../../shared/select_closed_order_dialog_widget.dart';
 import '../../shared/select_date_dialog_widget.dart';
 import '../../shared/select_outlet_dialog_widget.dart';
 import '../../shared/text_input_dialog_widget.dart';
+import '../../shared/receipts/close_and_print_flow.dart';
 import '../../utils/helpers.dart';
 import '../login/login_controller.dart';
 import 'customer.dart';
@@ -438,8 +441,12 @@ class _TopBarState extends State<_TopBar> {
             alignment: Alignment.centerLeft,
             child: SizedBox(
               width: 330,
-              child: Obx(
-                () => Column(
+              child: Obx(() {
+                // Keep the header reactive even when outlet switching is not
+                // available and no SessionOutletController was injected.
+                controller.isChangingOutlet.value;
+                controller.isLoading.value;
+                return Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -519,8 +526,8 @@ class _TopBarState extends State<_TopBar> {
                       ),
                     ),
                   ],
-                ),
-              ),
+                );
+              }),
             ),
           ),
           Center(
@@ -894,6 +901,30 @@ class _CheckoutPanel extends StatelessWidget {
   final SellController controller;
   final bool compact;
 
+  Future<void> _closeAndPrint(BuildContext context) async {
+    final login = Get.isRegistered<LoginController>()
+        ? Get.find<LoginController>()
+        : null;
+    final session = login?.currentSession.value;
+    final sellerFallback = session?.fullName.trim().isNotEmpty == true
+        ? session!.fullName.trim()
+        : (session?.user.trim().isNotEmpty == true
+              ? session!.user.trim()
+              : login?.currentUsername.value.trim() ?? '');
+    final printService = Get.isRegistered<ReceiptPrintService>()
+        ? Get.find<ReceiptPrintService>()
+        : Get.put(ReceiptPrintService());
+    await showCloseAndPrintFlow(
+      context,
+      sellController: controller,
+      printService: printService,
+      business:
+          controller.appSettingController?.current ??
+          const AppSetting(raw: <String, dynamic>{}),
+      sellerFallback: sellerFallback,
+    );
+  }
+
   Future<void> _saveOrder(BuildContext context) async {
     if (!controller.hasSelectedCustomer) {
       final selectNow = await showDialog<bool>(
@@ -1099,7 +1130,8 @@ class _CheckoutPanel extends StatelessWidget {
                   foregroundColor: context.colors.onError,
                   onPressed:
                       controller.saleProducts.isEmpty ||
-                          controller.isSaving.value
+                          controller.isSaving.value ||
+                          controller.isPrinting.value
                       ? null
                       : () => _saveOrder(context),
                 ),
@@ -1111,7 +1143,12 @@ class _CheckoutPanel extends StatelessWidget {
                   icon: Icons.print_outlined,
                   backgroundColor: const Color(0xFFF79009),
                   foregroundColor: Colors.white,
-                  onPressed: controller.saleProducts.isEmpty ? null : () {},
+                  onPressed:
+                      controller.saleProducts.isEmpty ||
+                          controller.isSaving.value ||
+                          controller.isPrinting.value
+                      ? null
+                      : () => _closeAndPrint(context),
                 ),
               ),
             ],

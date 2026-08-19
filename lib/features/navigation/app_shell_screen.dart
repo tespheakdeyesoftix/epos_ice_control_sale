@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../app/app_setting.dart';
 import '../../app/app_setting_controller.dart';
 import '../../app/theme_controller.dart';
 import '../../services/frappe_response_handler.dart';
+import '../../services/receipt_print_service.dart';
 import '../../shared/network_image.dart';
+import '../../shared/receipts/close_and_print_flow.dart';
 import '../../shared/select_customer_dialog_widget.dart';
 import '../../shared/user_profile_widget.dart';
 import '../closed_sales/closed_sale_list_screen.dart';
@@ -20,7 +23,7 @@ import '../sell/widgets/save_order_success_widget.dart';
 import 'app_destination.dart';
 import 'app_shell_controller.dart';
 
-enum _SaleLeaveAction { close, hold, clear, continueSale }
+enum _SaleLeaveAction { close, closeAndPrint, hold, clear, continueSale }
 
 class AppShellScreen extends GetView<AppShellController> {
   const AppShellScreen({super.key});
@@ -73,12 +76,14 @@ class AppShellScreen extends GetView<AppShellController> {
                       Navigator.of(dialogContext).pop(_SaleLeaveAction.close),
                 ),
                 const SizedBox(height: 8),
-                const _LeaveActionTile(
-                  key: ValueKey('leave-sale-close-and-print'),
+                _LeaveActionTile(
+                  key: const ValueKey('leave-sale-close-and-print'),
                   icon: Icons.print_outlined,
                   title: 'បិទការលក់ និងបោះពុម្ភវិកយបត្រ',
                   subtitle: 'រក្សាទុកការលក់ ហើយបោះពុម្ពវិក្កយបត្រ',
-                  onTap: null,
+                  onTap: () => Navigator.of(
+                    dialogContext,
+                  ).pop(_SaleLeaveAction.closeAndPrint),
                 ),
                 const SizedBox(height: 8),
                 _LeaveActionTile(
@@ -115,11 +120,34 @@ class AppShellScreen extends GetView<AppShellController> {
       ),
     );
     if (action == null || action == _SaleLeaveAction.continueSale) return false;
+    if (!context.mounted) return false;
 
     final sell = controller.sellController;
     if (action == _SaleLeaveAction.clear) {
       sell.startNewSale();
       return true;
+    }
+
+    if (action == _SaleLeaveAction.closeAndPrint) {
+      final login = Get.find<LoginController>();
+      final session = login.currentSession.value;
+      final sellerFallback = session?.fullName.trim().isNotEmpty == true
+          ? session!.fullName.trim()
+          : (session?.user.trim().isNotEmpty == true
+                ? session!.user.trim()
+                : login.currentUsername.value.trim());
+      final printService = Get.isRegistered<ReceiptPrintService>()
+          ? Get.find<ReceiptPrintService>()
+          : Get.put(ReceiptPrintService());
+      return showCloseAndPrintFlow(
+        context,
+        sellController: sell,
+        printService: printService,
+        business:
+            Get.find<AppSettingController>().current ??
+            const AppSetting(raw: <String, dynamic>{}),
+        sellerFallback: sellerFallback,
+      );
     }
 
     try {
