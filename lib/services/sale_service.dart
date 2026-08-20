@@ -48,6 +48,8 @@ class DailySaleSummary {
   final double totalAmount;
   final int totalPendingOrder;
   final double totalPendingAmount;
+}
+
 class PendingOrderWarningInfo {
   const PendingOrderWarningInfo({
     required this.pendingDate,
@@ -293,9 +295,27 @@ class SaleService {
   Future<DailySaleSummary> getDailySaleSummary(String outlet) async {
     final response = await _client
         .get(
-          baseUri.resolve(ApiEndpoint.dailySaleSummary).replace(
-            queryParameters: {'outlet': outlet.trim()},
-          ),
+          baseUri
+              .resolve(ApiEndpoint.dailySaleSummary)
+              .replace(queryParameters: {'outlet': outlet.trim()}),
+          headers: const {'Accept': 'application/json'},
+        )
+        .timeout(const Duration(seconds: 30));
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw SaleServiceException(response.statusCode);
+    }
+
+    dynamic payload = jsonDecode(response.body);
+    if (payload is Map && payload.containsKey('message')) {
+      payload = payload['message'];
+    }
+    if (payload is String) payload = jsonDecode(payload);
+    if (payload is Map && payload['data'] is Map) payload = payload['data'];
+    if (payload is! Map) throw const SaleServiceException(200);
+    return DailySaleSummary.fromJson(Map<String, dynamic>.from(payload));
+  }
+
   Future<PendingOrderWarningInfo> getMaxPendingOrderDate(String outlet) async {
     final endpoint = baseUri.resolve(ApiEndpoint.maxPendingOrderDate);
     final response = await _client
@@ -315,8 +335,6 @@ class SaleService {
     }
     if (payload is String) payload = jsonDecode(payload);
     if (payload is Map && payload['data'] is Map) payload = payload['data'];
-    if (payload is! Map) throw const SaleServiceException(200);
-    return DailySaleSummary.fromJson(Map<String, dynamic>.from(payload));
     if (payload is! Map) throw const SaleServiceException(200);
 
     final countValue = payload['total_pending_order'];
