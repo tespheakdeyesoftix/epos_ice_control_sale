@@ -21,6 +21,35 @@ class ClosedSalePage {
   final bool hasMore;
 }
 
+class DailySaleSummary {
+  const DailySaleSummary({
+    required this.totalOrder,
+    required this.totalAmount,
+    required this.totalPendingOrder,
+    required this.totalPendingAmount,
+  });
+
+  factory DailySaleSummary.fromJson(Map<String, dynamic> json) {
+    int integer(Object? value) => value is num
+        ? value.toInt()
+        : int.tryParse(value?.toString().trim() ?? '') ?? 0;
+    double decimal(Object? value) => value is num
+        ? value.toDouble()
+        : double.tryParse(value?.toString().trim() ?? '') ?? 0;
+    return DailySaleSummary(
+      totalOrder: integer(json['total_order']),
+      totalAmount: decimal(json['total_amount']),
+      totalPendingOrder: integer(json['total_pending_order']),
+      totalPendingAmount: decimal(json['total_pending_amount']),
+    );
+  }
+
+  final int totalOrder;
+  final double totalAmount;
+  final int totalPendingOrder;
+  final double totalPendingAmount;
+}
+
 class SaleService {
   SaleService(this.baseUri, {required http.Client client}) : _client = client;
 
@@ -242,6 +271,30 @@ class SaleService {
         : int.tryParse(payload?.toString().trim() ?? '');
     if (count == null) throw const SaleServiceException(200);
     return count < 0 ? 0 : count;
+  }
+
+  Future<DailySaleSummary> getDailySaleSummary(String outlet) async {
+    final response = await _client
+        .get(
+          baseUri.resolve(ApiEndpoint.dailySaleSummary).replace(
+            queryParameters: {'outlet': outlet.trim()},
+          ),
+          headers: const {'Accept': 'application/json'},
+        )
+        .timeout(const Duration(seconds: 30));
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw SaleServiceException(response.statusCode);
+    }
+
+    dynamic payload = jsonDecode(response.body);
+    if (payload is Map && payload.containsKey('message')) {
+      payload = payload['message'];
+    }
+    if (payload is String) payload = jsonDecode(payload);
+    if (payload is Map && payload['data'] is Map) payload = payload['data'];
+    if (payload is! Map) throw const SaleServiceException(200);
+    return DailySaleSummary.fromJson(Map<String, dynamic>.from(payload));
   }
 
   Future<int> getTodayClosedSaleCount(String outlet) async {

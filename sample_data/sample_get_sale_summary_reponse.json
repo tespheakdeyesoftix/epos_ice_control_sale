@@ -1,0 +1,30 @@
+ {
+    "total_order": 2,
+    "total_amount": 6300000,
+    "total_pending_order": 3,
+    "total_pending_amount": 1470000,
+    "sale_product_summary": [
+      {
+        "product_code": "K01",
+        "product_name": "ការ៉ុង - ការ៉ុង",
+        "unit": "ការ៉ុង",
+        "quantity": 250,
+        "free_quantity": 0,
+        "return_quantity": 0,
+        "split_quantity": 0,
+        "total_sale_quantity": 250,
+        "total_amount": 0
+      },
+      {
+        "product_code": "01",
+        "product_name": "ទឹកកកដើមធំ",
+        "unit": "ដើម",
+        "quantity": 350,
+        "free_quantity": 0,
+        "return_quantity": 0,
+        "split_quantity": 0,
+        "total_sale_quantity": 350,
+        "total_amount": 6300000
+      }
+    ]
+  }

@@ -95,6 +95,15 @@ abstract final class ApiEndpoint {
   static const totalPendingOrder =
       'api/method/ice_control.api.v1.sale.get_total_pending_order';
 
+  /// Loads today's completed and pending sale totals for one outlet.
+  ///
+  /// Method: `GET`
+  /// Query parameters: `outlet`.
+  /// Returns: order counts, amounts, and product summary rows, optionally
+  /// wrapped in `message` or `data`.
+  static const dailySaleSummary =
+      'api/method/ice_control.api.v1.sale.get_daily_sale_summary';
+
   /// Uses Frappe's report-view count API to count today's Closed sales.
   ///
   /// Method: `GET`
