@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:window_manager/window_manager.dart';
 
 import 'app/app_config.dart';
 import 'app/app_routes.dart';
@@ -33,6 +35,14 @@ import 'services/report_file_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  if (!kIsWeb &&
+      {
+        TargetPlatform.windows,
+        TargetPlatform.linux,
+        TargetPlatform.macOS,
+      }.contains(defaultTargetPlatform)) {
+    await windowManager.ensureInitialized();
+  }
   await GetStorage.init(NotePresetRepository.containerName);
   final preferences = await SharedPreferences.getInstance();
 

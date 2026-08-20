@@ -242,6 +242,7 @@ class _PendingOrderListDialogWidgetState
             ],
           ),
         ),
+        const _PendingOrderWarningNotice(),
         _TableHeader(
           colors: colors,
           showActions: widget.onView != null || widget.onEdit != null,
@@ -317,6 +318,34 @@ class _PendingOrderListDialogWidgetState
             ),
           ),
       ],
+    );
+  }
+}
+
+class _PendingOrderWarningNotice extends StatelessWidget {
+  const _PendingOrderWarningNotice();
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Container(
+      key: const ValueKey('pending-order-list-warning'),
+      width: double.infinity,
+      margin: const EdgeInsets.fromLTRB(20, 12, 20, 12),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+      decoration: BoxDecoration(
+        color: colors.errorContainer.withValues(alpha: 0.55),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: colors.error.withValues(alpha: 0.35)),
+      ),
+      child: Text(
+        'ការដាក់បុងរង់ចាំគឺសម្រាប់រក្សាទុកបណ្តោះអាសន្នក្នុងរយៈពេលខ្លីប៉ុណ្ណោះ មិនមែនសម្រាប់ទុករយៈពេលយូរទេ។ សូមព្យាយាមពិនិត្យ និងបិទការលក់ទាំងនេះឱ្យបានឆាប់បំផុត។',
+        style: TextStyle(
+          color: colors.error,
+          fontWeight: FontWeight.w700,
+          height: 1.5,
+        ),
+      ),
     );
   }
 }

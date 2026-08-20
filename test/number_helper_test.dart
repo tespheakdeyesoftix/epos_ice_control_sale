@@ -30,15 +30,19 @@ void main() {
     expect(formatTimeAgo(now, now: now), 'ឥឡូវនេះ');
     expect(
       formatTimeAgo(now.subtract(const Duration(minutes: 15)), now: now),
-      'មុន 15 នាទី',
+      '15 នាទីមុន',
     );
     expect(
       formatTimeAgo(now.subtract(const Duration(hours: 3)), now: now),
-      'មុន 3 ម៉ោង',
+      '3 ម៉ោងមុន',
     );
     expect(
       formatTimeAgo(now.subtract(const Duration(days: 2)), now: now),
-      'មុន 2 ថ្ងៃ',
+      '2 ថ្ងៃមុន',
+    );
+    expect(
+      formatExactDateTime(DateTime(2026, 8, 18, 14, 5, 9)),
+      '18/08/2026 14:05:09',
     );
   });
 }

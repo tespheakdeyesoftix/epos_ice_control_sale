@@ -7,6 +7,7 @@ import 'package:http/testing.dart';
 import 'package:ice_control_sale/app/app_theme.dart';
 import 'package:ice_control_sale/services/sale_service.dart';
 import 'package:ice_control_sale/shared/warning_pending_order_widget.dart';
+import 'package:ice_control_sale/features/sell/widgets/pending_order_list_dialog_widget.dart';
 
 void main() {
   testWidgets('formats an afternoon pending date with the Khmer PM label', (
@@ -125,6 +126,43 @@ void main() {
     );
   });
 
+  testWidgets('shows the warning notice in the embedded pending screen', (
+    tester,
+  ) async {
+    final client = MockClient(
+      (_) async => http.Response(
+        jsonEncode({'data': <dynamic>[]}),
+        200,
+        headers: {'content-type': 'application/json'},
+      ),
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light,
+        home: Scaffold(
+          body: PendingOrderListDialogWidget(
+            saleService: SaleService(
+              Uri.parse('http://127.0.0.1:8888/'),
+              client: client,
+            ),
+            outlet: 'Main Outlet',
+            embedded: true,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('pending-order-list-screen')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('pending-order-list-warning')),
+      findsOneWidget,
+    );
+  });
+
   testWidgets('pending list uses explicit detail and edit actions', (
     tester,
   ) async {
@@ -185,6 +223,10 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('view-pending-orders-warning')));
     await tester.pumpAndSettle();
 
+    expect(
+      find.byKey(const ValueKey('pending-order-list-warning')),
+      findsOneWidget,
+    );
     final row = find.byKey(const ValueKey('pending-order-SO-DRAFT-001'));
     expect(row, findsOneWidget);
     expect(

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
+import 'package:window_manager/window_manager.dart';
 
 import '../../app/app_setting.dart';
 import '../../app/app_theme.dart';
@@ -264,7 +266,49 @@ class _TopBar extends StatefulWidget {
   State<_TopBar> createState() => _TopBarState();
 }
 
-class _TopBarState extends State<_TopBar> {
+class _TopBarState extends State<_TopBar> with WindowListener {
+  bool _isFullScreen = false;
+
+  bool get _supportsDesktopFullscreen =>
+      !kIsWeb &&
+      {
+        TargetPlatform.windows,
+        TargetPlatform.linux,
+        TargetPlatform.macOS,
+      }.contains(defaultTargetPlatform);
+
+  @override
+  void initState() {
+    super.initState();
+    if (_supportsDesktopFullscreen) {
+      windowManager.addListener(this);
+      _syncFullScreenState();
+    }
+  }
+
+  Future<void> _syncFullScreenState() async {
+    final isFullScreen = await windowManager.isFullScreen();
+    if (mounted && isFullScreen != _isFullScreen) {
+      setState(() => _isFullScreen = isFullScreen);
+    }
+  }
+
+  Future<void> _toggleFullScreen() async {
+    final nextValue = !_isFullScreen;
+    await windowManager.setFullScreen(nextValue);
+    if (mounted) setState(() => _isFullScreen = nextValue);
+  }
+
+  @override
+  void onWindowEnterFullScreen() {
+    if (mounted) setState(() => _isFullScreen = true);
+  }
+
+  @override
+  void onWindowLeaveFullScreen() {
+    if (mounted) setState(() => _isFullScreen = false);
+  }
+
   final _searchController = TextEditingController();
   final _searchFocusNode = FocusNode();
 
@@ -272,6 +316,7 @@ class _TopBarState extends State<_TopBar> {
 
   @override
   void dispose() {
+    if (_supportsDesktopFullscreen) windowManager.removeListener(this);
     _searchController.dispose();
     _searchFocusNode.dispose();
     super.dispose();
@@ -656,25 +701,53 @@ class _TopBarState extends State<_TopBar> {
           ),
           Align(
             alignment: Alignment.centerRight,
-            child: Obx(
-              () => PendingOrderBadgeWidget(
-                count: controller.pendingOrderCount.value,
-                isLoading: controller.isLoadingPendingOrders.value,
-                onTap: () async {
-                  await showPendingOrderListDialog(
-                    context,
-                    saleService: controller.saleService,
-                    outlet: controller.activeOutletName,
-                    onView: (name) => showPendingSaleViewDialog(
-                      context,
-                      saleService: controller.saleService,
-                      name: name,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Obx(
+                  () => PendingOrderBadgeWidget(
+                    count: controller.pendingOrderCount.value,
+                    isLoading: controller.isLoadingPendingOrders.value,
+                    onTap: () async {
+                      await showPendingOrderListDialog(
+                        context,
+                        saleService: controller.saleService,
+                        outlet: controller.activeOutletName,
+                        onView: (name) => showPendingSaleViewDialog(
+                          context,
+                          saleService: controller.saleService,
+                          name: name,
+                        ),
+                        onEdit: _openPendingOrder,
+                      );
+                      await controller.loadPendingOrderCount();
+                    },
+                  ),
+                ),
+                const SizedBox(width: 10),
+                SizedBox.square(
+                  dimension: 50,
+                  child: IconButton(
+                    key: const ValueKey('toggle-sale-fullscreen'),
+                    tooltip: _isFullScreen
+                        ? 'ចាកចេញពីពេញអេក្រង់'
+                        : 'ពេញអេក្រង់',
+                    onPressed: _supportsDesktopFullscreen
+                        ? _toggleFullScreen
+                        : null,
+                    style: IconButton.styleFrom(
+                      backgroundColor: context.colors.surfaceContainerLow,
+                      foregroundColor: context.colors.primary,
+                      side: BorderSide(color: context.colors.outlineVariant),
                     ),
-                    onEdit: _openPendingOrder,
-                  );
-                  await controller.loadPendingOrderCount();
-                },
-              ),
+                    icon: Icon(
+                      _isFullScreen
+                          ? Icons.fullscreen_exit_rounded
+                          : Icons.fullscreen_rounded,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -1007,15 +1080,34 @@ class _CheckoutPanel extends StatelessWidget {
       builder: (dialogContext) => AlertDialog(
         title: const Text('បញ្ជាក់ការរក្សាទុក'),
         content: const Text('តើអ្នកប្រាកដថាចង់រក្សាទុកការលក់នេះមែនទេ?'),
+        actionsPadding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(false),
+            style: TextButton.styleFrom(
+              minimumSize: const Size(110, 56),
+              padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 16),
+              textStyle: const TextStyle(
+                fontFamily: AppTheme.fontFamily,
+                fontSize: 17,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
             child: const Text('បោះបង់'),
           ),
           FilledButton.icon(
             key: const ValueKey('confirm-save-order'),
             onPressed: () => Navigator.of(dialogContext).pop(true),
-            icon: const Icon(Icons.save_outlined),
+            style: FilledButton.styleFrom(
+              minimumSize: const Size(170, 56),
+              padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
+              textStyle: const TextStyle(
+                fontFamily: AppTheme.fontFamily,
+                fontSize: 17,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            icon: const Icon(Icons.save_outlined, size: 24),
             label: const Text('រក្សាទុក'),
           ),
         ],

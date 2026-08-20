@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../app/app_setting.dart';
+import '../../app/app_theme.dart';
 import '../../features/sell/customer.dart';
 import '../../features/sell/sell_controller.dart';
 import '../../features/sell/widgets/save_order_success_widget.dart';
@@ -143,6 +144,7 @@ Future<int?> _confirmCloseAndPrint(
         key: const ValueKey('confirm-close-and-print-dialog'),
         icon: const Icon(Icons.print_outlined),
         title: const Text('បញ្ជាក់ការបិទ និងបោះពុម្ព'),
+        actionsPadding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -169,12 +171,30 @@ Future<int?> _confirmCloseAndPrint(
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(),
+            style: TextButton.styleFrom(
+              minimumSize: const Size(110, 56),
+              padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 16),
+              textStyle: const TextStyle(
+                fontFamily: AppTheme.fontFamily,
+                fontSize: 17,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
             child: const Text('បោះបង់'),
           ),
           FilledButton.icon(
             key: const ValueKey('confirm-close-and-print'),
             onPressed: () => Navigator.of(dialogContext).pop(selectedCopies),
-            icon: const Icon(Icons.print_rounded),
+            style: FilledButton.styleFrom(
+              minimumSize: const Size(210, 56),
+              padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
+              textStyle: const TextStyle(
+                fontFamily: AppTheme.fontFamily,
+                fontSize: 17,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            icon: const Icon(Icons.print_rounded, size: 24),
             label: const Text('បិទ និងបោះពុម្ព'),
           ),
         ],

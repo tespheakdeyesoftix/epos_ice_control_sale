@@ -44,13 +44,22 @@ String formatTimeAgo(DateTime? value, {DateTime? now}) {
   final created = value.isUtc ? value.toLocal() : value;
   final difference = current.difference(created);
   if (difference.isNegative || difference.inMinutes < 1) return 'ឥឡូវនេះ';
-  if (difference.inHours < 1) return 'មុន ${difference.inMinutes} នាទី';
-  if (difference.inDays < 1) return 'មុន ${difference.inHours} ម៉ោង';
-  if (difference.inDays < 30) return 'មុន ${difference.inDays} ថ្ងៃ';
+  if (difference.inHours < 1) return '${difference.inMinutes} នាទីមុន';
+  if (difference.inDays < 1) return '${difference.inHours} ម៉ោងមុន';
+  if (difference.inDays < 30) return '${difference.inDays} ថ្ងៃមុន';
   if (difference.inDays < 365) {
-    return 'មុន ${difference.inDays ~/ 30} ខែ';
+    return '${difference.inDays ~/ 30} ខែមុន';
   }
-  return 'មុន ${difference.inDays ~/ 365} ឆ្នាំ';
+  return '${difference.inDays ~/ 365} ឆ្នាំមុន';
+}
+
+String formatExactDateTime(DateTime? value) {
+  if (value == null) return '-';
+  final local = value.isUtc ? value.toLocal() : value;
+  String twoDigits(int number) => number.toString().padLeft(2, '0');
+  return '${twoDigits(local.day)}/${twoDigits(local.month)}/${local.year} '
+      '${twoDigits(local.hour)}:${twoDigits(local.minute)}:'
+      '${twoDigits(local.second)}';
 }
 
 Color colorFromHex(String value, {required Color fallback}) {

@@ -431,7 +431,11 @@ class _ClosedSaleRow extends StatelessWidget {
             child: Center(child: _StatusChip(status: sale.saleStatus)),
           ),
           _DataCell(_fallback(sale.owner), flex: 16),
-          _DataCell(formatTimeAgo(sale.creation), flex: 14),
+          _DataCell(
+            formatTimeAgo(sale.creation),
+            flex: 14,
+            tooltip: formatExactDateTime(sale.creation),
+          ),
           Expanded(
             flex: 30,
             child: Row(
@@ -535,29 +539,34 @@ class _DataCell extends StatelessWidget {
     required this.flex,
     this.align,
     this.emphasized = false,
+    this.tooltip,
   });
 
   final String text;
   final int flex;
   final TextAlign? align;
   final bool emphasized;
+  final String? tooltip;
 
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
+    final content = Text(
+      text,
+      maxLines: 2,
+      overflow: TextOverflow.ellipsis,
+      textAlign: align,
+      style: TextStyle(
+        color: emphasized ? colors.onSurface : colors.onSurfaceVariant,
+        fontWeight: emphasized ? FontWeight.w700 : FontWeight.w400,
+        fontSize: 13,
+      ),
+    );
     return Expanded(
       flex: flex,
-      child: Text(
-        text,
-        maxLines: 2,
-        overflow: TextOverflow.ellipsis,
-        textAlign: align,
-        style: TextStyle(
-          color: emphasized ? colors.onSurface : colors.onSurfaceVariant,
-          fontWeight: emphasized ? FontWeight.w700 : FontWeight.w400,
-          fontSize: 13,
-        ),
-      ),
+      child: tooltip == null
+          ? content
+          : Tooltip(message: tooltip!, child: content),
     );
   }
 }

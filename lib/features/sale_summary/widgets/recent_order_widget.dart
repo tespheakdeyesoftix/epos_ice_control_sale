@@ -164,6 +164,7 @@ class _RecentOrderRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     final imageUrl = _resolveImageUrl(order.customerPhoto, imageBaseUri);
+    final timestamp = order.modified ?? order.creation;
     final customer = order.customerName.trim().isNotEmpty
         ? order.customerName.trim()
         : order.customer.trim().isNotEmpty
@@ -273,13 +274,16 @@ class _RecentOrderRow extends StatelessWidget {
                     style: const TextStyle(fontWeight: FontWeight.w700),
                   ),
                   const SizedBox(height: 3),
-                  Text(
-                    formatTimeAgo(order.modified ?? order.creation),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: colors.onSurfaceVariant,
-                      fontSize: 12,
+                  Tooltip(
+                    message: formatExactDateTime(timestamp),
+                    child: Text(
+                      formatTimeAgo(timestamp),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: colors.onSurfaceVariant,
+                        fontSize: 12,
+                      ),
                     ),
                   ),
                   if (onEdit != null) ...[

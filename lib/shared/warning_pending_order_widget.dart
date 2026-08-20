@@ -125,11 +125,14 @@ class WarningPendingOrderWidget extends StatelessWidget {
                               ?.copyWith(fontWeight: FontWeight.w800),
                         ),
                         const SizedBox(height: 5),
-                        Text(
-                          pendingDate == null
-                              ? 'មានបុងរងចាំដែលមិនទាន់បានបិទ។'
-                              : 'បុងរង់យូជាងគេបំផុតត្រូវបានដាក់រង់ចាំ ${formatTimeAgo(pendingDate)}។',
-                          style: TextStyle(color: colors.onSurfaceVariant),
+                        Tooltip(
+                          message: formatExactDateTime(pendingDate),
+                          child: Text(
+                            pendingDate == null
+                                ? 'មានបុងរងចាំដែលមិនទាន់បានបិទ។'
+                                : 'បុងរង់យូជាងគេបំផុតត្រូវបានដាក់រង់ចាំ ${formatTimeAgo(pendingDate)}។',
+                            style: TextStyle(color: colors.onSurfaceVariant),
+                          ),
                         ),
                       ],
                     ),
