@@ -271,7 +271,7 @@ class _WorkplaceDetails extends StatelessWidget {
             textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
           ),
           icon: const Icon(Icons.add_shopping_cart_rounded),
-          label: const Text('បង្កើតការលក់ថ្មី'),
+          label: const Text('បញ្ជេញបុងថ្មី'),
         ),
       ],
     ],

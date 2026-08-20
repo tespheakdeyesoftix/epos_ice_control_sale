@@ -6,13 +6,17 @@ class ClosedSale {
     required this.postingDate,
     this.customer = '',
     this.customerName = '',
+    this.customerPhoto = '',
     this.phoneNumber = '',
     this.driverName = '',
     this.totalSaleQuantity = 0,
+    this.outletUnit = '',
     this.totalAmount = 0,
     this.saleStatus = '',
+    this.status = '',
     this.owner = '',
     this.creation,
+    this.modified,
   });
 
   factory ClosedSale.fromJson(Map<String, dynamic> json) {
@@ -21,13 +25,17 @@ class ClosedSale {
       postingDate: textValue(json['posting_date']),
       customer: textValue(json['customer']),
       customerName: textValue(json['customer_name']),
+      customerPhoto: textValue(json['customer_photo']),
       phoneNumber: textValue(json['phone_number']),
       driverName: textValue(json['driver_name']),
       totalSaleQuantity: toDoubleValue(json['total_sale_quantity']),
+      outletUnit: textValue(json['outlet_unit']),
       totalAmount: toDoubleValue(json['total_amount']),
       saleStatus: textValue(json['sale_status']),
+      status: textValue(json['status']),
       owner: textValue(json['owner']),
       creation: DateTime.tryParse(textValue(json['creation'])),
+      modified: DateTime.tryParse(textValue(json['modified'])),
     );
   }
 
@@ -35,11 +43,15 @@ class ClosedSale {
   final String postingDate;
   final String customer;
   final String customerName;
+  final String customerPhoto;
   final String phoneNumber;
   final String driverName;
   final double totalSaleQuantity;
+  final String outletUnit;
   final double totalAmount;
   final String saleStatus;
+  final String status;
   final String owner;
   final DateTime? creation;
+  final DateTime? modified;
 }

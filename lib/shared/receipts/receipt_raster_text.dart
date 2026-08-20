@@ -78,7 +78,7 @@ class ReceiptRasterText {
 
   static Future<void> _loadFont() async {
     final loader = FontLoader(AppTheme.fontFamily)
-      ..addFont(rootBundle.load('assets/fonts/NotoSansKhmer-Variable.ttf'));
+      ..addFont(rootBundle.load('assets/fonts/NotoSansKhmer-Regular.ttf'));
     await loader.load();
   }
 

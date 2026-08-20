@@ -71,7 +71,10 @@ flutter:
   fonts:
     - family: NotoSansKhmer
       fonts:
-        - asset: assets/fonts/NotoSansKhmer-Variable.ttf
+        - asset: assets/fonts/NotoSansKhmer-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/NotoSansKhmer-Bold.ttf
+          weight: 700
 
   # To add assets to your application, add an assets section, like this:
   # assets:

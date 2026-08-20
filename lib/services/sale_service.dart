@@ -81,17 +81,21 @@ class SaleService {
     'posting_date',
     'customer',
     'customer_name',
+    'customer_photo',
     'phone_number',
     'can_show_price',
     'driver_name',
     'total_sale_quantity',
+    'outlet_unit',
     'total_amount',
   ];
   static const _closedSaleFields = [
     ..._pendingOrderFields,
     'sale_status',
+    'status',
     'owner',
     'creation',
+    'modified',
   ];
 
   Future<Sale> getSale(String name) async {
@@ -263,6 +267,54 @@ class SaleService {
         .where((sale) => sale.name.isNotEmpty)
         .toList(growable: false);
     return ClosedSalePage(items: sales, hasMore: rows.length == limit);
+  }
+
+  Future<List<ClosedSale>> getRecentClosedSales({
+    required String outlet,
+    int limit = 10,
+    DateTime? postingDate,
+  }) async {
+    final selectedDate = postingDate ?? DateTime.now();
+    final formattedPostingDate = [
+      selectedDate.year.toString().padLeft(4, '0'),
+      selectedDate.month.toString().padLeft(2, '0'),
+      selectedDate.day.toString().padLeft(2, '0'),
+    ].join('-');
+    final response = await _client
+        .get(
+          baseUri
+              .resolve(ApiEndpoint.sales)
+              .replace(
+                queryParameters: {
+                  'fields': jsonEncode(_closedSaleFields),
+                  'filters': jsonEncode([
+                    ['sale_status', '=', 'Closed'],
+                    ['posting_date', '=', formattedPostingDate],
+                    ['outlet', '=', outlet.trim()],
+                  ]),
+                  'order_by': 'modified desc',
+                  'limit_start': '0',
+                  'limit_page_length': '$limit',
+                },
+              ),
+          headers: const {'Accept': 'application/json'},
+        )
+        .timeout(const Duration(seconds: 30));
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw SaleServiceException(response.statusCode);
+    }
+
+    final payload = jsonDecode(response.body);
+    final rows = payload is Map && payload['data'] is List
+        ? payload['data'] as List<dynamic>
+        : const <dynamic>[];
+    return rows
+        .whereType<Map>()
+        .map((row) => ClosedSale.fromJson(Map<String, dynamic>.from(row)))
+        .where((sale) => sale.name.isNotEmpty)
+        .take(limit)
+        .toList(growable: false);
   }
 
   Future<int> getTotalPendingOrder(String outlet) async {
