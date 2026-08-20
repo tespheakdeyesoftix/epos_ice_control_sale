@@ -1,136 +1,163 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:get/get.dart';
 import 'package:ice_control_sale/app/session_outlet_controller.dart';
 import 'package:ice_control_sale/features/report/report_controller.dart';
-import 'package:ice_control_sale/features/report/report_definition.dart';
 import 'package:ice_control_sale/features/report/report_screen.dart';
 import 'package:ice_control_sale/features/report/report_viewer_dialog.dart';
-import 'package:ice_control_sale/services/report_service.dart';
+import 'package:ice_control_sale/services/report_file_service.dart';
 
 void main() {
-  setUp(() => Get.testMode = true);
-  tearDown(Get.reset);
+  late Directory directory;
 
-  testWidgets('shows report card and opens the returned secure viewer', (
+  setUp(() async {
+    Get.testMode = true;
+    directory = await Directory.systemTemp.createTemp('report-screen-test-');
+    await File(
+      '${directory.path}${Platform.pathSeparator}report_viewer.html',
+    ).writeAsString('<html></html>');
+  });
+
+  tearDown(() async {
+    Get.reset();
+    if (await directory.exists()) await directory.delete(recursive: true);
+  });
+
+  test('recognizes expected export and print navigation aborts', () {
+    expect(
+      isExpectedWebViewNavigationAbort(
+        WebResourceError(
+          type: WebResourceErrorType.CONNECTION_ABORTED,
+          description: 'connection stopped',
+        ),
+      ),
+      isTrue,
+    );
+    expect(
+      isExpectedWebViewNavigationAbort(
+        WebResourceError(
+          type: WebResourceErrorType.CANCELLED,
+          description: 'cancelled',
+        ),
+      ),
+      isTrue,
+    );
+    expect(
+      isExpectedWebViewNavigationAbort(
+        WebResourceError(
+          type: WebResourceErrorType.HOST_LOOKUP,
+          description: 'host not found',
+        ),
+      ),
+      isFalse,
+    );
+  });
+
+  testWidgets('opens a full-screen dialog with session outlet context', (
     tester,
   ) async {
-    final provider = _FakeReportSessionProvider();
-    final outletController = SessionOutletController(
-      configuredOutlet: 'Main Outlet',
-    );
-    Get.put(
-      ReportController(
-        reportService: provider,
-        outletController: outletController,
-      ),
-    );
+    final controller = _registerController(directory, outlet: 'កន្លែងលក់ ដើម');
 
     await tester.pumpWidget(
       GetMaterialApp(
         home: ReportScreen(
-          dialogBuilder: (_, definition, session, retry) => Dialog.fullscreen(
+          dialogBuilder: (_, definition, request, reload) => Dialog.fullscreen(
             key: const ValueKey('fake-report-dialog'),
-            child: Text('${definition.key}:${session.viewerUrl.host}'),
+            child: Text('${definition.key}:${_contextFrom(request)['outlet']}'),
           ),
         ),
       ),
     );
 
-    expect(find.text('Financial Analysis'), findsOneWidget);
-    await tester.tap(
-      find.byKey(const ValueKey('report-card-financial_analysis')),
-    );
+    await tester.tap(find.byKey(const ValueKey('report-card-test_report')));
     await tester.pumpAndSettle();
 
     expect(find.byKey(const ValueKey('fake-report-dialog')), findsOneWidget);
-    expect(
-      find.text('financial_analysis:report-server-dev.aagj7.com'),
-      findsOneWidget,
-    );
-    expect(provider.reportKeys, ['financial_analysis']);
-    expect(provider.outlets, [null]);
-    expect(provider.reportDates, [null]);
+    expect(find.text('test_report:កន្លែងលក់ ដើម'), findsOneWidget);
+    expect(controller.errorMessage.value, isNull);
   });
 
-  testWidgets('shows a recoverable error when session creation fails', (
+  testWidgets('shows an error when the external HTML is missing', (
     tester,
   ) async {
-    final provider = _FakeReportSessionProvider(error: Exception('offline'));
-    Get.put(
-      ReportController(
-        reportService: provider,
-        outletController: SessionOutletController(
-          configuredOutlet: 'Main Outlet',
-        ),
-      ),
-    );
+    await File(
+      '${directory.path}${Platform.pathSeparator}report_viewer.html',
+    ).delete();
+    _registerController(directory, outlet: 'Main');
 
     await tester.pumpWidget(const GetMaterialApp(home: ReportScreen()));
-    await tester.tap(
-      find.byKey(const ValueKey('report-card-financial_analysis')),
-    );
+    await tester.tap(find.byKey(const ValueKey('report-card-test_report')));
     await tester.pumpAndSettle();
 
     expect(find.byKey(const ValueKey('report-error-banner')), findsOneWidget);
     expect(find.byKey(const ValueKey('report-viewer-dialog')), findsNothing);
   });
 
-  testWidgets('viewer retry replaces an expired secure URL', (tester) async {
-    var retryCount = 0;
-    final first = _session(path: 'first');
-    final second = _session(path: 'second');
+  testWidgets('viewer reload rereads the external launch request', (
+    tester,
+  ) async {
+    var reloads = 0;
+    final service = ReportFileService(executableDirectory: directory);
+    final initial = await service.createLaunchRequest(
+      reportPath: '/Sales Report/test report',
+      outlet: 'First',
+    );
 
     await tester.pumpWidget(
       MaterialApp(
         home: ReportViewerDialog(
-          definition: ReportRegistry.financialAnalysis,
-          initialSession: first,
-          allowedHosts: const {'report-server-dev.aagj7.com'},
-          loadSession: () async {
-            retryCount++;
-            return second;
+          definition: Get.put(
+            ReportController(
+              outletController: SessionOutletController(
+                configuredOutlet: 'Main',
+              ),
+              fileService: service,
+            ),
+          ).reports.single,
+          initialRequest: initial,
+          loadRequest: () async {
+            reloads++;
+            return service.createLaunchRequest(
+              reportPath: '/Sales Report/test report',
+              outlet: 'Reloaded',
+            );
           },
-          webViewBuilder: (_, url) => Center(
-            child: Text(url.path, key: const ValueKey('fake-webview')),
+          webViewBuilder: (_, request) => Center(
+            child: Text(
+              _contextFrom(request)['outlet'] ?? '',
+              key: const ValueKey('fake-webview'),
+            ),
           ),
         ),
       ),
     );
 
-    expect(find.text('/first'), findsOneWidget);
-    await tester.tap(find.byKey(const ValueKey('retry-report-viewer')));
+    expect(find.text('First'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('reload-report-viewer')));
     await tester.pumpAndSettle();
 
-    expect(retryCount, 1);
-    expect(find.text('/second'), findsOneWidget);
+    expect(reloads, 1);
+    expect(find.text('Reloaded'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('close-report-viewer')));
+    await tester.pumpAndSettle();
   });
 }
 
-class _FakeReportSessionProvider implements ReportSessionProvider {
-  _FakeReportSessionProvider({this.error});
-
-  final Object? error;
-  final reportKeys = <String>[];
-  final outlets = <String?>[];
-  final reportDates = <DateTime?>[];
-
-  @override
-  Future<ReportEmbedSession> createEmbedSession({
-    required String reportKey,
-    String? outlet,
-    DateTime? reportDate,
-  }) async {
-    reportKeys.add(reportKey);
-    outlets.add(outlet);
-    reportDates.add(reportDate);
-    final failure = error;
-    if (failure != null) throw failure;
-    return _session(path: reportKey);
-  }
+Map<String, String> _contextFrom(ReportLaunchRequest request) {
+  return Uri.splitQueryString(request.viewerUri.fragment);
 }
 
-ReportEmbedSession _session({required String path}) => ReportEmbedSession(
-  viewerUrl: Uri.parse('https://report-server-dev.aagj7.com/$path'),
-  expiresAt: DateTime.now().toUtc().add(const Duration(minutes: 5)),
-);
+ReportController _registerController(
+  Directory directory, {
+  required String outlet,
+}) {
+  final controller = ReportController(
+    outletController: SessionOutletController(configuredOutlet: outlet),
+    fileService: ReportFileService(executableDirectory: directory),
+  );
+  Get.put(controller);
+  return controller;
+}

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -138,7 +139,7 @@ class _WelcomePanel extends StatelessWidget {
   }
 }
 
-class _LoginPanel extends StatelessWidget {
+class _LoginPanel extends StatefulWidget {
   const _LoginPanel({
     required this.controller,
     required this.setting,
@@ -150,7 +151,26 @@ class _LoginPanel extends StatelessWidget {
   final Uri? logoUri;
 
   @override
+  State<_LoginPanel> createState() => _LoginPanelState();
+}
+
+class _LoginPanelState extends State<_LoginPanel> {
+  @override
+  void initState() {
+    super.initState();
+    if (kDebugMode) {
+      if (widget.controller.usernameController.text.isEmpty) {
+        widget.controller.usernameController.text = 'Administrator';
+      }
+      if (widget.controller.passwordController.text.isEmpty) {
+        widget.controller.passwordController.text = '123456';
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final controller = widget.controller;
     final colors = Theme.of(context).colorScheme;
     return SafeArea(
       child: Center(

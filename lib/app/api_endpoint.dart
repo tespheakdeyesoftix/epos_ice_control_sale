@@ -124,16 +124,6 @@ abstract final class ApiEndpoint {
   /// wrapped in `message`.
   static const reportViewCount = 'api/method/frappe.desk.reportview.get_count';
 
-  /// Creates a short-lived, server-signed Bold Reports embed URL.
-  ///
-  /// Method: `POST`
-  /// Form payload: `report_key` and optional `outlet` / `report_date`.
-  /// Returns: `{ "viewer_url": String, "expires_at": DateTime }`, optionally
-  /// wrapped in Frappe's `message` or `data` envelope.
-  /// The Bold Reports embed secret must remain on the Frappe server.
-  static const createReportEmbedUrl =
-      'api/method/ice_control.api.v1.report.create_embed_url';
-
   /// Loads global/company and point-of-sale settings for the active location.
   ///
   /// Method: `GET`

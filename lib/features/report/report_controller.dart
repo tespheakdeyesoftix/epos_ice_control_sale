@@ -1,21 +1,15 @@
-import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../app/session_outlet_controller.dart';
-import '../../services/frappe_response_handler.dart';
-import '../../services/report_service.dart';
+import '../../services/report_file_service.dart';
 import 'report_definition.dart';
 
 class ReportController extends GetxController {
-  ReportController({
-    required this.reportService,
-    required this.outletController,
-  });
+  ReportController({required this.outletController, required this.fileService});
 
-  final ReportSessionProvider reportService;
   final SessionOutletController outletController;
+  final ReportFileService fileService;
 
-  final selectedDate = DateUtils.dateOnly(DateTime.now()).obs;
   final loadingReportKeys = <String>{}.obs;
   final errorMessage = RxnString();
 
@@ -23,31 +17,27 @@ class ReportController extends GetxController {
 
   bool isLoading(String reportKey) => loadingReportKeys.contains(reportKey);
 
-  void setSelectedDate(DateTime value) {
-    selectedDate.value = DateUtils.dateOnly(value);
-  }
-
-  Future<ReportEmbedSession?> createSession(ReportDefinition definition) async {
+  Future<ReportLaunchRequest?> createLaunchRequest(
+    ReportDefinition definition,
+  ) async {
     if (isLoading(definition.key)) return null;
     loadingReportKeys.add(definition.key);
     errorMessage.value = null;
     try {
-      return await reportService.createEmbedSession(
-        reportKey: definition.key,
-        outlet: definition.includeOutlet
-            ? outletController.currentOutlet.value
-            : null,
-        reportDate: definition.includeReportDate ? selectedDate.value : null,
+      return await fileService.createLaunchRequest(
+        reportPath: definition.reportPath,
+        outlet: outletController.currentOutlet.value,
       );
-    } on FrappeServerMessageException {
-      errorMessage.value = 'The report server rejected the request.';
-      return null;
-    } on ReportEmbedSessionExpiredException {
-      errorMessage.value = 'The report link expired. Please try again.';
+    } on ReportFileException catch (error) {
+      errorMessage.value = switch (error.error) {
+        ReportFileError.missing =>
+          'report_viewer.html was not found beside the application.',
+        ReportFileError.unreadable => 'report_viewer.html cannot be read.',
+        ReportFileError.invalidReportPath => 'The report path is invalid.',
+      };
       return null;
     } on Exception {
-      errorMessage.value =
-          'Unable to open the report. Check the server connection and try again.';
+      errorMessage.value = 'Unable to prepare the report viewer.';
       return null;
     } finally {
       loadingReportKeys.remove(definition.key);

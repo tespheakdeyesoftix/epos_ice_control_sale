@@ -29,7 +29,7 @@ import 'services/product_service.dart';
 import 'services/print_preference_store.dart';
 import 'services/receipt_print_service.dart';
 import 'services/receipt_template_service.dart';
-import 'services/report_service.dart';
+import 'services/report_file_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -224,11 +224,8 @@ class IceSaleApp extends StatelessWidget {
               );
               Get.lazyPut<ReportController>(
                 () => ReportController(
-                  reportService: ReportService(
-                    appConfig.baseUri,
-                    client: sessionClient,
-                  ),
                   outletController: sessionOutletController,
+                  fileService: ReportFileService(),
                 ),
               );
             }

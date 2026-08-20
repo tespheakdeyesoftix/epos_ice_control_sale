@@ -32,6 +32,29 @@ set(CMAKE_CXX_FLAGS_PROFILE "${CMAKE_CXX_FLAGS_RELEASE}")
 # Use Unicode for all projects.
 add_definitions(-DUNICODE -D_UNICODE)
 
+# flutter_inappwebview_windows requires NuGet while configuring WebView2.
+# Keep a pinned, checksum-verified project-local copy for reproducible builds.
+set(NUGET_VERSION "6.11.1")
+set(NUGET_SHA256
+  "C0DDC9CB0633C4607DA7E8028EB4F91248C8B74E45A68B0C79FCFA7D78C2A481")
+set(NUGET "${CMAKE_BINARY_DIR}/tools/nuget/nuget.exe")
+if(NOT EXISTS "${NUGET}")
+  file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/tools/nuget")
+  file(DOWNLOAD
+    "https://dist.nuget.org/win-x86-commandline/v${NUGET_VERSION}/nuget.exe"
+    "${NUGET}"
+    EXPECTED_HASH "SHA256=${NUGET_SHA256}"
+    STATUS NUGET_DOWNLOAD_STATUS
+    TLS_VERIFY ON
+  )
+  list(GET NUGET_DOWNLOAD_STATUS 0 NUGET_DOWNLOAD_CODE)
+  list(GET NUGET_DOWNLOAD_STATUS 1 NUGET_DOWNLOAD_MESSAGE)
+  if(NOT NUGET_DOWNLOAD_CODE EQUAL 0)
+    message(FATAL_ERROR "Unable to download NuGet: ${NUGET_DOWNLOAD_MESSAGE}")
+  endif()
+endif()
+set(NUGET "${NUGET}" CACHE FILEPATH "Project-local NuGet executable" FORCE)
+
 # Compilation settings that should be applied to most targets.
 #
 # Be cautious about adding new options here, as plugins use this function by
@@ -77,6 +100,11 @@ install(TARGETS ${BINARY_NAME} RUNTIME DESTINATION "${CMAKE_INSTALL_PREFIX}"
 
 # Keep the runtime Frappe configuration beside the Windows executable.
 install(FILES "${CMAKE_SOURCE_DIR}/../setting.json"
+  DESTINATION "${CMAKE_INSTALL_PREFIX}"
+  COMPONENT Runtime)
+
+# Keep the editable Bold Reports viewer beside the Windows executable.
+install(FILES "${CMAKE_SOURCE_DIR}/../report_viewer.html"
   DESTINATION "${CMAKE_INSTALL_PREFIX}"
   COMPONENT Runtime)
 

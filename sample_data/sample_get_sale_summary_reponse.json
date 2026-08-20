@@ -1,30 +1,77 @@
- {
-    "total_order": 2,
-    "total_amount": 6300000,
-    "total_pending_order": 3,
-    "total_pending_amount": 1470000,
+
+    {"total_order": 8,
+    "total_amount": 13669720000,
+    "total_pending_order": 2,
+    "total_pending_amount": 1050000,
     "sale_product_summary": [
       {
         "product_code": "K01",
         "product_name": "ការ៉ុង - ការ៉ុង",
         "unit": "ការ៉ុង",
-        "quantity": 250,
+        "quantity": 600,
         "free_quantity": 0,
         "return_quantity": 0,
         "split_quantity": 0,
-        "total_sale_quantity": 250,
+        "total_sale_quantity": 600,
         "total_amount": 0
       },
       {
         "product_code": "01",
         "product_name": "ទឹកកកដើមធំ",
+        "unit": "ថង",
+        "quantity": 3200,
+        "free_quantity": 100,
+        "return_quantity": 100,
+        "split_quantity": 0,
+        "total_sale_quantity": 3000,
+        "total_amount": 12600000000
+      },
+      {
+        "product_code": "01",
+        "product_name": "ទឹកកកដើមធំ",
         "unit": "ដើម",
-        "quantity": 350,
+        "quantity": 420,
         "free_quantity": 0,
         "return_quantity": 0,
         "split_quantity": 0,
-        "total_sale_quantity": 350,
-        "total_amount": 6300000
+        "total_sale_quantity": 420,
+        "total_amount": 7440000
+      },
+      {
+        "product_code": "C003",
+        "product_name": "ទឹកកកអនាម័យ - ថង់",
+        "unit": "ថង",
+        "quantity": 260,
+        "free_quantity": 0,
+        "return_quantity": 0,
+        "split_quantity": 0,
+        "total_sale_quantity": 260,
+        "total_amount": 130000
+      },
+      {
+        "product_code": "T02",
+        "product_name": "ធុង - 150L",
+        "unit": "ធុង",
+        "quantity": 20,
+        "free_quantity": 0,
+        "return_quantity": 0,
+        "split_quantity": 0,
+        "total_sale_quantity": 20,
+        "total_amount": 0
+      },
+      {
+        "product_code": "02",
+        "product_name": "ទឹកកកដើមតូច",
+        "unit": "ដើម",
+        "quantity": 900,
+        "free_quantity": 0,
+        "return_quantity": 0,
+        "split_quantity": 0,
+        "total_sale_quantity": 900,
+        "total_amount": 12150000
       }
-    ]
+    ],
+    "total_deleted_order": 1,
+    "total_deleted_amount": 1050000000,
+    "total_deleted_quantity": 250
   }

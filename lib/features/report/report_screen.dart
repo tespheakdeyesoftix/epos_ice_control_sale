@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
-import '../../services/report_service.dart';
+import '../../services/report_file_service.dart';
 import 'report_controller.dart';
 import 'report_definition.dart';
 import 'report_viewer_dialog.dart';
@@ -10,8 +10,8 @@ typedef ReportDialogBuilder =
     Widget Function(
       BuildContext context,
       ReportDefinition definition,
-      ReportEmbedSession session,
-      Future<ReportEmbedSession?> Function() retry,
+      ReportLaunchRequest request,
+      Future<ReportLaunchRequest?> Function() reload,
     );
 
 class ReportScreen extends GetView<ReportController> {
@@ -23,29 +23,25 @@ class ReportScreen extends GetView<ReportController> {
     BuildContext context,
     ReportDefinition definition,
   ) async {
-    final session = await controller.createSession(definition);
-    if (session == null || !context.mounted) return;
+    final request = await controller.createLaunchRequest(definition);
+    if (request == null || !context.mounted) return;
 
-    final customDialogBuilder = dialogBuilder;
+    final customBuilder = dialogBuilder;
     await showDialog<void>(
       context: context,
       barrierDismissible: false,
       useSafeArea: false,
-      builder: (dialogContext) => customDialogBuilder != null
-          ? customDialogBuilder(
+      builder: (dialogContext) => customBuilder != null
+          ? customBuilder(
               dialogContext,
               definition,
-              session,
-              () => controller.createSession(definition),
+              request,
+              () => controller.createLaunchRequest(definition),
             )
           : ReportViewerDialog(
               definition: definition,
-              initialSession: session,
-              loadSession: () => controller.createSession(definition),
-              allowedHosts: {
-                session.viewerUrl.host,
-                'report-server-dev.aagj7.com',
-              },
+              initialRequest: request,
+              loadRequest: () => controller.createLaunchRequest(definition),
             ),
     );
   }
@@ -76,7 +72,7 @@ class ReportScreen extends GetView<ReportController> {
                   style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700),
                 ),
                 SizedBox(height: 2),
-                Text('View and export secured Bold Reports'),
+                Text('View and export Bold Reports inside the application'),
               ],
             ),
           ),
