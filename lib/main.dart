@@ -14,6 +14,7 @@ import 'features/login/login_controller.dart';
 import 'features/login/login_screen.dart';
 import 'features/navigation/app_shell_controller.dart';
 import 'features/navigation/app_shell_screen.dart';
+import 'features/report/report_controller.dart';
 import 'features/sale_summary/sale_summary_controller.dart';
 import 'features/sell/sell_controller.dart';
 import 'features/setting/receipt_template_controller.dart';
@@ -28,6 +29,7 @@ import 'services/product_service.dart';
 import 'services/print_preference_store.dart';
 import 'services/receipt_print_service.dart';
 import 'services/receipt_template_service.dart';
+import 'services/report_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -218,6 +220,15 @@ class IceSaleApp extends StatelessWidget {
                 () => ClosedSaleController(
                   sellController: Get.find<SellController>(),
                   appShellController: Get.find<AppShellController>(),
+                ),
+              );
+              Get.lazyPut<ReportController>(
+                () => ReportController(
+                  reportService: ReportService(
+                    appConfig.baseUri,
+                    client: sessionClient,
+                  ),
+                  outletController: sessionOutletController,
                 ),
               );
             }

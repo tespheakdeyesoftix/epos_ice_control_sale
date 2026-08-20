@@ -41,6 +41,7 @@ dependencies:
   printing: ^5.14.3
   shared_preferences: ^2.5.5
   cached_network_image: ^3.4.1
+  flutter_inappwebview: ^6.1.5
 
 dev_dependencies:
   flutter_test:
