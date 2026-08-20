@@ -493,7 +493,27 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('confirm-posting-date')));
     await tester.pumpAndSettle();
     expect(pendingOrderListRequestCount, 3);
-    await tester.tap(find.byKey(const ValueKey('pending-order-SO-DRAFT-0001')));
+    expect(
+      find.byKey(const ValueKey('view-pending-order-SO-DRAFT-0001')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('edit-pending-order-SO-DRAFT-0001')),
+      findsOneWidget,
+    );
+    await tester.tap(
+      find.byKey(const ValueKey('view-pending-order-SO-DRAFT-0001')),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('pending-sale-view-dialog')),
+      findsOneWidget,
+    );
+    await tester.tap(find.byKey(const ValueKey('close-pending-sale-view')));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('edit-pending-order-SO-DRAFT-0001')),
+    );
     await tester.pumpAndSettle();
     expect(sellController.openedSale.value?.name, 'SO-DRAFT-0001');
     expect(sellController.isNewSale, isFalse);
@@ -890,12 +910,15 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('pause-sale-button')));
     await tester.pumpAndSettle();
-    expect(find.text('តើអ្នកប្រាកដថាចង់ផ្អាកការលក់នេះមែនទេ?'), findsOneWidget);
+    expect(
+      find.text('តើអ្នកប្រាកដថាចង់ដាក់ការលក់នេះក្នុងរង់ចាំមែនទេ?'),
+      findsOneWidget,
+    );
     await tester.tap(find.byKey(const ValueKey('confirm-pause-sale')));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 500));
 
-    expect(find.text('ផ្អាកការលក់បានជោគជ័យ'), findsOneWidget);
+    expect(find.text('ដាក់ការលក់ក្នុងរង់ចាំបានជោគជ័យ'), findsOneWidget);
     expect(submittedSale?['sale_status'], 'Draft');
     expect(submittedSale?['customer'], isEmpty);
     expect(submittedSale?['sale_products'], hasLength(1));

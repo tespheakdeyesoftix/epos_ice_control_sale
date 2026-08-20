@@ -95,6 +95,16 @@ abstract final class ApiEndpoint {
   static const totalPendingOrder =
       'api/method/ice_control.api.v1.sale.get_total_pending_order';
 
+  /// Gets the oldest relevant pending-order date and pending totals for an
+  /// outlet so the client can warn about drafts kept for too long.
+  ///
+  /// Method: `GET`
+  /// Query parameters: `outlet`.
+  /// Returns: `{ "pending_date": DateTime, "total_pending_order": int,
+  /// "pending_order_amount": number }`, optionally wrapped in `message`.
+  static const maxPendingOrderDate =
+      'api/method/ice_control.api.v1.sale.get_max_pending_order_date';
+
   /// Uses Frappe's report-view count API to count today's Closed sales.
   ///
   /// Method: `GET`

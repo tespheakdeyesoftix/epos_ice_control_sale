@@ -34,7 +34,7 @@ class PendingSaleListScreen extends GetView<AppShellController> {
     final sell = controller.sellController;
     if (!sell.canOpenPendingOrder) {
       _showMessage(
-        'សូមរក្សាទុកការលក់បច្ចុប្បន្នជាមុនសិន មុននឹងកែបុងដែលបានផ្អាក។',
+        'សូមរក្សាទុកការលក់បច្ចុប្បន្នជាមុនសិន មុននឹងកែបុងរង់ចាំ។',
         indicator: 'orange',
       );
       return;
@@ -49,17 +49,17 @@ class PendingSaleListScreen extends GetView<AppShellController> {
       );
     } on PendingOrderOpenValidationException {
       _showMessage(
-        'សូមរក្សាទុកការលក់បច្ចុប្បន្នជាមុនសិន មុននឹងកែបុងដែលបានផ្អាក។',
+        'សូមរក្សាទុកការលក់បច្ចុប្បន្នជាមុនសិន មុននឹងកែបុងរង់ចាំ។',
         indicator: 'orange',
       );
     } on SaleEditBlockedException catch (error) {
       _showMessage(error.message, indicator: 'orange');
     } on PendingOrderNotDraftException {
-      _showMessage('បុងនេះមិនមែនជាបុងដែលបានផ្អាកទៀតទេ។');
+      _showMessage('បុងនេះមិនមែនជាបុងរង់ចាំទៀតទេ។');
     } on FrappeServerMessageException {
       // The shared API client already displayed the server message.
     } on Exception {
-      _showMessage('មិនអាចបើកបុងដែលបានផ្អាកនេះបានទេ។', indicator: 'red');
+      _showMessage('មិនអាចបើកបុងរង់ចាំនេះបានទេ។', indicator: 'red');
     }
   }
 

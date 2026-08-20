@@ -15,6 +15,7 @@ import '../../shared/text_input_dialog_widget.dart';
 import '../../shared/receipts/close_and_print_flow.dart';
 import '../../utils/helpers.dart';
 import '../login/login_controller.dart';
+import '../pending_sales/widgets/pending_sale_view_dialog_widget.dart';
 import 'customer.dart';
 import 'sell_controller.dart';
 import 'widgets/order_product_list_widget.dart';
@@ -435,6 +436,58 @@ class _TopBarState extends State<_TopBar> {
     }
   }
 
+  Future<void> _openPendingOrder(String name) async {
+    try {
+      await controller.openPendingOrder(name);
+    } on PendingOrderOpenValidationException {
+      if (!mounted) return;
+      Get.rawSnackbar(
+        messageText: Text(
+          'សូមរក្សាទុកការលក់បច្ចុប្បន្នជាមុនសិន មុននឹងបើកការលក់រង់ចាំ។',
+          style: TextStyle(
+            color: context.colors.onInverseSurface,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        icon: Icon(
+          Icons.info_outline_rounded,
+          color: context.colors.onInverseSurface,
+        ),
+        snackPosition: SnackPosition.TOP,
+        snackStyle: SnackStyle.FLOATING,
+        maxWidth: 620,
+        margin: const EdgeInsets.only(top: 18),
+        borderRadius: 12,
+        backgroundColor: context.colors.inverseSurface,
+        duration: const Duration(seconds: 4),
+      );
+    } on SaleEditBlockedException catch (error) {
+      FrappeResponseHandler.show(
+        FrappeServerMessage(message: error.message, indicator: 'orange'),
+      );
+    } on FrappeServerMessageException {
+      // The shared API client already displayed the server message.
+    } on Exception {
+      if (!mounted) return;
+      Get.rawSnackbar(
+        messageText: Text(
+          'មិនអាចបើកការលក់រង់ចាំបានទេ។',
+          style: TextStyle(
+            color: context.colors.onError,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        snackPosition: SnackPosition.TOP,
+        snackStyle: SnackStyle.FLOATING,
+        maxWidth: 520,
+        margin: const EdgeInsets.only(top: 18),
+        borderRadius: 12,
+        backgroundColor: context.colors.error,
+        duration: const Duration(seconds: 4),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final login = Get.find<LoginController>();
@@ -608,65 +661,17 @@ class _TopBarState extends State<_TopBar> {
                 count: controller.pendingOrderCount.value,
                 isLoading: controller.isLoadingPendingOrders.value,
                 onTap: () async {
-                  final name = await showPendingOrderListDialog(
+                  await showPendingOrderListDialog(
                     context,
                     saleService: controller.saleService,
                     outlet: controller.activeOutletName,
+                    onView: (name) => showPendingSaleViewDialog(
+                      context,
+                      saleService: controller.saleService,
+                      name: name,
+                    ),
+                    onEdit: _openPendingOrder,
                   );
-                  if (name != null && context.mounted) {
-                    try {
-                      await controller.openPendingOrder(name);
-                    } on PendingOrderOpenValidationException {
-                      if (!context.mounted) return;
-                      Get.rawSnackbar(
-                        messageText: Text(
-                          'សូមរក្សាទុកការលក់បច្ចុប្បន្នជាមុនសិន មុននឹងបើកការលក់ដែលបានផ្អាក។',
-                          style: TextStyle(
-                            color: context.colors.onInverseSurface,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        icon: Icon(
-                          Icons.info_outline_rounded,
-                          color: context.colors.onInverseSurface,
-                        ),
-                        snackPosition: SnackPosition.TOP,
-                        snackStyle: SnackStyle.FLOATING,
-                        maxWidth: 620,
-                        margin: const EdgeInsets.only(top: 18),
-                        borderRadius: 12,
-                        backgroundColor: context.colors.inverseSurface,
-                        duration: const Duration(seconds: 4),
-                      );
-                    } on SaleEditBlockedException catch (error) {
-                      FrappeResponseHandler.show(
-                        FrappeServerMessage(
-                          message: error.message,
-                          indicator: 'orange',
-                        ),
-                      );
-                    } on FrappeServerMessageException {
-                      // The shared API client already displayed the server message.
-                    } on Exception {
-                      if (!context.mounted) return;
-                      Get.rawSnackbar(
-                        messageText: Text(
-                          'មិនអាចបើកការលក់ដែលបានផ្អាកបានទេ។',
-                          style: TextStyle(
-                            color: context.colors.onError,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        snackPosition: SnackPosition.TOP,
-                        snackStyle: SnackStyle.FLOATING,
-                        maxWidth: 520,
-                        margin: const EdgeInsets.only(top: 18),
-                        borderRadius: 12,
-                        backgroundColor: context.colors.error,
-                        duration: const Duration(seconds: 4),
-                      );
-                    }
-                  }
                   await controller.loadPendingOrderCount();
                 },
               ),
@@ -1448,8 +1453,8 @@ class _BottomBar extends StatelessWidget {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('បញ្ជាក់ការផ្អាកការលក់'),
-        content: const Text('តើអ្នកប្រាកដថាចង់ផ្អាកការលក់នេះមែនទេ?'),
+        title: const Text('បញ្ជាក់ការដាក់រង់ចាំ'),
+        content: const Text('តើអ្នកប្រាកដថាចង់ដាក់ការលក់នេះក្នុងរង់ចាំមែនទេ?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(false),
@@ -1459,7 +1464,7 @@ class _BottomBar extends StatelessWidget {
             key: const ValueKey('confirm-pause-sale'),
             onPressed: () => Navigator.of(dialogContext).pop(true),
             icon: const Icon(Icons.pause_circle_outline_rounded),
-            label: const Text('ផ្អាកការលក់'),
+            label: const Text('រង់ចាំ'),
           ),
         ],
       ),
@@ -1473,7 +1478,7 @@ class _BottomBar extends StatelessWidget {
       await showSaveOrderSuccessDialog(
         context,
         savedOrder: savedOrder,
-        title: 'ផ្អាកការលក់បានជោគជ័យ',
+        title: 'ដាក់ការលក់ក្នុងរង់ចាំបានជោគជ័យ',
       );
     } on FrappeServerMessageException {
       // The shared API client already displayed the server message.
@@ -1481,7 +1486,7 @@ class _BottomBar extends StatelessWidget {
       if (!context.mounted) return;
       Get.rawSnackbar(
         messageText: Text(
-          'មិនអាចផ្អាកការលក់បានទេ។ សូមព្យាយាមម្ដងទៀត។',
+          'មិនអាចដាក់ការលក់ក្នុងរង់ចាំបានទេ។ សូមព្យាយាមម្ដងទៀត។',
           style: TextStyle(
             color: context.colors.onError,
             fontWeight: FontWeight.w600,
@@ -1530,7 +1535,7 @@ class _BottomBar extends StatelessWidget {
             const SizedBox(width: 10),
             _BottomAction(
               key: const ValueKey('pause-sale-button'),
-              label: 'ផ្អាកការលក់',
+              label: 'រង់ចាំ',
               icon: Icons.pause_circle_outline_rounded,
               color: context.colors.tertiary,
               onPressed:

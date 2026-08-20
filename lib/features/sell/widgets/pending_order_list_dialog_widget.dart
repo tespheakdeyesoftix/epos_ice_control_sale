@@ -8,15 +8,24 @@ import '../../../shared/select_date_dialog_widget.dart';
 import '../../../utils/helpers.dart';
 import '../pending_order.dart';
 
-Future<String?> showPendingOrderListDialog(
+Future<void> showPendingOrderListDialog(
   BuildContext context, {
   required SaleService saleService,
   required String outlet,
+  required ValueChanged<String> onView,
+  required ValueChanged<String> onEdit,
 }) {
-  return showDialog<String>(
+  return showDialog<void>(
     context: context,
-    builder: (_) =>
-        PendingOrderListDialogWidget(saleService: saleService, outlet: outlet),
+    builder: (dialogContext) => PendingOrderListDialogWidget(
+      saleService: saleService,
+      outlet: outlet,
+      onView: onView,
+      onEdit: (name) {
+        Navigator.of(dialogContext).pop();
+        onEdit(name);
+      },
+    ),
   );
 }
 
@@ -31,8 +40,8 @@ class PendingOrderListDialogWidget extends StatefulWidget {
     this.onRefreshed,
     this.saleStatus = 'Draft',
     this.status = '',
-    this.title = 'បញ្ជីការលក់ដែលបានផ្អាក',
-    this.emptyMessage = 'មិនមានការលក់ដែលបានផ្អាកទេ។',
+    this.title = 'បញ្ជីការលក់រង់ចាំ',
+    this.emptyMessage = 'មិនមានការលក់រង់ចាំទេ។',
     this.titleIcon = Icons.pending_actions_rounded,
     this.keyPrefix = 'pending-order',
   });
@@ -110,7 +119,7 @@ class _PendingOrderListDialogWidgetState
     } on Exception {
       if (!mounted) return;
       setState(() {
-        _errorMessage = 'មិនអាចទាញយកការលក់ដែលបានផ្អាកបានទេ។';
+        _errorMessage = 'មិនអាចទាញយកការលក់រង់ចាំបានទេ។';
       });
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -233,7 +242,10 @@ class _PendingOrderListDialogWidgetState
             ],
           ),
         ),
-        _TableHeader(colors: colors, showActions: widget.embedded),
+        _TableHeader(
+          colors: colors,
+          showActions: widget.onView != null || widget.onEdit != null,
+        ),
         Expanded(child: _buildBody(colors)),
       ],
     );
@@ -286,11 +298,8 @@ class _PendingOrderListDialogWidgetState
             _PendingOrderRow(
               order: group.value[index],
               alternate: index.isOdd,
-              onTap: widget.embedded
-                  ? null
-                  : () => Navigator.of(context).pop(group.value[index].name),
-              onView: widget.embedded ? widget.onView : null,
-              onEdit: widget.embedded ? widget.onEdit : null,
+              onView: widget.onView,
+              onEdit: widget.onEdit,
             ),
         ],
         if (_isLoading)
@@ -501,7 +510,7 @@ class _TableHeader extends StatelessWidget {
           _HeaderCell('ចំនួនសរុប', flex: 12, textAlign: TextAlign.right),
           _HeaderCell('ទឹកប្រាក់សរុប', flex: 17, textAlign: TextAlign.right),
           if (showActions)
-            _HeaderCell('សកម្មភាព', flex: 24, textAlign: TextAlign.center),
+            _HeaderCell('សកម្មភាព', flex: 32, textAlign: TextAlign.center),
         ],
       ),
     );
@@ -572,88 +581,79 @@ class _PendingOrderRow extends StatelessWidget {
   const _PendingOrderRow({
     required this.order,
     required this.alternate,
-    required this.onTap,
     required this.onView,
     required this.onEdit,
   });
 
   final PendingOrder order;
   final bool alternate;
-  final VoidCallback? onTap;
   final ValueChanged<String>? onView;
   final ValueChanged<String>? onEdit;
 
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    return Material(
+    return Container(
       key: ValueKey('pending-order-${order.name}'),
-      color: alternate ? colors.surfaceContainerLow : colors.surface,
-      child: InkWell(
-        onTap: onTap,
-        child: Container(
-          constraints: const BoxConstraints(minHeight: 52),
-          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-          decoration: BoxDecoration(
-            border: Border(bottom: BorderSide(color: colors.outlineVariant)),
+      constraints: const BoxConstraints(minHeight: 52),
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+      decoration: BoxDecoration(
+        color: alternate ? colors.surfaceContainerLow : colors.surface,
+        border: Border(bottom: BorderSide(color: colors.outlineVariant)),
+      ),
+      child: Row(
+        children: [
+          _DataCell(order.name, flex: 18, emphasized: true),
+          _DataCell(_formatDate(order.postingDate), flex: 15),
+          _DataCell(_customerLabel(order), flex: 22),
+          _DataCell(_fallback(order.driverName), flex: 22),
+          _DataCell(
+            formatQuantity(order.totalSaleQuantity),
+            flex: 12,
+            textAlign: TextAlign.right,
           ),
-          child: Row(
-            children: [
-              _DataCell(order.name, flex: 18, emphasized: true),
-              _DataCell(_formatDate(order.postingDate), flex: 15),
-              _DataCell(_customerLabel(order), flex: 22),
-              _DataCell(_fallback(order.driverName), flex: 22),
-              _DataCell(
-                formatQuantity(order.totalSaleQuantity),
-                flex: 12,
-                textAlign: TextAlign.right,
-              ),
-              _DataCell(
-                order.customer.trim().isEmpty || order.canShowPrice
-                    ? '${formatMoney(order.totalAmount)} រៀល'
-                    : '***',
-                flex: 17,
-                textAlign: TextAlign.right,
-                emphasized: true,
-                valueKey: ValueKey('pending-order-total-${order.name}'),
-              ),
-              if (onView != null || onEdit != null)
-                Expanded(
-                  flex: 24,
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      OutlinedButton.icon(
-                        key: ValueKey('view-pending-order-${order.name}'),
-                        onPressed: onView == null
-                            ? null
-                            : () => onView!(order.name),
-                        icon: const Icon(Icons.visibility_outlined, size: 17),
-                        label: const Text('មើល'),
-                        style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(horizontal: 10),
-                          visualDensity: VisualDensity.compact,
-                        ),
-                      ),
-                      const SizedBox(width: 7),
-                      FilledButton.tonalIcon(
-                        key: ValueKey('edit-pending-order-${order.name}'),
-                        onPressed: onEdit == null
-                            ? null
-                            : () => onEdit!(order.name),
-                        icon: const Icon(Icons.edit_outlined, size: 17),
-                        label: const Text('កែបុង'),
-                        style: FilledButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(horizontal: 10),
-                          visualDensity: VisualDensity.compact,
-                        ),
-                      ),
-                    ],
+          _DataCell(
+            order.customer.trim().isEmpty || order.canShowPrice
+                ? '${formatMoney(order.totalAmount)} រៀល'
+                : '***',
+            flex: 17,
+            textAlign: TextAlign.right,
+            emphasized: true,
+            valueKey: ValueKey('pending-order-total-${order.name}'),
+          ),
+          if (onView != null || onEdit != null)
+            Expanded(
+              flex: 32,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  OutlinedButton(
+                    key: ValueKey('view-pending-order-${order.name}'),
+                    onPressed: onView == null
+                        ? null
+                        : () => onView!(order.name),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      visualDensity: VisualDensity.compact,
+                    ),
+                    child: const Text('លម្អិត'),
                   ),
-                ),
-            ],
-          ),
-        ),
+                  const SizedBox(width: 7),
+                  FilledButton.tonal(
+                    key: ValueKey('edit-pending-order-${order.name}'),
+                    onPressed: onEdit == null
+                        ? null
+                        : () => onEdit!(order.name),
+                    style: FilledButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      visualDensity: VisualDensity.compact,
+                    ),
+                    child: const Text('កែ'),
+                  ),
+                ],
+              ),
+            ),
+        ],
       ),
     );
   }

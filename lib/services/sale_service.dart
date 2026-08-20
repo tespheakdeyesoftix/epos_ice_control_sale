@@ -21,6 +21,25 @@ class ClosedSalePage {
   final bool hasMore;
 }
 
+class PendingOrderWarningInfo {
+  const PendingOrderWarningInfo({
+    required this.pendingDate,
+    required this.totalPendingOrder,
+    required this.pendingOrderAmount,
+  });
+
+  final DateTime? pendingDate;
+  final int totalPendingOrder;
+  final double pendingOrderAmount;
+
+  bool shouldWarn({DateTime? now}) {
+    final date = pendingDate;
+    if (totalPendingOrder <= 0 || date == null) return false;
+    final current = now ?? DateTime.now();
+    return current.difference(date).compareTo(const Duration(hours: 1)) > 0;
+  }
+}
+
 class SaleService {
   SaleService(this.baseUri, {required http.Client client}) : _client = client;
 
@@ -242,6 +261,52 @@ class SaleService {
         : int.tryParse(payload?.toString().trim() ?? '');
     if (count == null) throw const SaleServiceException(200);
     return count < 0 ? 0 : count;
+  }
+
+  Future<PendingOrderWarningInfo> getMaxPendingOrderDate(String outlet) async {
+    final endpoint = baseUri.resolve(ApiEndpoint.maxPendingOrderDate);
+    final response = await _client
+        .get(
+          endpoint.replace(queryParameters: {'outlet': outlet.trim()}),
+          headers: const {'Accept': 'application/json'},
+        )
+        .timeout(const Duration(seconds: 30));
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw SaleServiceException(response.statusCode);
+    }
+
+    dynamic payload = jsonDecode(response.body);
+    if (payload is Map && payload.containsKey('message')) {
+      payload = payload['message'];
+    }
+    if (payload is String) payload = jsonDecode(payload);
+    if (payload is! Map) throw const SaleServiceException(200);
+
+    final countValue = payload['total_pending_order'];
+    final amountValue = payload['pending_order_amount'];
+    final count = countValue is num
+        ? countValue.toInt()
+        : int.tryParse(countValue?.toString().trim() ?? '');
+    final amount = amountValue is num
+        ? amountValue.toDouble()
+        : double.tryParse(amountValue?.toString().trim() ?? '');
+    if (count == null || amount == null) {
+      throw const SaleServiceException(200);
+    }
+
+    final pendingDateText = payload['pending_date']?.toString().trim() ?? '';
+    final pendingDate = pendingDateText.isEmpty
+        ? null
+        : DateTime.tryParse(pendingDateText);
+    if (pendingDateText.isNotEmpty && pendingDate == null) {
+      throw const SaleServiceException(200);
+    }
+    return PendingOrderWarningInfo(
+      pendingDate: pendingDate,
+      totalPendingOrder: count < 0 ? 0 : count,
+      pendingOrderAmount: amount < 0 ? 0 : amount,
+    );
   }
 
   Future<int> getTodayClosedSaleCount(String outlet) async {

@@ -17,7 +17,7 @@ class PendingOrderBadgeWidget extends StatelessWidget {
     final colors = Theme.of(context).colorScheme;
     final countLabel = count > 99 ? '99+' : count.toString();
     return Tooltip(
-      message: 'ការលក់ដែលបានផ្អាក: $count',
+      message: 'ការលក់រង់ចាំ: $count',
       child: SizedBox(
         key: const ValueKey('pending-order-badge'),
         width: 50,
