@@ -5,7 +5,9 @@ import 'package:ice_control_sale/features/sale_summary/widgets/sale_summary_kpi_
 import 'package:ice_control_sale/services/sale_service.dart';
 
 void main() {
-  testWidgets('shows completed orders with amount and pending orders', (tester) async {
+  testWidgets('shows completed orders with amount and pending orders', (
+    tester,
+  ) async {
     await tester.pumpWidget(
       MaterialApp(
         theme: AppTheme.light,
@@ -16,6 +18,9 @@ void main() {
               totalAmount: 6300000,
               totalPendingOrder: 3,
               totalPendingAmount: 1470000,
+              totalDeletedOrder: 2,
+              totalDeletedAmount: 320000,
+              totalDeletedQuantity: 8,
             ),
             isLoading: false,
           ),
@@ -29,6 +34,10 @@ void main() {
     expect(find.text('1,470,000 រៀល'), findsOneWidget);
     expect(find.byKey(const ValueKey('daily-sales-kpi')), findsOneWidget);
     expect(find.byKey(const ValueKey('pending-orders-kpi')), findsOneWidget);
+    expect(find.byKey(const ValueKey('deleted-orders-kpi')), findsOneWidget);
+    expect(find.text('320,000 រៀល'), findsOneWidget);
+    expect(find.text('2 ការលក់'), findsOneWidget);
+    expect(find.text('8 បរិមាណ'), findsOneWidget);
   });
 
   testWidgets('renders in an unbounded vertical scroll view', (tester) async {
@@ -50,6 +59,9 @@ void main() {
                   totalAmount: 6300000,
                   totalPendingOrder: 3,
                   totalPendingAmount: 1470000,
+                  totalDeletedOrder: 2,
+                  totalDeletedAmount: 320000,
+                  totalDeletedQuantity: 8,
                 ),
                 isLoading: false,
               ),
@@ -62,6 +74,7 @@ void main() {
     expect(tester.takeException(), isNull);
     expect(find.byKey(const ValueKey('daily-sales-kpi')), findsOneWidget);
     expect(find.byKey(const ValueKey('pending-orders-kpi')), findsOneWidget);
+    expect(find.byKey(const ValueKey('deleted-orders-kpi')), findsOneWidget);
   });
 
   testWidgets('invokes completed and pending KPI actions', (tester) async {
@@ -77,6 +90,9 @@ void main() {
               totalAmount: 6300000,
               totalPendingOrder: 3,
               totalPendingAmount: 1470000,
+              totalDeletedOrder: 2,
+              totalDeletedAmount: 320000,
+              totalDeletedQuantity: 8,
             ),
             isLoading: false,
             onSalesTap: () => salesTapped = true,

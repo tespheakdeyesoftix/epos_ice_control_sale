@@ -27,6 +27,9 @@ class DailySaleSummary {
     required this.totalAmount,
     required this.totalPendingOrder,
     required this.totalPendingAmount,
+    required this.totalDeletedOrder,
+    required this.totalDeletedAmount,
+    required this.totalDeletedQuantity,
   });
 
   factory DailySaleSummary.fromJson(Map<String, dynamic> json) {
@@ -41,6 +44,9 @@ class DailySaleSummary {
       totalAmount: decimal(json['total_amount']),
       totalPendingOrder: integer(json['total_pending_order']),
       totalPendingAmount: decimal(json['total_pending_amount']),
+      totalDeletedOrder: integer(json['total_deleted_order']),
+      totalDeletedAmount: decimal(json['total_deleted_amount']),
+      totalDeletedQuantity: decimal(json['total_deleted_quantity']),
     );
   }
 
@@ -48,6 +54,9 @@ class DailySaleSummary {
   final double totalAmount;
   final int totalPendingOrder;
   final double totalPendingAmount;
+  final int totalDeletedOrder;
+  final double totalDeletedAmount;
+  final double totalDeletedQuantity;
 }
 
 class PendingOrderWarningInfo {

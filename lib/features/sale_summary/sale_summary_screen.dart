@@ -28,6 +28,22 @@ class SaleSummaryScreen extends StatelessWidget {
     final settingController = Get.find<AppSettingController>();
     return Scaffold(
       backgroundColor: colors.surfaceContainerLow,
+      floatingActionButton: Obx(() {
+        final isRefreshing =
+            summaryController.isLoading.value ||
+            summaryController.isLoadingRecentSales.value;
+        return FloatingActionButton.small(
+          key: const ValueKey('refresh-sale-summary'),
+          tooltip: 'ផ្ទុកទំព័រឡើងវិញ',
+          onPressed: isRefreshing ? null : summaryController.load,
+          child: isRefreshing
+              ? const SizedBox.square(
+                  dimension: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Icon(Icons.refresh_rounded),
+        );
+      }),
       body: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,

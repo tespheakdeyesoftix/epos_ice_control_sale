@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../app/app_theme.dart';
 import 'network_image.dart';
 
 class WelcomeCardWidget extends StatelessWidget {
@@ -255,7 +256,7 @@ class _WorkplaceDetails extends StatelessWidget {
         spacing: 10,
         runSpacing: 10,
         children: [
-          _InfoPill(icon: Icons.storefront_outlined, label: 'សាខា', value: outletName.trim().isEmpty ? 'មិនបានកំណត់' : outletName.trim()),
+          _InfoPill(icon: Icons.storefront_outlined, label: 'កន្លែងលក់', value: outletName.trim().isEmpty ? 'មិនបានកំណត់' : outletName.trim()),
           _InfoPill(icon: Icons.point_of_sale_outlined, label: 'ម៉ាស៊ីនលក់', value: stationName.trim().isEmpty ? 'មិនបានកំណត់' : stationName.trim()),
         ],
       ),
@@ -268,7 +269,11 @@ class _WorkplaceDetails extends StatelessWidget {
             backgroundColor: Theme.of(context).colorScheme.onPrimary,
             foregroundColor: Theme.of(context).colorScheme.primary,
             padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 18),
-            textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+            textStyle: const TextStyle(
+              fontFamily: AppTheme.fontFamily,
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+            ),
           ),
           icon: const Icon(Icons.add_shopping_cart_rounded),
           label: const Text('បញ្ជេញបុងថ្មី'),

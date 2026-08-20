@@ -32,6 +32,7 @@ set(CMAKE_CXX_FLAGS_PROFILE "${CMAKE_CXX_FLAGS_RELEASE}")
 # Use Unicode for all projects.
 add_definitions(-DUNICODE -D_UNICODE)
 
+<<<<<<< Updated upstream
 # flutter_inappwebview_windows requires NuGet while configuring WebView2.
 # Keep a pinned, checksum-verified project-local copy for reproducible builds.
 set(NUGET_VERSION "6.11.1")
@@ -54,6 +55,13 @@ if(NOT EXISTS "${NUGET}")
   endif()
 endif()
 set(NUGET "${NUGET}" CACHE FILEPATH "Project-local NuGet executable" FORCE)
+=======
+# Serialize writes to compiler program database files. Some plugins compile
+# many C++ sources concurrently into one PDB and otherwise fail with C1041.
+if(MSVC)
+  add_compile_options(/FS)
+endif()
+>>>>>>> Stashed changes
 
 # Compilation settings that should be applied to most targets.
 #
@@ -70,6 +78,10 @@ endfunction()
 
 # Flutter library and tool build rules.
 set(FLUTTER_MANAGED_DIR "${CMAKE_CURRENT_SOURCE_DIR}/flutter")
+# flutter_inappwebview_windows requires nuget.exe to download its native
+# dependencies. Keep the executable project-local so Windows builds do not
+# depend on a machine-wide NuGet installation.
+list(PREPEND CMAKE_PROGRAM_PATH "${CMAKE_CURRENT_SOURCE_DIR}/tools")
 add_subdirectory(${FLUTTER_MANAGED_DIR})
 
 # Application build; see runner/CMakeLists.txt.
