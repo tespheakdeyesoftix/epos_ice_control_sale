@@ -120,19 +120,30 @@ class WarningPendingOrderWidget extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'ការព្រមាន៖ មានការលក់រង់ចាំយូរ',
+                          'ការព្រមាន៖ មានបុងរង់ចាំយូរ',
                           style: Theme.of(context).textTheme.titleLarge
                               ?.copyWith(fontWeight: FontWeight.w800),
                         ),
                         const SizedBox(height: 5),
                         Text(
                           pendingDate == null
-                              ? 'មានការលក់ដែលមិនទាន់បានបិទ។'
-                              : 'ការលក់ចាស់បំផុតត្រូវបានដាក់រង់ចាំ ${formatTimeAgo(pendingDate)}។',
+                              ? 'មានបុងរងចាំដែលមិនទាន់បានបិទ។'
+                              : 'បុងរង់យូជាងគេបំផុតត្រូវបានដាក់រង់ចាំ ${formatTimeAgo(pendingDate)}។',
                           style: TextStyle(color: colors.onSurfaceVariant),
                         ),
                       ],
                     ),
+                  ),
+                  const SizedBox(width: 8),
+                  IconButton(
+                    key: const ValueKey('close-pending-order-warning'),
+                    tooltip: 'បិទ',
+                    onPressed: () => Navigator.of(context).pop(false),
+                    style: IconButton.styleFrom(
+                      foregroundColor: colors.onSurfaceVariant,
+                      backgroundColor: colors.surfaceContainerHighest,
+                    ),
+                    icon: const Icon(Icons.close_rounded),
                   ),
                 ],
               ),
@@ -147,7 +158,7 @@ class WarningPendingOrderWidget extends StatelessWidget {
                   ),
                 ),
                 child: Text(
-                  'ការលក់រង់ចាំគឺសម្រាប់រក្សាទុកបណ្ដោះអាសន្នក្នុងរយៈពេលខ្លីប៉ុណ្ណោះ មិនមែនសម្រាប់ទុករយៈពេលយូរទេ។ សូមព្យាយាមពិនិត្យ និងបិទការលក់ទាំងនេះឱ្យបានឆាប់បំផុត។',
+                  'ការដាក់បុងរង់ចាំគឺសម្រាប់រក្សាទុកបណ្ដោះអាសន្នក្នុងរយៈពេលខ្លីប៉ុណ្ណោះ មិនមែនសម្រាប់ទុករយៈពេលយូរទេ។ សូមព្យាយាមពិនិត្យ និងបិទការលក់ទាំងនេះឱ្យបានឆាប់បំផុត។',
                   key: const ValueKey('pending-order-warning-message'),
                   style: TextStyle(
                     color: colors.onErrorContainer,
@@ -161,7 +172,7 @@ class WarningPendingOrderWidget extends StatelessWidget {
                 children: [
                   Expanded(
                     child: _WarningInfoCard(
-                      label: 'ចំនួនការលក់រង់ចាំ',
+                      label: 'ចំនួនបុងរង់ចាំ',
                       value: '${info.totalPendingOrder}',
                       valueKey: const ValueKey('warning-pending-order-count'),
                     ),
@@ -179,7 +190,7 @@ class WarningPendingOrderWidget extends StatelessWidget {
               if (pendingDate != null) ...[
                 const SizedBox(height: 12),
                 _WarningInfoCard(
-                  label: 'កាលបរិច្ឆេទការលក់រង់ចាំ',
+                  label: 'កាលបរិច្ឆេទបុងរង់ចាំយូបំផុត',
                   value: _formatDateTime(pendingDate),
                   valueKey: const ValueKey('warning-pending-order-date'),
                 ),
@@ -198,7 +209,7 @@ class WarningPendingOrderWidget extends StatelessWidget {
                     key: const ValueKey('view-pending-orders-warning'),
                     onPressed: () => Navigator.of(context).pop(true),
                     icon: const Icon(Icons.pending_actions_rounded),
-                    label: const Text('មើលបញ្ជីការលក់រង់ចាំ'),
+                    label: const Text('មើលបញ្ជីបុងរង់ចាំ'),
                   ),
                 ],
               ),

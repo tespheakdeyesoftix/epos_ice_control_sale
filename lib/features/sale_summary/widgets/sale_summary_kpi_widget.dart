@@ -98,91 +98,83 @@ class _SalesKpiCard extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(20),
-        child: Container(
+        splashColor: success.withValues(alpha: 0.16),
+        highlightColor: success.withValues(alpha: 0.07),
+        child: ConstrainedBox(
           constraints: const BoxConstraints(minHeight: 150),
-          padding: const EdgeInsets.all(18),
-          decoration: BoxDecoration(
-            color: colors.surface,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: colors.outlineVariant),
-            boxShadow: [
-              BoxShadow(
-                color: colors.shadow.withValues(alpha: 0.06),
-                blurRadius: 20,
-                offset: const Offset(0, 8),
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  _IconBadge(icon: Icons.trending_up_rounded, color: success),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      'ការលក់ប្រចាំថ្ងៃ',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                  if (isRefreshing)
-                    SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: success,
-                      ),
-                    ),
-                ],
-              ),
-              const SizedBox(height: 18),
-              Text(
-                '${formatMoney(summary.totalAmount)} រៀល',
-                key: const ValueKey('daily-sale-amount'),
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  color: colors.onSurface,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: -0.5,
+          child: Ink(
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
+              color: colors.surface,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: colors.outlineVariant),
+              boxShadow: [
+                BoxShadow(
+                  color: colors.shadow.withValues(alpha: 0.06),
+                  blurRadius: 20,
+                  offset: const Offset(0, 8),
                 ),
-              ),
-              const SizedBox(height: 6),
-              Row(
-                children: [
-                  Icon(Icons.receipt_long_outlined, size: 18, color: success),
-                  const SizedBox(width: 7),
-                  Text(
-                    '${summary.totalOrder} ការលក់បានបញ្ចប់',
-                    key: const ValueKey('daily-sale-orders'),
-                    style: TextStyle(
-                      color: colors.onSurfaceVariant,
-                      fontWeight: FontWeight.w600,
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    _IconBadge(icon: Icons.trending_up_rounded, color: success),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'ការលក់ប្រចាំថ្ងៃ',
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.w700),
+                      ),
                     ),
+                    if (isRefreshing)
+                      SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: success,
+                        ),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 18),
+                Text(
+                  '${formatMoney(summary.totalAmount)} រៀល',
+                  key: const ValueKey('daily-sale-amount'),
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    color: colors.onSurface,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.5,
                   ),
-                ],
-              ),
-              const SizedBox(height: 6),
-              Row(
-                children: [
-                  Icon(Icons.inventory_2_outlined, size: 18, color: success),
-                  const SizedBox(width: 7),
-                  Text(
-                    _quantityWithUnit(
-                      summary.totalQuantity,
-                      summary.defaultUnit,
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 14,
+                  runSpacing: 6,
+                  children: [
+                    _KpiMetric(
+                      key: const ValueKey('daily-sale-orders'),
+                      icon: Icons.receipt_long_outlined,
+                      value: '${summary.totalOrder} បុង',
+                      color: success,
                     ),
-                    key: const ValueKey('daily-sale-quantity'),
-                    style: TextStyle(
-                      color: colors.onSurfaceVariant,
-                      fontWeight: FontWeight.w600,
+                    _KpiMetric(
+                      key: const ValueKey('daily-sale-quantity'),
+                      icon: Icons.inventory_2_outlined,
+                      value: _quantityWithUnit(
+                        summary.totalQuantity,
+                        summary.defaultUnit,
+                      ),
+                      color: success,
                     ),
-                  ),
-                ],
-              ),
-            ],
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -205,105 +197,71 @@ class _PendingKpiCard extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(20),
-        child: Container(
+        splashColor: accent.withValues(alpha: 0.16),
+        highlightColor: accent.withValues(alpha: 0.07),
+        child: ConstrainedBox(
           constraints: const BoxConstraints(minHeight: 150),
-          padding: const EdgeInsets.all(18),
-          decoration: BoxDecoration(
-            color: colors.tertiaryContainer.withValues(alpha: 0.42),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: colors.tertiary.withValues(alpha: 0.2)),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  _IconBadge(
-                    icon: Icons.pending_actions_rounded,
-                    color: accent,
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      'ការលក់កំពុងរង់ចាំ',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
+          child: Ink(
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
+              color: colors.tertiaryContainer.withValues(alpha: 0.42),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: colors.tertiary.withValues(alpha: 0.2)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    _IconBadge(
+                      icon: Icons.pending_actions_rounded,
+                      color: accent,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'ការលក់កំពុងរង់ចាំ',
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.w700),
                       ),
                     ),
+                  ],
+                ),
+                const SizedBox(height: 18),
+                Text(
+                  '${formatMoney(summary.totalPendingAmount)} រៀល',
+                  key: const ValueKey('daily-pending-amount'),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    color: colors.onSurface,
+                    fontWeight: FontWeight.w800,
                   ),
-                ],
-              ),
-              const SizedBox(height: 18),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          '${summary.totalPendingOrder}',
-                          key: const ValueKey('daily-pending-orders'),
-                          style: Theme.of(context).textTheme.headlineSmall
-                              ?.copyWith(
-                                color: colors.onSurface,
-                                fontWeight: FontWeight.w800,
-                              ),
-                        ),
-                        Text(
-                          'ការលក់',
-                          style: TextStyle(
-                            color: colors.onSurfaceVariant,
-                            fontSize: 12,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          _quantityWithUnit(
-                            summary.totalPendingQuantity,
-                            summary.defaultUnit,
-                          ),
-                          key: const ValueKey('daily-pending-quantity'),
-                          style: TextStyle(
-                            color: colors.onSurfaceVariant,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 14,
+                  runSpacing: 6,
+                  children: [
+                    _KpiMetric(
+                      key: const ValueKey('daily-pending-orders'),
+                      icon: Icons.receipt_long_outlined,
+                      value: '${summary.totalPendingOrder} បុង',
+                      color: accent,
                     ),
-                  ),
-                  Flexible(
-                    flex: 2,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          '${formatMoney(summary.totalPendingAmount)} រៀល',
-                          key: const ValueKey('daily-pending-amount'),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: Theme.of(context).textTheme.titleLarge
-                              ?.copyWith(
-                                color: colors.onSurface,
-                                fontWeight: FontWeight.w800,
-                              ),
-                        ),
-                        Text(
-                          'ទឹកប្រាក់សរុប',
-                          style: TextStyle(
-                            color: colors.onSurfaceVariant,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ],
+                    _KpiMetric(
+                      key: const ValueKey('daily-pending-quantity'),
+                      icon: Icons.inventory_2_outlined,
+                      value: _quantityWithUnit(
+                        summary.totalPendingQuantity,
+                        summary.defaultUnit,
+                      ),
+                      color: accent,
                     ),
-                  ),
-                ],
-              ),
-            ],
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -362,13 +320,13 @@ class _DeletedKpiCard extends StatelessWidget {
             spacing: 14,
             runSpacing: 6,
             children: [
-              _DeletedMetric(
+              _KpiMetric(
                 key: const ValueKey('daily-deleted-orders'),
                 icon: Icons.receipt_long_outlined,
-                value: '${summary.totalDeletedOrder} ការលក់',
+                value: '${summary.totalDeletedOrder} បុង',
                 color: accent,
               ),
-              _DeletedMetric(
+              _KpiMetric(
                 key: const ValueKey('daily-deleted-quantity'),
                 icon: Icons.inventory_2_outlined,
                 value: _quantityWithUnit(
@@ -385,8 +343,8 @@ class _DeletedKpiCard extends StatelessWidget {
   }
 }
 
-class _DeletedMetric extends StatelessWidget {
-  const _DeletedMetric({
+class _KpiMetric extends StatelessWidget {
+  const _KpiMetric({
     super.key,
     required this.icon,
     required this.value,

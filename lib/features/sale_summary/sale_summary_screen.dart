@@ -14,6 +14,7 @@ import '../sell/widgets/pending_order_list_dialog_widget.dart';
 import 'sale_summary_controller.dart';
 import 'widgets/recent_order_widget.dart';
 import 'widgets/sale_summary_kpi_widget.dart';
+import 'widgets/sale_product_summary_widget.dart';
 
 class SaleSummaryScreen extends StatelessWidget {
   const SaleSummaryScreen({super.key});
@@ -116,43 +117,65 @@ class SaleSummaryScreen extends StatelessWidget {
                   ),
                 ),
                 LayoutBuilder(
-                  builder: (context, constraints) => Align(
-                    alignment: Alignment.centerLeft,
-                    child: SizedBox(
-                      width: constraints.maxWidth >= 720
-                          ? constraints.maxWidth / 2
-                          : constraints.maxWidth,
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(24, 0, 12, 24),
-                        child: Obx(
-                          () => RecentOrderWidget(
-                            orders: summaryController.recentClosedSales,
-                            isLoading:
-                                summaryController.isLoadingRecentSales.value,
-                            errorMessage:
-                                summaryController.recentSalesErrorMessage.value,
-                            imageBaseUri: summaryController.saleService.baseUri,
-                            onRetry: summaryController.loadRecentClosedSales,
-                            onViewAll: () {
-                              shell.navigateTo(
-                                AppDestination.closedSales,
-                                resolveUnfinishedSale: () async => true,
-                              );
-                            },
-                            onOrderTap: (sale) {
-                              Navigator.of(context).push(
-                                MaterialPageRoute<void>(
-                                  builder: (_) => SaleDetailScreen(sale: sale),
-                                ),
-                              );
-                            },
-                            onEdit: (sale) => Get.find<ClosedSaleController>()
-                                .editOrder(sale.name),
-                          ),
-                        ),
+                  builder: (context, constraints) {
+                    final productSummary = Obx(
+                      () => SaleProductSummaryWidget(
+                        products:
+                            summaryController
+                                .summary
+                                .value
+                                ?.saleProductSummary ??
+                            const [],
+                        isLoading: summaryController.isLoading.value,
+                        errorMessage: summaryController.errorMessage.value,
                       ),
-                    ),
-                  ),
+                    );
+                    final recentOrders = Obx(
+                      () => RecentOrderWidget(
+                        orders: summaryController.recentClosedSales,
+                        isLoading: summaryController.isLoadingRecentSales.value,
+                        errorMessage:
+                            summaryController.recentSalesErrorMessage.value,
+                        imageBaseUri: summaryController.saleService.baseUri,
+                        onRetry: summaryController.loadRecentClosedSales,
+                        onViewAll: () {
+                          shell.navigateTo(
+                            AppDestination.closedSales,
+                            resolveUnfinishedSale: () async => true,
+                          );
+                        },
+                        onOrderTap: (sale) {
+                          Navigator.of(context).push(
+                            MaterialPageRoute<void>(
+                              builder: (_) => SaleDetailScreen(sale: sale),
+                            ),
+                          );
+                        },
+                        onEdit: (sale) => Get.find<ClosedSaleController>()
+                            .editOrder(sale.name),
+                      ),
+                    );
+                    return Padding(
+                      padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+                      child: constraints.maxWidth >= 700
+                          ? Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(flex: 2, child: recentOrders),
+                                const SizedBox(width: 16),
+                                Expanded(flex: 3, child: productSummary),
+                              ],
+                            )
+                          : Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                productSummary,
+                                const SizedBox(height: 16),
+                                recentOrders,
+                              ],
+                            ),
+                    );
+                  },
                 ),
               ],
             ),

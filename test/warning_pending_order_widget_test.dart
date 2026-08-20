@@ -76,9 +76,11 @@ void main() {
     expect(find.text('1,470,000 រៀល'), findsOneWidget);
     expect(find.text('15/08/2020 11:39 ព្រឹក'), findsOneWidget);
 
-    await tester.tap(
-      find.byKey(const ValueKey('dismiss-pending-order-warning')),
+    expect(
+      find.byKey(const ValueKey('close-pending-order-warning')),
+      findsOneWidget,
     );
+    await tester.tap(find.byKey(const ValueKey('close-pending-order-warning')));
     await tester.pumpAndSettle();
     expect(
       find.byKey(const ValueKey('warning-pending-order-dialog')),

@@ -15,9 +15,27 @@ String formatMoney(num value) {
 
 String formatQuantity(num value) {
   final decimal = value.toDouble();
-  return decimal == decimal.truncateToDouble()
-      ? decimal.toInt().toString()
-      : decimal.toString();
+  if (!decimal.isFinite) return value.toString();
+  if (decimal == 0) return '0';
+
+  var text = value.toString();
+  if (text.contains('e') || text.contains('E')) {
+    text = decimal.toStringAsFixed(20);
+  }
+  if (text.contains('.')) {
+    text = text.replaceFirst(RegExp(r'0+$'), '');
+    text = text.replaceFirst(RegExp(r'\.$'), '');
+  }
+
+  final isNegative = text.startsWith('-');
+  final unsigned = isNegative ? text.substring(1) : text;
+  final parts = unsigned.split('.');
+  final groupedInteger = parts.first.replaceAllMapped(
+    RegExp(r'(\d)(?=(\d{3})+(?!\d))'),
+    (match) => '${match[1]},',
+  );
+  final fraction = parts.length > 1 ? '.${parts[1]}' : '';
+  return '${isNegative ? '-' : ''}$groupedInteger$fraction';
 }
 
 String formatTimeAgo(DateTime? value, {DateTime? now}) {

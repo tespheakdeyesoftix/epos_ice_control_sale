@@ -25,9 +25,23 @@ void main() {
               'total_deleted_amount': 320000,
               'total_deleted_quantity': 8.5,
               'default_unit': 'កេស',
+              'sale_product_summary': [
+                {
+                  'product_code': 'P-01',
+                  'product_name': 'ទឹកកកដើម',
+                  'unit': 'ដើម',
+                  'quantity': 12,
+                  'free_quantity': 1,
+                  'return_quantity': 2,
+                  'split_quantity': 0,
+                  'total_sale_quantity': 11,
+                  'total_amount': 165000,
+                },
+              ],
             },
           }),
           200,
+          headers: {'content-type': 'application/json; charset=utf-8'},
         );
       }),
     );
@@ -45,6 +59,14 @@ void main() {
     expect(summary.totalDeletedAmount, 320000);
     expect(summary.totalDeletedQuantity, 8.5);
     expect(summary.defaultUnit, 'កេស');
+    expect(summary.saleProductSummary, hasLength(1));
+    expect(summary.saleProductSummary.single.productCode, 'P-01');
+    expect(summary.saleProductSummary.single.productName, 'ទឹកកកដើម');
+    expect(summary.saleProductSummary.single.quantity, 12);
+    expect(summary.saleProductSummary.single.freeQuantity, 1);
+    expect(summary.saleProductSummary.single.returnQuantity, 2);
+    expect(summary.saleProductSummary.single.totalSaleQuantity, 11);
+    expect(summary.saleProductSummary.single.totalAmount, 165000);
   });
 
   test(

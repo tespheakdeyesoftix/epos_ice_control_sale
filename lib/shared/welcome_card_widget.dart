@@ -213,7 +213,7 @@ class _UserGreeting extends StatelessWidget {
                 '$greeting 👋',
                 style: TextStyle(
                   color: colors.onPrimary.withValues(alpha: 0.84),
-                  fontSize: 16,
+                  fontSize: 18,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -224,7 +224,7 @@ class _UserGreeting extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   color: colors.onPrimary,
-                  fontSize: 28,
+                  fontSize: 32,
                   fontWeight: FontWeight.w800,
                   height: 1.25,
                 ),
@@ -242,7 +242,7 @@ class _UserGreeting extends StatelessWidget {
                   style: TextStyle(
                     color: colors.onPrimary.withValues(alpha: 0.92),
                     fontWeight: FontWeight.w700,
-                    fontSize: 14,
+                    fontSize: 17,
                   ),
                 ),
                 if (businessNameKh.trim().isNotEmpty &&
@@ -253,7 +253,7 @@ class _UserGreeting extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       color: colors.onPrimary.withValues(alpha: 0.7),
-                      fontSize: 12,
+                      fontSize: 14,
                     ),
                   ),
               ],
@@ -296,7 +296,7 @@ class _BusinessDetail extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 14, color: foreground.withValues(alpha: 0.7)),
+        Icon(icon, size: 16, color: foreground.withValues(alpha: 0.7)),
         const SizedBox(width: 4),
         ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 260),
@@ -306,7 +306,7 @@ class _BusinessDetail extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
               color: foreground.withValues(alpha: 0.72),
-              fontSize: 11,
+              fontSize: 13,
             ),
           ),
         ),
@@ -348,7 +348,6 @@ class _WorkplaceDetails extends StatelessWidget {
                 ? 'មិនបានកំណត់'
                 : stationName.trim(),
             width: 190,
-            height: 62,
           ),
         ],
       ),
@@ -363,7 +362,7 @@ class _WorkplaceDetails extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 18),
             textStyle: const TextStyle(
               fontFamily: AppTheme.fontFamily,
-              fontSize: 15,
+              fontSize: 16,
               fontWeight: FontWeight.w700,
             ),
           ),
@@ -381,20 +380,17 @@ class _InfoPill extends StatelessWidget {
     required this.label,
     required this.value,
     this.width,
-    this.height,
   });
   final IconData icon;
   final String label;
   final String value;
   final double? width;
-  final double? height;
 
   @override
   Widget build(BuildContext context) {
     final foreground = Theme.of(context).colorScheme.onPrimary;
     return Container(
       width: width,
-      height: height,
       constraints: const BoxConstraints(maxWidth: 250),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
@@ -416,7 +412,7 @@ class _InfoPill extends StatelessWidget {
                   label,
                   style: TextStyle(
                     color: foreground.withValues(alpha: 0.72),
-                    fontSize: 11,
+                    fontSize: 13,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -426,6 +422,7 @@ class _InfoPill extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     color: foreground,
+                    fontSize: 16,
                     fontWeight: FontWeight.w700,
                   ),
                 ),

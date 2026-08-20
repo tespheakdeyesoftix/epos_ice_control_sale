@@ -32,8 +32,14 @@ void main() {
     );
 
     expect(find.text('6,300,000 រៀល'), findsOneWidget);
-    expect(find.text('2 ការលក់បានបញ្ចប់'), findsOneWidget);
-    expect(find.text('3'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('daily-sale-orders')),
+        matching: find.text('2 ការលក់'),
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('3 ការលក់'), findsOneWidget);
     expect(find.text('1,470,000 រៀល'), findsOneWidget);
     expect(find.text('20 កេស'), findsOneWidget);
     expect(find.text('12 កេស'), findsOneWidget);
@@ -41,7 +47,13 @@ void main() {
     expect(find.byKey(const ValueKey('pending-orders-kpi')), findsOneWidget);
     expect(find.byKey(const ValueKey('deleted-orders-kpi')), findsOneWidget);
     expect(find.text('320,000 រៀល'), findsOneWidget);
-    expect(find.text('2 ការលក់'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('daily-deleted-orders')),
+        matching: find.text('2 ការលក់'),
+      ),
+      findsOneWidget,
+    );
     expect(find.text('8 កេស'), findsOneWidget);
   });
 

@@ -14,6 +14,10 @@ void main() {
     expect(formatMoney(15000), '15,000');
     expect(formatQuantity(1), '1');
     expect(formatQuantity(1.5), '1.5');
+    expect(formatQuantity(1000), '1,000');
+    expect(formatQuantity(1234567.25), '1,234,567.25');
+    expect(formatQuantity(2500.0), '2,500');
+    expect(formatQuantity(-12345.75), '-12,345.75');
     expect(
       colorFromHex('#ECAD4B', fallback: Colors.blue),
       const Color(0xFFECAD4B),

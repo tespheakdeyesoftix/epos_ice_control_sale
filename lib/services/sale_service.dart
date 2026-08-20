@@ -33,6 +33,7 @@ class DailySaleSummary {
     required this.totalDeletedAmount,
     required this.totalDeletedQuantity,
     required this.defaultUnit,
+    this.saleProductSummary = const [],
   });
 
   factory DailySaleSummary.fromJson(Map<String, dynamic> json) {
@@ -53,6 +54,9 @@ class DailySaleSummary {
       totalDeletedAmount: decimal(json['total_deleted_amount']),
       totalDeletedQuantity: decimal(json['total_deleted_quantity']),
       defaultUnit: json['default_unit']?.toString().trim() ?? '',
+      saleProductSummary: _parseDailySaleProductSummary(
+        json['sale_product_summary'],
+      ),
     );
   }
 
@@ -66,6 +70,72 @@ class DailySaleSummary {
   final double totalDeletedAmount;
   final double totalDeletedQuantity;
   final String defaultUnit;
+  final List<DailySaleProductSummary> saleProductSummary;
+}
+
+class DailySaleProductSummary {
+  const DailySaleProductSummary({
+    required this.productCode,
+    required this.productName,
+    required this.unit,
+    required this.quantity,
+    required this.freeQuantity,
+    required this.returnQuantity,
+    required this.splitQuantity,
+    required this.totalSaleQuantity,
+    required this.totalAmount,
+  });
+
+  factory DailySaleProductSummary.fromJson(Map<String, dynamic> json) {
+    double decimal(Object? value) => value is num
+        ? value.toDouble()
+        : double.tryParse(value?.toString().trim() ?? '') ?? 0;
+    String text(Object? value) => value?.toString().trim() ?? '';
+
+    return DailySaleProductSummary(
+      productCode: text(json['product_code']),
+      productName: text(json['product_name']),
+      unit: text(json['unit']),
+      quantity: decimal(json['quantity']),
+      freeQuantity: decimal(json['free_quantity']),
+      returnQuantity: decimal(json['return_quantity']),
+      splitQuantity: decimal(json['split_quantity']),
+      totalSaleQuantity: decimal(json['total_sale_quantity']),
+      totalAmount: decimal(json['total_amount']),
+    );
+  }
+
+  final String productCode;
+  final String productName;
+  final String unit;
+  final double quantity;
+  final double freeQuantity;
+  final double returnQuantity;
+  final double splitQuantity;
+  final double totalSaleQuantity;
+  final double totalAmount;
+}
+
+List<DailySaleProductSummary> _parseDailySaleProductSummary(Object? value) {
+  dynamic rows = value;
+  if (rows is String && rows.trim().isNotEmpty) {
+    try {
+      rows = jsonDecode(rows);
+    } on FormatException {
+      return const [];
+    }
+  }
+  if (rows is Map) {
+    rows = rows['data'] ?? rows['items'] ?? rows['rows'];
+  }
+  if (rows is! List) return const [];
+  return rows
+      .whereType<Map>()
+      .map(
+        (row) =>
+            DailySaleProductSummary.fromJson(Map<String, dynamic>.from(row)),
+      )
+      .toList(growable: false);
 }
 
 class PendingOrderWarningInfo {
