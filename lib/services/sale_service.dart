@@ -25,11 +25,14 @@ class DailySaleSummary {
   const DailySaleSummary({
     required this.totalOrder,
     required this.totalAmount,
+    required this.totalQuantity,
     required this.totalPendingOrder,
     required this.totalPendingAmount,
+    required this.totalPendingQuantity,
     required this.totalDeletedOrder,
     required this.totalDeletedAmount,
     required this.totalDeletedQuantity,
+    required this.defaultUnit,
   });
 
   factory DailySaleSummary.fromJson(Map<String, dynamic> json) {
@@ -42,21 +45,27 @@ class DailySaleSummary {
     return DailySaleSummary(
       totalOrder: integer(json['total_order']),
       totalAmount: decimal(json['total_amount']),
+      totalQuantity: decimal(json['total_quantity']),
       totalPendingOrder: integer(json['total_pending_order']),
       totalPendingAmount: decimal(json['total_pending_amount']),
+      totalPendingQuantity: decimal(json['total_pending_quantity']),
       totalDeletedOrder: integer(json['total_deleted_order']),
       totalDeletedAmount: decimal(json['total_deleted_amount']),
       totalDeletedQuantity: decimal(json['total_deleted_quantity']),
+      defaultUnit: json['default_unit']?.toString().trim() ?? '',
     );
   }
 
   final int totalOrder;
   final double totalAmount;
+  final double totalQuantity;
   final int totalPendingOrder;
   final double totalPendingAmount;
+  final double totalPendingQuantity;
   final int totalDeletedOrder;
   final double totalDeletedAmount;
   final double totalDeletedQuantity;
+  final String defaultUnit;
 }
 
 class PendingOrderWarningInfo {

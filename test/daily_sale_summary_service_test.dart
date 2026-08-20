@@ -17,11 +17,14 @@ void main() {
             'message': {
               'total_order': 2,
               'total_amount': 6300000,
+              'total_quantity': 20.5,
               'total_pending_order': 3,
               'total_pending_amount': 1470000,
+              'total_pending_quantity': 12,
               'total_deleted_order': 2,
               'total_deleted_amount': 320000,
               'total_deleted_quantity': 8.5,
+              'default_unit': 'កេស',
             },
           }),
           200,
@@ -35,10 +38,13 @@ void main() {
     expect(sentRequest.url.queryParameters['outlet'], 'សាខាទី១');
     expect(summary.totalOrder, 2);
     expect(summary.totalAmount, 6300000);
+    expect(summary.totalQuantity, 20.5);
     expect(summary.totalPendingOrder, 3);
+    expect(summary.totalPendingQuantity, 12);
     expect(summary.totalDeletedOrder, 2);
     expect(summary.totalDeletedAmount, 320000);
     expect(summary.totalDeletedQuantity, 8.5);
+    expect(summary.defaultUnit, 'កេស');
   });
 
   test(

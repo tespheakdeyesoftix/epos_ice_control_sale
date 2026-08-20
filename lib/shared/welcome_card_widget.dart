@@ -56,7 +56,13 @@ class WelcomeCardWidget extends StatelessWidget {
             bottomLeft: Radius.circular(20),
             bottomRight: Radius.circular(20),
           ),
-          boxShadow: [BoxShadow(color: colors.primary.withValues(alpha: 0.18), blurRadius: 22, offset: const Offset(0, 8))],
+          boxShadow: [
+            BoxShadow(
+              color: colors.primary.withValues(alpha: 0.18),
+              blurRadius: 22,
+              offset: const Offset(0, 8),
+            ),
+          ],
         ),
         child: ClipRRect(
           borderRadius: const BorderRadius.only(
@@ -65,8 +71,16 @@ class WelcomeCardWidget extends StatelessWidget {
           ),
           child: Stack(
             children: [
-              const Positioned(right: -42, top: -58, child: _DecorationCircle(size: 180)),
-              const Positioned(right: 115, bottom: -72, child: _DecorationCircle(size: 130)),
+              const Positioned(
+                right: -42,
+                top: -58,
+                child: _DecorationCircle(size: 180),
+              ),
+              const Positioned(
+                right: 115,
+                bottom: -72,
+                child: _DecorationCircle(size: 130),
+              ),
               LayoutBuilder(
                 builder: (context, constraints) {
                   final compact = constraints.maxWidth < 760;
@@ -88,8 +102,21 @@ class WelcomeCardWidget extends StatelessWidget {
                   return Padding(
                     padding: EdgeInsets.all(compact ? 24 : 36),
                     child: compact
-                        ? Column(crossAxisAlignment: CrossAxisAlignment.start, children: [greetingBlock, const SizedBox(height: 18), workplace])
-                        : Row(children: [Expanded(child: greetingBlock), const SizedBox(width: 24), workplace]),
+                        ? Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              greetingBlock,
+                              const SizedBox(height: 18),
+                              workplace,
+                            ],
+                          )
+                        : Row(
+                            children: [
+                              Expanded(child: greetingBlock),
+                              const SizedBox(width: 24),
+                              workplace,
+                            ],
+                          ),
                   );
                 },
               ),
@@ -126,7 +153,16 @@ class _UserGreeting extends StatelessWidget {
     final colors = Theme.of(context).colorScheme;
     final fallback = ColoredBox(
       color: colors.onPrimary.withValues(alpha: 0.18),
-      child: Center(child: Text(name.characters.first.toUpperCase(), style: TextStyle(color: colors.onPrimary, fontSize: 31, fontWeight: FontWeight.w800))),
+      child: Center(
+        child: Text(
+          name.characters.first.toUpperCase(),
+          style: TextStyle(
+            color: colors.onPrimary,
+            fontSize: 31,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+      ),
     );
     final logoFallback = businessLogoUrl.trim().isEmpty
         ? fallback
@@ -147,14 +183,24 @@ class _UserGreeting extends StatelessWidget {
           width: 88,
           height: 88,
           padding: const EdgeInsets.all(3),
-          decoration: BoxDecoration(color: colors.onPrimary.withValues(alpha: 0.18), shape: BoxShape.circle, border: Border.all(color: colors.onPrimary.withValues(alpha: 0.6))),
+          decoration: BoxDecoration(
+            color: colors.onPrimary.withValues(alpha: 0.18),
+            shape: BoxShape.circle,
+            border: Border.all(color: colors.onPrimary.withValues(alpha: 0.6)),
+          ),
           child: ClipOval(
             child: imageUrl.trim().isEmpty
                 ? logoFallback
                 : AppNetworkImage(
-                    key: const ValueKey('welcome-user-avatar'), imageUrl: imageUrl, fit: BoxFit.cover,
-                    memCacheWidth: 160, memCacheHeight: 160, maxWidthDiskCache: 320, maxHeightDiskCache: 320,
-                    placeholder: logoFallback, errorWidget: logoFallback,
+                    key: const ValueKey('welcome-user-avatar'),
+                    imageUrl: imageUrl,
+                    fit: BoxFit.cover,
+                    memCacheWidth: 160,
+                    memCacheHeight: 160,
+                    maxWidthDiskCache: 320,
+                    maxHeightDiskCache: 320,
+                    placeholder: logoFallback,
+                    errorWidget: logoFallback,
                   ),
           ),
         ),
@@ -163,10 +209,28 @@ class _UserGreeting extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('$greeting 👋', style: TextStyle(color: colors.onPrimary.withValues(alpha: 0.84), fontSize: 16, fontWeight: FontWeight.w600)),
+              Text(
+                '$greeting 👋',
+                style: TextStyle(
+                  color: colors.onPrimary.withValues(alpha: 0.84),
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
               const SizedBox(height: 6),
-              Text(name, maxLines: 2, overflow: TextOverflow.ellipsis, style: TextStyle(color: colors.onPrimary, fontSize: 28, fontWeight: FontWeight.w800, height: 1.25)),
-              if (businessNameKh.trim().isNotEmpty || businessNameEn.trim().isNotEmpty) ...[
+              Text(
+                name,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: colors.onPrimary,
+                  fontSize: 28,
+                  fontWeight: FontWeight.w800,
+                  height: 1.25,
+                ),
+              ),
+              if (businessNameKh.trim().isNotEmpty ||
+                  businessNameEn.trim().isNotEmpty) ...[
                 const SizedBox(height: 10),
                 Text(
                   businessNameKh.trim().isNotEmpty
@@ -181,24 +245,35 @@ class _UserGreeting extends StatelessWidget {
                     fontSize: 14,
                   ),
                 ),
-                if (businessNameKh.trim().isNotEmpty && businessNameEn.trim().isNotEmpty)
+                if (businessNameKh.trim().isNotEmpty &&
+                    businessNameEn.trim().isNotEmpty)
                   Text(
                     businessNameEn.trim(),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(color: colors.onPrimary.withValues(alpha: 0.7), fontSize: 12),
+                    style: TextStyle(
+                      color: colors.onPrimary.withValues(alpha: 0.7),
+                      fontSize: 12,
+                    ),
                   ),
               ],
-              if (businessAddress.trim().isNotEmpty || businessPhone.trim().isNotEmpty) ...[
+              if (businessAddress.trim().isNotEmpty ||
+                  businessPhone.trim().isNotEmpty) ...[
                 const SizedBox(height: 7),
                 Wrap(
                   spacing: 14,
                   runSpacing: 4,
                   children: [
                     if (businessAddress.trim().isNotEmpty)
-                      _BusinessDetail(icon: Icons.location_on_outlined, value: businessAddress.trim()),
+                      _BusinessDetail(
+                        icon: Icons.location_on_outlined,
+                        value: businessAddress.trim(),
+                      ),
                     if (businessPhone.trim().isNotEmpty)
-                      _BusinessDetail(icon: Icons.phone_outlined, value: businessPhone.trim()),
+                      _BusinessDetail(
+                        icon: Icons.phone_outlined,
+                        value: businessPhone.trim(),
+                      ),
                   ],
                 ),
               ],
@@ -229,7 +304,10 @@ class _BusinessDetail extends StatelessWidget {
             value,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: TextStyle(color: foreground.withValues(alpha: 0.72), fontSize: 11),
+            style: TextStyle(
+              color: foreground.withValues(alpha: 0.72),
+              fontSize: 11,
+            ),
           ),
         ),
       ],
@@ -256,8 +334,22 @@ class _WorkplaceDetails extends StatelessWidget {
         spacing: 10,
         runSpacing: 10,
         children: [
-          _InfoPill(icon: Icons.storefront_outlined, label: 'កន្លែងលក់', value: outletName.trim().isEmpty ? 'មិនបានកំណត់' : outletName.trim()),
-          _InfoPill(icon: Icons.point_of_sale_outlined, label: 'ម៉ាស៊ីនលក់', value: stationName.trim().isEmpty ? 'មិនបានកំណត់' : stationName.trim()),
+          _InfoPill(
+            icon: Icons.storefront_outlined,
+            label: 'កន្លែងលក់',
+            value: outletName.trim().isEmpty
+                ? 'មិនបានកំណត់'
+                : outletName.trim(),
+          ),
+          _InfoPill(
+            icon: Icons.point_of_sale_outlined,
+            label: 'ម៉ាស៊ីនលក់',
+            value: stationName.trim().isEmpty
+                ? 'មិនបានកំណត់'
+                : stationName.trim(),
+            width: 190,
+            height: 62,
+          ),
         ],
       ),
       if (onCreateOrder != null) ...[
@@ -284,18 +376,32 @@ class _WorkplaceDetails extends StatelessWidget {
 }
 
 class _InfoPill extends StatelessWidget {
-  const _InfoPill({required this.icon, required this.label, required this.value});
+  const _InfoPill({
+    required this.icon,
+    required this.label,
+    required this.value,
+    this.width,
+    this.height,
+  });
   final IconData icon;
   final String label;
   final String value;
+  final double? width;
+  final double? height;
 
   @override
   Widget build(BuildContext context) {
     final foreground = Theme.of(context).colorScheme.onPrimary;
     return Container(
+      width: width,
+      height: height,
       constraints: const BoxConstraints(maxWidth: 250),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      decoration: BoxDecoration(color: foreground.withValues(alpha: 0.13), borderRadius: BorderRadius.circular(14), border: Border.all(color: foreground.withValues(alpha: 0.24))),
+      decoration: BoxDecoration(
+        color: foreground.withValues(alpha: 0.13),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: foreground.withValues(alpha: 0.24)),
+      ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -306,8 +412,23 @@ class _InfoPill extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(label, style: TextStyle(color: foreground.withValues(alpha: 0.72), fontSize: 11, fontWeight: FontWeight.w600)),
-                Text(value, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: foreground, fontWeight: FontWeight.w700)),
+                Text(
+                  label,
+                  style: TextStyle(
+                    color: foreground.withValues(alpha: 0.72),
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                Text(
+                  value,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: foreground,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
               ],
             ),
           ),
@@ -325,6 +446,12 @@ class _DecorationCircle extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     width: size,
     height: size,
-    decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: Theme.of(context).colorScheme.onPrimary.withValues(alpha: 0.1), width: 24)),
+    decoration: BoxDecoration(
+      shape: BoxShape.circle,
+      border: Border.all(
+        color: Theme.of(context).colorScheme.onPrimary.withValues(alpha: 0.1),
+        width: 24,
+      ),
+    ),
   );
 }

@@ -34,11 +34,14 @@ class SaleSummaryKpiWidget extends StatelessWidget {
         const DailySaleSummary(
           totalOrder: 0,
           totalAmount: 0,
+          totalQuantity: 0,
           totalPendingOrder: 0,
           totalPendingAmount: 0,
+          totalPendingQuantity: 0,
           totalDeletedOrder: 0,
           totalDeletedAmount: 0,
           totalDeletedQuantity: 0,
+          defaultUnit: '',
         );
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -161,6 +164,24 @@ class _SalesKpiCard extends StatelessWidget {
                   ),
                 ],
               ),
+              const SizedBox(height: 6),
+              Row(
+                children: [
+                  Icon(Icons.inventory_2_outlined, size: 18, color: success),
+                  const SizedBox(width: 7),
+                  Text(
+                    _quantityWithUnit(
+                      summary.totalQuantity,
+                      summary.defaultUnit,
+                    ),
+                    key: const ValueKey('daily-sale-quantity'),
+                    style: TextStyle(
+                      color: colors.onSurfaceVariant,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
             ],
           ),
         ),
@@ -235,6 +256,19 @@ class _PendingKpiCard extends StatelessWidget {
                           style: TextStyle(
                             color: colors.onSurfaceVariant,
                             fontSize: 12,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          _quantityWithUnit(
+                            summary.totalPendingQuantity,
+                            summary.defaultUnit,
+                          ),
+                          key: const ValueKey('daily-pending-quantity'),
+                          style: TextStyle(
+                            color: colors.onSurfaceVariant,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
                       ],
@@ -337,7 +371,10 @@ class _DeletedKpiCard extends StatelessWidget {
               _DeletedMetric(
                 key: const ValueKey('daily-deleted-quantity'),
                 icon: Icons.inventory_2_outlined,
-                value: '${formatQuantity(summary.totalDeletedQuantity)} បរិមាណ',
+                value: _quantityWithUnit(
+                  summary.totalDeletedQuantity,
+                  summary.defaultUnit,
+                ),
                 color: accent,
               ),
             ],
@@ -376,6 +413,13 @@ class _DeletedMetric extends StatelessWidget {
       ),
     ],
   );
+}
+
+String _quantityWithUnit(double quantity, String unit) {
+  return [
+    formatQuantity(quantity),
+    unit.trim(),
+  ].where((value) => value.isNotEmpty).join(' ');
 }
 
 class _IconBadge extends StatelessWidget {
@@ -448,11 +492,14 @@ Widget saleSummaryKpiWidgetPreview() => MaterialApp(
         summary: DailySaleSummary(
           totalOrder: 12,
           totalAmount: 6300000,
+          totalQuantity: 120,
           totalPendingOrder: 3,
           totalPendingAmount: 1470000,
+          totalPendingQuantity: 24,
           totalDeletedOrder: 2,
           totalDeletedAmount: 320000,
           totalDeletedQuantity: 8,
+          defaultUnit: 'កេស',
         ),
         isLoading: false,
       ),

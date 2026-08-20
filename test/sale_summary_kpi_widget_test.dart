@@ -16,11 +16,14 @@ void main() {
             summary: DailySaleSummary(
               totalOrder: 2,
               totalAmount: 6300000,
+              totalQuantity: 20,
               totalPendingOrder: 3,
               totalPendingAmount: 1470000,
+              totalPendingQuantity: 12,
               totalDeletedOrder: 2,
               totalDeletedAmount: 320000,
               totalDeletedQuantity: 8,
+              defaultUnit: 'កេស',
             ),
             isLoading: false,
           ),
@@ -32,12 +35,14 @@ void main() {
     expect(find.text('2 ការលក់បានបញ្ចប់'), findsOneWidget);
     expect(find.text('3'), findsOneWidget);
     expect(find.text('1,470,000 រៀល'), findsOneWidget);
+    expect(find.text('20 កេស'), findsOneWidget);
+    expect(find.text('12 កេស'), findsOneWidget);
     expect(find.byKey(const ValueKey('daily-sales-kpi')), findsOneWidget);
     expect(find.byKey(const ValueKey('pending-orders-kpi')), findsOneWidget);
     expect(find.byKey(const ValueKey('deleted-orders-kpi')), findsOneWidget);
     expect(find.text('320,000 រៀល'), findsOneWidget);
     expect(find.text('2 ការលក់'), findsOneWidget);
-    expect(find.text('8 បរិមាណ'), findsOneWidget);
+    expect(find.text('8 កេស'), findsOneWidget);
   });
 
   testWidgets('renders in an unbounded vertical scroll view', (tester) async {
@@ -57,11 +62,14 @@ void main() {
                 summary: DailySaleSummary(
                   totalOrder: 2,
                   totalAmount: 6300000,
+                  totalQuantity: 20,
                   totalPendingOrder: 3,
                   totalPendingAmount: 1470000,
+                  totalPendingQuantity: 12,
                   totalDeletedOrder: 2,
                   totalDeletedAmount: 320000,
                   totalDeletedQuantity: 8,
+                  defaultUnit: 'កេស',
                 ),
                 isLoading: false,
               ),
@@ -88,11 +96,14 @@ void main() {
             summary: const DailySaleSummary(
               totalOrder: 2,
               totalAmount: 6300000,
+              totalQuantity: 20,
               totalPendingOrder: 3,
               totalPendingAmount: 1470000,
+              totalPendingQuantity: 12,
               totalDeletedOrder: 2,
               totalDeletedAmount: 320000,
               totalDeletedQuantity: 8,
+              defaultUnit: 'កេស',
             ),
             isLoading: false,
             onSalesTap: () => salesTapped = true,

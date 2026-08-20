@@ -255,6 +255,8 @@ class _WarningInfoCard extends StatelessWidget {
 String _formatDateTime(DateTime value) {
   final local = value.isUtc ? value.toLocal() : value;
   String twoDigits(int number) => number.toString().padLeft(2, '0');
-  return '${local.year}-${twoDigits(local.month)}-${twoDigits(local.day)} '
-      '${twoDigits(local.hour)}:${twoDigits(local.minute)}';
+  final hour = local.hour % 12 == 0 ? 12 : local.hour % 12;
+  final period = local.hour < 12 ? 'ព្រឹក' : 'ល្ងាច';
+  return '${twoDigits(local.day)}/${twoDigits(local.month)}/${local.year} '
+      '${twoDigits(hour)}:${twoDigits(local.minute)} $period';
 }

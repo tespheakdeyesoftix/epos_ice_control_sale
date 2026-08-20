@@ -9,6 +9,27 @@ import 'package:ice_control_sale/services/sale_service.dart';
 import 'package:ice_control_sale/shared/warning_pending_order_widget.dart';
 
 void main() {
+  testWidgets('formats an afternoon pending date with the Khmer PM label', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light,
+        home: Scaffold(
+          body: WarningPendingOrderWidget(
+            info: PendingOrderWarningInfo(
+              pendingDate: DateTime(2020, 8, 15, 13, 5),
+              totalPendingOrder: 1,
+              pendingOrderAmount: 15000,
+            ),
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('15/08/2020 01:05 ល្ងាច'), findsOneWidget);
+  });
+
   testWidgets('shows old pending-order details and can be dismissed', (
     tester,
   ) async {
@@ -53,7 +74,7 @@ void main() {
     );
     expect(find.text('3'), findsOneWidget);
     expect(find.text('1,470,000 រៀល'), findsOneWidget);
-    expect(find.text('2020-08-15 11:39'), findsOneWidget);
+    expect(find.text('15/08/2020 11:39 ព្រឹក'), findsOneWidget);
 
     await tester.tap(
       find.byKey(const ValueKey('dismiss-pending-order-warning')),
