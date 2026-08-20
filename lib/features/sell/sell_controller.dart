@@ -100,6 +100,13 @@ class SellController extends GetxController {
   Uri? saleProductImage(SaleProduct product) => _saleProductImage(product);
   Uri? customerImage(Customer customer) => _customerImage(customer);
 
+  Product? productByCode(String productCode) {
+    for (final product in products) {
+      if (product.code == productCode) return product;
+    }
+    return null;
+  }
+
   @override
   void onInit() {
     super.onInit();
@@ -249,8 +256,11 @@ class SellController extends GetxController {
     }
   }
 
-  bool hasProduct(Product product) =>
-      saleProducts.any((item) => item.productCode == product.code);
+  bool hasProduct(Product product) => saleProducts.any(
+    (item) =>
+        item.productCode == product.code &&
+        item.unit.trim() == product.unit.trim(),
+  );
 
   bool addProduct(Product product, {double quantity = 1}) {
     if (quantity <= 0 || hasProduct(product)) return false;
@@ -276,25 +286,55 @@ class SellController extends GetxController {
       throw const SaleProductRemovePermissionException();
     }
     saleProducts.removeWhere(
-      (candidate) => candidate.productCode == item.productCode,
+      (candidate) =>
+          candidate.productCode == item.productCode &&
+          candidate.unit.trim() == item.unit.trim(),
     );
   }
 
-  void updateSaleProduct(SaleProduct updatedItem) {
+  void updateSaleProduct(SaleProduct updatedItem, {SaleProduct? originalItem}) {
+    final original = originalItem ?? updatedItem;
     final index = saleProducts.indexWhere(
-      (item) => item.productCode == updatedItem.productCode,
+      (item) =>
+          item.productCode == original.productCode &&
+          item.unit.trim() == original.unit.trim(),
     );
     if (index < 0) return;
+    final duplicateIndex = saleProducts.indexWhere(
+      (item) =>
+          item.productCode == updatedItem.productCode &&
+          item.unit.trim() == updatedItem.unit.trim(),
+    );
+    if (duplicateIndex >= 0 && duplicateIndex != index) {
+      throw const SaleProductUnitAlreadySelectedException();
+    }
     final currentItem = saleProducts[index];
-    final priceChanged =
-        (currentItem.price - updatedItem.price).abs() > 0.000001;
+    final unitChanged = currentItem.unit.trim() != updatedItem.unit.trim();
+    var nextItem = updatedItem;
+    if (unitChanged) {
+      final customerPrice = _customerPriceFor(
+        productCode: updatedItem.productCode,
+        unit: updatedItem.unit,
+      );
+      nextItem = updatedItem.copyWith(
+        price: updatedItem.isBorrow
+            ? 0
+            : customerPrice?.price ??
+                  updatedItem.productPrice ??
+                  updatedItem.price,
+      );
+    }
+    final priceChanged = (currentItem.price - nextItem.price).abs() > 0.000001;
     final saleTypeChanged =
         currentItem.saleTransactionType.trim().toLowerCase() !=
-        updatedItem.saleTransactionType.trim().toLowerCase();
-    if (priceChanged && !saleTypeChanged && !canChangeProductPrice) {
+        nextItem.saleTransactionType.trim().toLowerCase();
+    if (priceChanged &&
+        !unitChanged &&
+        !saleTypeChanged &&
+        !canChangeProductPrice) {
       throw const ProductPriceChangePermissionException();
     }
-    saleProducts[index] = updatedItem;
+    saleProducts[index] = nextItem;
   }
 
   void clearCart() => saleProducts.clear();

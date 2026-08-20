@@ -1,10 +1,10 @@
- [
+[
     {
       "product_code": "01",
       "product_name": "ទឹកកកដើមធំ",
       "product_category": "ទឹកកកដើម",
       "revenue_group": "ទឹកកកដើម",
-      "price": 15000,
+      "price": 18000,
       "unit": "ដើម",
       "color": "#ECAD4B",
       "photo": "/files/block_ice.jpg",
@@ -18,6 +18,14 @@
       "allow_change_price": 1,
       "allow_change_sale_type": 0,
       "product_units": [
+        {
+          "product_code": "01",
+          "unit": "ថង",
+          "price": 700000,
+          "multiplier": 6,
+          "base_product_unit": 0,
+          "photo": null
+        },
         {
           "product_code": "01",
           "unit": "ដើម",
@@ -125,7 +133,7 @@
       "color": null,
       "photo": "/files/Screenshot 2026-08-17 134407.png",
       "multiplier": 1,
-      "allow_sum_qty": 0,
+      "allow_sum_qty": 1,
       "allow_split_bill": 0,
       "default_sale_transaction_type": "Sale",
       "is_inventory_product": 1,

@@ -167,6 +167,42 @@ void main() {
     expect(count, 7);
   });
 
+  test('ទាញកាលបរិច្ឆេទ និងសរុបការលក់ដែលបានផ្អាក', () async {
+    late http.Request sentRequest;
+    final client = MockClient((request) async {
+      sentRequest = request;
+      return http.Response(
+        jsonEncode({
+          'message': {
+            'pending_date': '2026-08-15 11:39:07.917715',
+            'total_pending_order': 3,
+            'pending_order_amount': 1470000.0,
+          },
+        }),
+        200,
+        headers: {'content-type': 'application/json'},
+      );
+    });
+    final service = SaleService(
+      Uri.parse('http://127.0.0.1:8888/'),
+      client: client,
+    );
+
+    final info = await service.getMaxPendingOrderDate('ទឹកកកដើម');
+
+    expect(sentRequest.method, 'GET');
+    expect(
+      sentRequest.url.path,
+      '/api/method/ice_control.api.v1.sale.get_max_pending_order_date',
+    );
+    expect(sentRequest.url.queryParameters['outlet'], 'ទឹកកកដើម');
+    expect(info.pendingDate, DateTime(2026, 8, 15, 11, 39, 7, 917, 715));
+    expect(info.totalPendingOrder, 3);
+    expect(info.pendingOrderAmount, 1470000);
+    expect(info.shouldWarn(now: DateTime(2026, 8, 15, 12, 39, 8)), isTrue);
+    expect(info.shouldWarn(now: DateTime(2026, 8, 15, 12, 39, 7)), isFalse);
+  });
+
   test('ទាញចំនួនការលក់ Closed របស់ថ្ងៃនេះតាមសាខា', () async {
     late http.Request sentRequest;
     final client = MockClient((request) async {

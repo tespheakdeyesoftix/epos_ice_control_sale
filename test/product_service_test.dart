@@ -26,6 +26,20 @@ void main() {
               'allow_sum_qty': 1,
               'allow_change_sale_type': 1,
               'default_sale_type': 'Borrow',
+              'product_units': [
+                {
+                  'unit': 'Case',
+                  'price': 700000,
+                  'multiplier': 6,
+                  'base_product_unit': 0,
+                },
+                {
+                  'unit': 'Block',
+                  'price': 15000,
+                  'multiplier': 1,
+                  'base_product_unit': 1,
+                },
+              ],
             },
           ],
         }),
@@ -53,9 +67,19 @@ void main() {
     expect(products.single.allowSumQuantity, isTrue);
     expect(products.single.allowChangeSaleType, isTrue);
     expect(products.single.saleTransactionType, 'Borrow');
+    expect(products.single.productUnits, hasLength(2));
+    expect(products.single.resolvedBaseUnit, 'Block');
+
+    final caseProduct = products.single.forUnit(
+      products.single.productUnits.first,
+    );
+    expect(caseProduct.unit, 'Case');
+    expect(caseProduct.price, 700000);
+    expect(caseProduct.multiplier, 6);
+    expect(caseProduct.resolvedBaseUnit, 'Block');
 
     final saleProduct = SaleProduct.fromProduct(
-      products.single,
+      caseProduct,
       outlet: 'ទឹកកកដើម',
     );
     expect(saleProduct.photo, '/files/block_ice.jpg');
@@ -64,13 +88,16 @@ void main() {
     expect(saleProduct.allowChangeSaleType, isTrue);
     expect(saleProduct.saleTransactionType, 'Borrow');
     expect(saleProduct.price, 0);
-    expect(saleProduct.productPrice, 15000);
+    expect(saleProduct.productPrice, 700000);
+    expect(saleProduct.unit, 'Case');
+    expect(saleProduct.baseUnit, 'Block');
+    expect(saleProduct.multiplier, 6);
     expect(saleProduct.toJson()['photo'], '/files/block_ice.jpg');
     expect(saleProduct.toJson()['revenue_group'], 'ចំណូលទឹកកកដើម');
     expect(saleProduct.toJson()['allow_sum_qty'], 1);
     expect(saleProduct.toJson()['allow_change_sale_type'], 1);
     expect(saleProduct.toJson()['sale_transaction_type'], 'Borrow');
     expect(saleProduct.toJson()['price'], 0);
-    expect(saleProduct.toJson()['product_price'], 15000);
+    expect(saleProduct.toJson()['product_price'], 700000);
   });
 }

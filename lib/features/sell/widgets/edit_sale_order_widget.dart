@@ -3,11 +3,14 @@ import 'package:flutter/material.dart';
 import '../../../app/app_theme.dart';
 import '../../../shared/input_number_dialog_widget.dart';
 import '../../../utils/helpers.dart';
+import '../product.dart';
 import '../sale_product.dart';
+import 'select_product_unit_dialog_widget.dart';
 
 Future<SaleProduct?> showEditSaleOrderDialog(
   BuildContext context, {
   required SaleProduct saleProduct,
+  Product? product,
   bool canShowPrice = true,
   bool canChangePrice = true,
   String customerName = '',
@@ -16,6 +19,7 @@ Future<SaleProduct?> showEditSaleOrderDialog(
     context: context,
     builder: (_) => EditSaleOrderWidget(
       saleProduct: saleProduct,
+      product: product,
       canShowPrice: canShowPrice,
       canChangePrice: canChangePrice,
       customerName: customerName,
@@ -27,12 +31,14 @@ class EditSaleOrderWidget extends StatefulWidget {
   const EditSaleOrderWidget({
     super.key,
     required this.saleProduct,
+    this.product,
     this.canShowPrice = true,
     this.canChangePrice = true,
     this.customerName = '',
   });
 
   final SaleProduct saleProduct;
+  final Product? product;
   final bool canShowPrice;
   final bool canChangePrice;
   final String customerName;
@@ -49,6 +55,11 @@ class _EditSaleOrderWidgetState extends State<EditSaleOrderWidget> {
   late double _freeQuantity;
   late String _saleTransactionType;
   late String _note;
+  late String _unit;
+  late String _baseUnit;
+  late double _multiplier;
+  late double? _productPrice;
+  late String _photo;
 
   bool get _isBorrow => _saleTransactionType == 'Borrow';
 
@@ -69,6 +80,11 @@ class _EditSaleOrderWidgetState extends State<EditSaleOrderWidget> {
     _returnQuantity = widget.saleProduct.returnQuantity;
     _freeQuantity = widget.saleProduct.freeQuantity;
     _note = widget.saleProduct.note;
+    _unit = widget.saleProduct.unit;
+    _baseUnit = widget.saleProduct.baseUnit;
+    _multiplier = widget.saleProduct.multiplier;
+    _productPrice = widget.saleProduct.productPrice;
+    _photo = widget.saleProduct.photo;
   }
 
   Future<void> _editNumber({
@@ -92,6 +108,26 @@ class _EditSaleOrderWidgetState extends State<EditSaleOrderWidget> {
     if (result != null && mounted) setState(() => _note = result);
   }
 
+  Future<void> _editUnit() async {
+    final product = widget.product;
+    if (product == null || product.productUnits.length <= 1) return;
+    final selected = await showSelectProductUnitDialog(
+      context,
+      product: product,
+      showPrices: widget.canShowPrice,
+    );
+    if (selected == null || !mounted) return;
+    setState(() {
+      _unit = selected.unit;
+      _baseUnit = selected.resolvedBaseUnit;
+      _multiplier = selected.multiplier;
+      _productPrice = selected.price;
+      _photo = selected.photo;
+      _salePrice = selected.price;
+      _price = _isBorrow ? 0 : selected.price;
+    });
+  }
+
   void _changeSaleTransactionType(String value) {
     if (!widget.saleProduct.allowChangeSaleType ||
         value == _saleTransactionType) {
@@ -112,6 +148,11 @@ class _EditSaleOrderWidgetState extends State<EditSaleOrderWidget> {
     if (!_hasValidQuantities) return;
     Navigator.of(context).pop(
       widget.saleProduct.copyWith(
+        unit: _unit,
+        baseUnit: _baseUnit,
+        multiplier: _multiplier,
+        productPrice: _productPrice,
+        photo: _photo,
         quantity: _quantity,
         price: _price,
         saleTransactionType: _saleTransactionType,
@@ -271,6 +312,14 @@ class _EditSaleOrderWidgetState extends State<EditSaleOrderWidget> {
                       crossAxisSpacing: 12,
                       mainAxisSpacing: 12,
                       children: [
+                        if ((widget.product?.productUnits.length ?? 0) > 1)
+                          _EditOptionCard(
+                            key: const ValueKey('edit-sale-unit'),
+                            icon: Icons.scale_outlined,
+                            label: 'ឯកតា',
+                            value: _unit,
+                            onTap: _editUnit,
+                          ),
                         _EditOptionCard(
                           key: const ValueKey('edit-sale-quantity'),
                           icon: Icons.shopping_basket_outlined,
@@ -303,17 +352,7 @@ class _EditSaleOrderWidgetState extends State<EditSaleOrderWidget> {
                                   },
                                 ),
                         ),
-                        _EditOptionCard(
-                          key: const ValueKey('edit-sale-return-quantity'),
-                          icon: Icons.assignment_return_outlined,
-                          label: 'ចំនួនសល់មកវិញ',
-                          value: formatQuantity(_returnQuantity),
-                          onTap: () => _editNumber(
-                            value: _returnQuantity,
-                            allowZero: true,
-                            onChanged: (value) => _returnQuantity = value,
-                          ),
-                        ),
+
                         _EditOptionCard(
                           key: const ValueKey('edit-sale-free-quantity'),
                           icon: Icons.card_giftcard_outlined,
@@ -323,6 +362,17 @@ class _EditSaleOrderWidgetState extends State<EditSaleOrderWidget> {
                             value: _freeQuantity,
                             allowZero: true,
                             onChanged: (value) => _freeQuantity = value,
+                          ),
+                        ),
+                        _EditOptionCard(
+                          key: const ValueKey('edit-sale-return-quantity'),
+                          icon: Icons.assignment_return_outlined,
+                          label: 'ចំនួនសល់មកវិញ',
+                          value: formatQuantity(_returnQuantity),
+                          onTap: () => _editNumber(
+                            value: _returnQuantity,
+                            allowZero: true,
+                            onChanged: (value) => _returnQuantity = value,
                           ),
                         ),
                         _EditOptionCard(

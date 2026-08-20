@@ -10,6 +10,7 @@ import '../../shared/network_image.dart';
 import '../../shared/receipts/close_and_print_flow.dart';
 import '../../shared/select_customer_dialog_widget.dart';
 import '../../shared/user_profile_widget.dart';
+import '../../shared/warning_pending_order_widget.dart';
 import '../closed_sales/closed_sale_list_screen.dart';
 import '../closed_sales/closed_sale_controller.dart';
 import '../login/login_controller.dart';
@@ -37,6 +38,45 @@ class AppShellScreen extends GetView<AppShellController> {
       destination,
       resolveUnfinishedSale: () => _resolveUnfinishedSale(context),
     );
+  }
+
+  Future<void> _editPendingOrder(BuildContext context, String name) async {
+    final sell = controller.sellController;
+    try {
+      await sell.openPendingOrder(name);
+      if (!context.mounted) return;
+      await controller.navigateTo(
+        AppDestination.sale,
+        resolveUnfinishedSale: () async => true,
+      );
+    } on PendingOrderOpenValidationException {
+      FrappeResponseHandler.show(
+        const FrappeServerMessage(
+          message: 'សូមរក្សាទុកការលក់បច្ចុប្បន្នជាមុនសិន មុននឹងកែបុងរង់ចាំ។',
+          indicator: 'orange',
+        ),
+      );
+    } on SaleEditBlockedException catch (error) {
+      FrappeResponseHandler.show(
+        FrappeServerMessage(message: error.message, indicator: 'orange'),
+      );
+    } on PendingOrderNotDraftException {
+      FrappeResponseHandler.show(
+        const FrappeServerMessage(
+          message: 'បុងនេះមិនមែនជាបុងរង់ចាំទៀតទេ។',
+          indicator: 'orange',
+        ),
+      );
+    } on FrappeServerMessageException {
+      // The shared API client already displayed the server message.
+    } on Exception {
+      FrappeResponseHandler.show(
+        const FrappeServerMessage(
+          message: 'មិនអាចបើកបុងរង់ចាំនេះបានទេ។',
+          indicator: 'red',
+        ),
+      );
+    }
   }
 
   Future<bool> _resolveUnfinishedSale(BuildContext context) async {
@@ -181,7 +221,7 @@ class AppShellScreen extends GetView<AppShellController> {
         savedOrder: savedOrder,
         title: action == _SaleLeaveAction.close
             ? 'រក្សាទុកការលក់បានជោគជ័យ'
-            : 'ផ្អាកការលក់បានជោគជ័យ',
+            : 'ដាក់ការលក់ក្នុងរង់ចាំបានជោគជ័យ',
       );
       return context.mounted;
     } on CustomerChangePermissionException catch (error) {
@@ -235,122 +275,134 @@ class AppShellScreen extends GetView<AppShellController> {
     final themeController = Get.find<ThemeController>();
     final closedSaleController = Get.find<ClosedSaleController>();
     return Scaffold(
-      body: SafeArea(
-        child: Obx(() {
-          final selected = controller.selectedDestination.value;
-          final visited = controller.visitedDestinations.toSet();
-          return Row(
-            children: [
-              Container(
-                key: const ValueKey('app-navigation-rail'),
-                width: 64,
-                decoration: BoxDecoration(
-                  color: colors.surface,
-                  border: Border(
-                    right: BorderSide(color: colors.outlineVariant),
-                  ),
-                ),
-                child: NavigationRail(
-                  minWidth: 64,
-                  selectedIndex: selected.index,
-                  labelType: NavigationRailLabelType.none,
-                  groupAlignment: -0.8,
-                  backgroundColor: colors.surface,
-                  indicatorColor: colors.primaryContainer,
-                  useIndicator: true,
-                  leading: Padding(
-                    padding: const EdgeInsets.only(top: 10, bottom: 18),
-                    child: _RailCompanyAvatar(
-                      settingController: settingController,
+      body: Stack(
+        children: [
+          SafeArea(
+            child: Obx(() {
+              final selected = controller.selectedDestination.value;
+              final visited = controller.visitedDestinations.toSet();
+              return Row(
+                children: [
+                  Container(
+                    key: const ValueKey('app-navigation-rail'),
+                    width: 64,
+                    decoration: BoxDecoration(
+                      color: colors.surface,
+                      border: Border(
+                        right: BorderSide(color: colors.outlineVariant),
+                      ),
                     ),
-                  ),
-                  trailingAtBottom: true,
-                  trailing: Padding(
-                    padding: const EdgeInsets.only(bottom: 10),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        IconButton(
-                          key: const ValueKey('rail-settings-button'),
-                          tooltip: 'ការកំណត់',
-                          onPressed: () => Navigator.of(context).push(
-                            MaterialPageRoute<void>(
-                              builder: (_) => const SettingScreen(),
-                            ),
-                          ),
-                          icon: const Icon(Icons.settings_outlined),
+                    child: NavigationRail(
+                      minWidth: 64,
+                      selectedIndex: selected.index,
+                      labelType: NavigationRailLabelType.none,
+                      groupAlignment: -0.8,
+                      backgroundColor: colors.surface,
+                      indicatorColor: colors.primaryContainer,
+                      useIndicator: true,
+                      leading: Padding(
+                        padding: const EdgeInsets.only(top: 10, bottom: 18),
+                        child: _RailCompanyAvatar(
+                          settingController: settingController,
                         ),
-                        SizedBox(
-                          width: 32,
-                          child: Divider(
-                            key: const ValueKey('rail-profile-separator'),
-                            height: 17,
-                            color: colors.outlineVariant,
-                          ),
-                        ),
-                        Obx(
-                          () => UserProfileWidget(
-                            username: loginController.currentUsername.value,
-                            userImageUrl:
-                                loginController.currentUserImageUrl.value,
-                            isDark: themeController.isDark.value,
-                            onThemeToggle: themeController.toggleTheme,
-                            onLogout: loginController.logout,
-                            compact: true,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  onDestinationSelected: controller.isNavigating.value
-                      ? null
-                      : (index) =>
-                            _navigate(context, AppDestination.values[index]),
-                  destinations: AppDestination.values
-                      .map(
-                        (destination) => NavigationRailDestination(
-                          icon: Tooltip(
-                            key: ValueKey(
-                              'nav-destination-${destination.name}',
-                            ),
-                            message: destination.label,
-                            child: _RailDestinationIcon(
-                              destination: destination,
-                              pendingCount: controller
-                                  .sellController
-                                  .pendingOrderCount
-                                  .value,
-                              closedCount: closedSaleController
-                                  .todayClosedSaleCount
-                                  .value,
-                            ),
-                          ),
-                          label: Text(destination.label),
-                        ),
-                      )
-                      .toList(growable: false),
-                ),
-              ),
-              Expanded(
-                child: IndexedStack(
-                  index: selected.index,
-                  children: AppDestination.values
-                      .map(
-                        (destination) => visited.contains(destination)
-                            ? KeyedSubtree(
-                                key: ValueKey(
-                                  'destination-screen-${destination.name}',
+                      ),
+                      trailingAtBottom: true,
+                      trailing: Padding(
+                        padding: const EdgeInsets.only(bottom: 10),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              key: const ValueKey('rail-settings-button'),
+                              tooltip: 'ការកំណត់',
+                              onPressed: () => Navigator.of(context).push(
+                                MaterialPageRoute<void>(
+                                  builder: (_) => const SettingScreen(),
                                 ),
-                                child: _screenFor(destination),
-                              )
-                            : const SizedBox.shrink(),
-                      )
-                      .toList(growable: false),
-                ),
-              ),
-            ],
-          );
-        }),
+                              ),
+                              icon: const Icon(Icons.settings_outlined),
+                            ),
+                            SizedBox(
+                              width: 32,
+                              child: Divider(
+                                key: const ValueKey('rail-profile-separator'),
+                                height: 17,
+                                color: colors.outlineVariant,
+                              ),
+                            ),
+                            Obx(
+                              () => UserProfileWidget(
+                                username: loginController.currentUsername.value,
+                                userImageUrl:
+                                    loginController.currentUserImageUrl.value,
+                                isDark: themeController.isDark.value,
+                                onThemeToggle: themeController.toggleTheme,
+                                onLogout: loginController.logout,
+                                compact: true,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      onDestinationSelected: controller.isNavigating.value
+                          ? null
+                          : (index) => _navigate(
+                              context,
+                              AppDestination.values[index],
+                            ),
+                      destinations: AppDestination.values
+                          .map(
+                            (destination) => NavigationRailDestination(
+                              icon: Tooltip(
+                                key: ValueKey(
+                                  'nav-destination-${destination.name}',
+                                ),
+                                message: destination.label,
+                                child: _RailDestinationIcon(
+                                  destination: destination,
+                                  pendingCount: controller
+                                      .sellController
+                                      .pendingOrderCount
+                                      .value,
+                                  closedCount: closedSaleController
+                                      .todayClosedSaleCount
+                                      .value,
+                                ),
+                              ),
+                              label: Text(destination.label),
+                            ),
+                          )
+                          .toList(growable: false),
+                    ),
+                  ),
+                  Expanded(
+                    child: IndexedStack(
+                      index: selected.index,
+                      children: AppDestination.values
+                          .map(
+                            (destination) => visited.contains(destination)
+                                ? KeyedSubtree(
+                                    key: ValueKey(
+                                      'destination-screen-${destination.name}',
+                                    ),
+                                    child: _screenFor(destination),
+                                  )
+                                : const SizedBox.shrink(),
+                          )
+                          .toList(growable: false),
+                    ),
+                  ),
+                ],
+              );
+            }),
+          ),
+          if (loginController.currentSession.value != null)
+            PendingOrderWarningLauncher(
+              saleService: controller.sellController.saleService,
+              outlet: controller.sellController.activeOutletName,
+              onEdit: (name) => _editPendingOrder(context, name),
+            ),
+        ],
       ),
     );
   }
