@@ -15,13 +15,13 @@ class PendingOrder {
 
   factory PendingOrder.fromJson(Map<String, dynamic> json) {
     return PendingOrder(
-      name: _text(json['name']),
-      postingDate: _text(json['posting_date']),
-      customer: _text(json['customer']),
-      customerName: _text(json['customer_name']),
-      phoneNumber: _text(json['phone_number']),
+      name: textValue(json['name']),
+      postingDate: textValue(json['posting_date']),
+      customer: textValue(json['customer']),
+      customerName: textValue(json['customer_name']),
+      phoneNumber: textValue(json['phone_number']),
       canShowPrice: toDoubleValue(json['can_show_price']) == 1,
-      driverName: _text(json['driver_name']),
+      driverName: textValue(json['driver_name']),
       totalSaleQuantity: toDoubleValue(json['total_sale_quantity']),
       totalAmount: toDoubleValue(json['total_amount']),
     );
@@ -37,5 +37,3 @@ class PendingOrder {
   final double totalSaleQuantity;
   final double totalAmount;
 }
-
-String _text(dynamic value) => value == null ? '' : value.toString().trim();

@@ -41,33 +41,35 @@ class Sale {
   factory Sale.fromJson(Map<String, dynamic> json) {
     final productRows = json['sale_products'];
     return Sale(
-      name: _text(json['name']),
-      doctype: _text(json['doctype']).isEmpty ? 'Sale' : _text(json['doctype']),
-      namingSeries: _text(json['naming_series']).isEmpty
+      name: textValue(json['name']),
+      doctype: textValue(json['doctype']).isEmpty
+          ? 'Sale'
+          : textValue(json['doctype']),
+      namingSeries: textValue(json['naming_series']).isEmpty
           ? 'SO.YYYY.-.####'
-          : _text(json['naming_series']),
-      postingDate: DateTime.tryParse(_text(json['posting_date'])),
-      referenceNumber: _text(json['reference_number']),
-      outlet: _text(json['outlet']),
-      stockLocation: _text(json['stock_location']),
-      seller: _text(json['seller']),
-      customer: _text(json['customer']),
-      customerName: _text(json['customer_name']),
-      phoneNumber: _text(json['phone_number']),
-      customerGroup: _text(json['customer_group']),
-      customerPhoto: _text(json['customer_photo']),
+          : textValue(json['naming_series']),
+      postingDate: DateTime.tryParse(textValue(json['posting_date'])),
+      referenceNumber: textValue(json['reference_number']),
+      outlet: textValue(json['outlet']),
+      stockLocation: textValue(json['stock_location']),
+      seller: textValue(json['seller']),
+      customer: textValue(json['customer']),
+      customerName: textValue(json['customer_name']),
+      phoneNumber: textValue(json['phone_number']),
+      customerGroup: textValue(json['customer_group']),
+      customerPhoto: textValue(json['customer_photo']),
       canShowPrice: _flag(json['can_show_price']),
       canSplitBill: _flag(json['can_split_bill']),
       canEditBill: _flag(json['can_edit_bill']),
-      driver: _text(json['driver']),
-      driverName: _text(json['driver_name']),
-      driverPhoneNumber: _text(json['driver_phone_number']),
-      plateNumber: _text(json['plate_number']),
-      driverPhoto: _text(json['driver_photo']),
-      saleStatus: _text(json['sale_status']).isEmpty
+      driver: textValue(json['driver']),
+      driverName: textValue(json['driver_name']),
+      driverPhoneNumber: textValue(json['driver_phone_number']),
+      plateNumber: textValue(json['plate_number']),
+      driverPhoto: textValue(json['driver_photo']),
+      saleStatus: textValue(json['sale_status']).isEmpty
           ? 'Draft'
-          : _text(json['sale_status']),
-      parentBillNumber: _text(json['parent_bill_number']),
+          : textValue(json['sale_status']),
+      parentBillNumber: textValue(json['parent_bill_number']),
       saleProducts: productRows is List
           ? productRows
                 .whereType<Map>()
@@ -76,17 +78,19 @@ class Sale {
                 )
                 .toList(growable: false)
           : const [],
-      note: _text(json['note']),
+      note: textValue(json['note']),
       totalPayment: toDoubleValue(json['total_payment']),
       totalWriteOff: toDoubleValue(json['total_write_off']),
       totalSplitBill: toDoubleValue(json['total_split_bill']).toInt(),
-      status: _text(json['status']).isEmpty ? 'Unpaid' : _text(json['status']),
-      id: _text(json['id']),
+      status: textValue(json['status']).isEmpty
+          ? 'Unpaid'
+          : textValue(json['status']),
+      id: textValue(json['id']),
       enableEditMode: json['enable_edit_mode'] == null
           ? true
           : _flag(json['enable_edit_mode']),
-      station: _text(json['station']),
-      lastUpdateStation: _text(json['last_update_station']),
+      station: textValue(json['station']),
+      lastUpdateStation: textValue(json['last_update_station']),
     );
   }
 
@@ -184,8 +188,6 @@ class Sale {
     };
   }
 }
-
-String _text(dynamic value) => value == null ? '' : value.toString().trim();
 
 bool _flag(dynamic value) => toDoubleValue(value) == 1;
 

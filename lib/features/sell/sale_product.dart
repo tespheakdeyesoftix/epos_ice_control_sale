@@ -67,19 +67,19 @@ class SaleProduct {
 
   factory SaleProduct.fromJson(Map<String, dynamic> json) {
     return SaleProduct(
-      name: _text(json['name']),
-      productCode: _text(json['product_code']),
-      productName: _text(json['product_name']),
-      productCategory: _text(json['product_category']),
-      outlet: _text(json['outlet']),
-      photo: _text(json['photo']),
-      baseUnit: _text(json['base_unit']),
+      name: textValue(json['name']),
+      productCode: textValue(json['product_code']),
+      productName: textValue(json['product_name']),
+      productCategory: textValue(json['product_category']),
+      outlet: textValue(json['outlet']),
+      photo: textValue(json['photo']),
+      baseUnit: textValue(json['base_unit']),
       allowSplitBill: _flag(json['allow_split_bill']),
       allowChangeSaleType: _flag(json['allow_change_sale_type']),
       saleTransactionType: _saleTransactionType(json),
-      unit: _text(json['unit']),
+      unit: textValue(json['unit']),
       multiplier: toDoubleValue(json['multiplier'], fallback: 1),
-      revenueGroup: _text(json['revenue_group']),
+      revenueGroup: textValue(json['revenue_group']),
       allowSumQuantity: _flag(json['allow_sum_qty']),
       isInventoryProduct: _flag(json['is_inventory_product']),
       quantity: toDoubleValue(json['quantity'], fallback: 1),
@@ -91,12 +91,14 @@ class SaleProduct {
       returnQuantity: toDoubleValue(json['return_quantity']),
       splitQuantity: toDoubleValue(json['split_quantity']),
       cost: toDoubleValue(json['cost']),
-      stockLocation: _text(json['stock_location']),
+      stockLocation: textValue(json['stock_location']),
       allowFree: _flag(json['allow_free']),
       allowChangePrice: _flag(json['allow_change_price']),
       allowReturn: _flag(json['allow_return']),
-      note: _text(json['note']),
-      color: _text(json['color']).isEmpty ? '#1677FF' : _text(json['color']),
+      note: textValue(json['note']),
+      color: textValue(json['color']).isEmpty
+          ? '#1677FF'
+          : textValue(json['color']),
     );
   }
 
@@ -226,8 +228,6 @@ class SaleProduct {
   }
 }
 
-String _text(dynamic value) => value == null ? '' : value.toString().trim();
-
 bool _flag(dynamic value) => toDoubleValue(value) == 1;
 
 String _saleTransactionType(Map<String, dynamic> json) {
@@ -235,7 +235,7 @@ String _saleTransactionType(Map<String, dynamic> json) {
     json['sale_transaction_type'],
     json['default_sale_type'],
   ]) {
-    final type = _text(value);
+    final type = textValue(value);
     if (type.isNotEmpty) return type;
   }
   return 'Sale';

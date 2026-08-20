@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 import '../app/api_endpoint.dart';
+import '../utils/helpers.dart';
 import 'frappe_session_client.dart';
 
 class AuthSession {
@@ -25,7 +26,7 @@ class AuthSession {
     Map<String, dynamic> json, {
     required Uri baseUri,
   }) {
-    final rawImage = _text(json['user_image']);
+    final rawImage = textValue(json['user_image']);
     final roles = json['roles'];
     final employee = json['employee'];
     final employeeMap = employee is Map
@@ -33,11 +34,11 @@ class AuthSession {
         : <String, dynamic>{};
     return AuthSession(
       raw: Map<String, dynamic>.unmodifiable(json),
-      fullName: _text(json['full_name']),
-      user: _text(json['user']),
-      email: _text(json['email']),
-      username: _text(json['username']),
-      userType: _text(json['user_type']),
+      fullName: textValue(json['full_name']),
+      user: textValue(json['user']),
+      email: textValue(json['email']),
+      username: textValue(json['username']),
+      userType: textValue(json['user_type']),
       userImage: rawImage,
       userImageUrl: rawImage.isEmpty
           ? ''
@@ -133,8 +134,6 @@ class FrappeAuthService {
   }
 }
 
-String _text(dynamic value) => value == null ? '' : value.toString().trim();
-
 bool _flag(dynamic value) {
   if (value is bool) return value;
   if (value is num) return value == 1;
@@ -145,7 +144,7 @@ List<String> _parseOutlets(dynamic value) {
   if (value is! List) return const [];
   final outlets = <String>{};
   for (final item in value) {
-    final outlet = item is Map ? _text(item['outlet']) : _text(item);
+    final outlet = item is Map ? textValue(item['outlet']) : textValue(item);
     if (outlet.isNotEmpty) outlets.add(outlet);
   }
   return List<String>.unmodifiable(outlets);

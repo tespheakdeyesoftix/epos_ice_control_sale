@@ -17,17 +17,17 @@ class ClosedSale {
 
   factory ClosedSale.fromJson(Map<String, dynamic> json) {
     return ClosedSale(
-      name: _text(json['name']),
-      postingDate: _text(json['posting_date']),
-      customer: _text(json['customer']),
-      customerName: _text(json['customer_name']),
-      phoneNumber: _text(json['phone_number']),
-      driverName: _text(json['driver_name']),
+      name: textValue(json['name']),
+      postingDate: textValue(json['posting_date']),
+      customer: textValue(json['customer']),
+      customerName: textValue(json['customer_name']),
+      phoneNumber: textValue(json['phone_number']),
+      driverName: textValue(json['driver_name']),
       totalSaleQuantity: toDoubleValue(json['total_sale_quantity']),
       totalAmount: toDoubleValue(json['total_amount']),
-      saleStatus: _text(json['sale_status']),
-      owner: _text(json['owner']),
-      creation: DateTime.tryParse(_text(json['creation'])),
+      saleStatus: textValue(json['sale_status']),
+      owner: textValue(json['owner']),
+      creation: DateTime.tryParse(textValue(json['creation'])),
     );
   }
 
@@ -43,5 +43,3 @@ class ClosedSale {
   final String owner;
   final DateTime? creation;
 }
-
-String _text(dynamic value) => value == null ? '' : value.toString().trim();
