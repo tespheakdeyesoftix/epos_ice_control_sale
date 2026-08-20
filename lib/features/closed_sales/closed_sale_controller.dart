@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../services/frappe_response_handler.dart';
 import '../navigation/app_destination.dart';
@@ -9,14 +10,44 @@ import '../navigation/app_shell_controller.dart';
 import '../sell/sell_controller.dart';
 import 'closed_sale.dart';
 
+enum ClosedSaleSortField {
+  name('name'),
+  postingDate('posting_date'),
+  customerName('customer_name'),
+  driverName('driver_name'),
+  totalSplitBill('total_split_bill'),
+  totalSaleQuantity('total_sale_quantity'),
+  totalAmount('total_amount'),
+  owner('owner'),
+  creation('creation');
+
+  const ClosedSaleSortField(this.apiField);
+
+  final String apiField;
+}
+
 class ClosedSaleController extends GetxController {
   ClosedSaleController({
     required this.sellController,
     required this.appShellController,
-  });
+    SharedPreferences? preferences,
+  }) : _preferences = preferences {
+    final savedField = preferences?.getString(sortFieldPreferenceKey);
+    final initialField = ClosedSaleSortField.values.firstWhere(
+      (field) => field.apiField == savedField,
+      orElse: () => ClosedSaleSortField.postingDate,
+    );
+    sortField = initialField.obs;
+    sortAscending =
+        (preferences?.getBool(sortAscendingPreferenceKey) ?? false).obs;
+  }
+
+  static const sortFieldPreferenceKey = 'closed_sales_sort_field';
+  static const sortAscendingPreferenceKey = 'closed_sales_sort_ascending';
 
   final SellController sellController;
   final AppShellController appShellController;
+  final SharedPreferences? _preferences;
 
   final scrollController = ScrollController();
   final searchController = TextEditingController();
@@ -27,20 +58,17 @@ class ClosedSaleController extends GetxController {
   final isLoading = false.obs;
   final isLoadingTodayCount = false.obs;
   final todayClosedSaleCount = 0.obs;
+  final isLoadingTotalRecords = false.obs;
+  final totalRecords = 0.obs;
   final deletingSaleNames = <String>{}.obs;
   final errorMessage = RxnString();
+  late final Rx<ClosedSaleSortField> sortField;
+  late final RxBool sortAscending;
 
   Timer? _searchDebounce;
   Worker? _closedSaleWorker;
   bool _hasMore = true;
-
-  Map<String, List<ClosedSale>> get groupedSales {
-    final groups = <String, List<ClosedSale>>{};
-    for (final sale in sales) {
-      groups.putIfAbsent(sale.postingDate, () => []).add(sale);
-    }
-    return groups;
-  }
+  int _totalCountRequestId = 0;
 
   DateTime get startDatePickerInitial =>
       startDate.value ?? endDate.value ?? DateTime.now();
@@ -57,6 +85,7 @@ class ClosedSaleController extends GetxController {
       (_) => refreshAll(),
     );
     loadMore();
+    loadTotalRecords();
     loadTodayClosedSaleCount();
   }
 
@@ -83,6 +112,8 @@ class ClosedSaleController extends GetxController {
         search: searchController.text,
         startDate: startDate.value == null ? '' : _apiDate(startDate.value!),
         endDate: endDate.value == null ? '' : _apiDate(endDate.value!),
+        sortField: sortField.value.apiField,
+        sortAscending: sortAscending.value,
         offset: sales.length,
       );
       sales.addAll(page.items);
@@ -100,7 +131,7 @@ class ClosedSaleController extends GetxController {
     sales.clear();
     _hasMore = true;
     errorMessage.value = null;
-    await loadMore();
+    await Future.wait([loadMore(), loadTotalRecords()]);
   }
 
   Future<void> refreshAll() async {
@@ -119,6 +150,28 @@ class ClosedSaleController extends GetxController {
       // Keep the last successful count when the badge refresh fails.
     } finally {
       isLoadingTodayCount.value = false;
+    }
+  }
+
+  Future<void> loadTotalRecords() async {
+    final requestId = ++_totalCountRequestId;
+    isLoadingTotalRecords.value = true;
+    try {
+      final count = await sellController.saleService.getClosedSaleCount(
+        outlet: sellController.activeOutletName,
+        search: searchController.text,
+        startDate: startDate.value == null ? '' : _apiDate(startDate.value!),
+        endDate: endDate.value == null ? '' : _apiDate(endDate.value!),
+      );
+      if (requestId == _totalCountRequestId) totalRecords.value = count;
+    } on FrappeServerMessageException {
+      // The shared API client already displayed the server message.
+    } on Exception {
+      // Keep the last successful total when the count request fails.
+    } finally {
+      if (requestId == _totalCountRequestId) {
+        isLoadingTotalRecords.value = false;
+      }
     }
   }
 
@@ -157,6 +210,22 @@ class ClosedSaleController extends GetxController {
 
   Future<void> clearEndDate() async {
     endDate.value = null;
+    await refreshList();
+  }
+
+  Future<void> sortBy(ClosedSaleSortField field) async {
+    if (sortField.value == field) {
+      sortAscending.toggle();
+    } else {
+      sortField.value = field;
+      sortAscending.value = true;
+    }
+    await Future.wait([
+      _preferences?.setString(sortFieldPreferenceKey, field.apiField) ??
+          Future<void>.value(),
+      _preferences?.setBool(sortAscendingPreferenceKey, sortAscending.value) ??
+          Future<void>.value(),
+    ]);
     await refreshList();
   }
 
@@ -201,6 +270,7 @@ class ClosedSaleController extends GetxController {
         stationName: sellController.stationName,
       );
       sales.removeWhere((sale) => sale.name == name);
+      if (totalRecords.value > 0) totalRecords.value--;
       await loadTodayClosedSaleCount();
       _showMessage('បានលុបបុង $name ដោយជោគជ័យ។', indicator: 'green');
       return true;

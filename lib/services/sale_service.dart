@@ -164,6 +164,7 @@ class SaleService {
   final http.Client _client;
 
   static const pendingOrderPageSize = 30;
+  static const closedSalePageSize = 20;
   static const _pendingOrderFields = [
     'name',
     'posting_date',
@@ -179,12 +180,24 @@ class SaleService {
   ];
   static const _closedSaleFields = [
     ..._pendingOrderFields,
+    'total_split_bill',
     'sale_status',
     'status',
     'owner',
     'creation',
     'modified',
   ];
+  static const closedSaleSortFields = {
+    'name',
+    'posting_date',
+    'customer_name',
+    'driver_name',
+    'total_split_bill',
+    'total_sale_quantity',
+    'total_amount',
+    'owner',
+    'creation',
+  };
 
   Future<Sale> getSale(String name) async {
     final response = await _client
@@ -305,34 +318,34 @@ class SaleService {
     String search = '',
     String startDate = '',
     String endDate = '',
+    String sortField = 'posting_date',
+    bool sortAscending = false,
     int offset = 0,
-    int limit = pendingOrderPageSize,
+    int limit = closedSalePageSize,
   }) async {
     final endpoint = baseUri.resolve(ApiEndpoint.sales);
-    final filters = <List<dynamic>>[
-      ['sale_status', '=', 'Closed'],
-      ['outlet', '=', outlet],
-      if (startDate.trim().isNotEmpty) ['posting_date', '>=', startDate.trim()],
-      if (endDate.trim().isNotEmpty) ['posting_date', '<=', endDate.trim()],
-    ];
+    final filters = _closedSaleFilters(
+      outlet: outlet,
+      startDate: startDate,
+      endDate: endDate,
+    );
+    final safeSortField = closedSaleSortFields.contains(sortField)
+        ? sortField
+        : 'posting_date';
+    final sortDirection = sortAscending ? 'asc' : 'desc';
+    final secondaryOrder = safeSortField == 'posting_date'
+        ? 'creation $sortDirection'
+        : 'name $sortDirection';
     final queryParameters = <String, String>{
       'fields': jsonEncode(_closedSaleFields),
       'filters': jsonEncode(filters),
-      'order_by': 'posting_date desc, creation desc',
+      'order_by': '$safeSortField $sortDirection, $secondaryOrder',
       'limit_start': '$offset',
       'limit_page_length': '$limit',
     };
-    final trimmedSearch = search.trim();
-    if (trimmedSearch.isNotEmpty) {
-      queryParameters['or_filters'] = jsonEncode([
-        for (final field in const [
-          'name',
-          'customer_name',
-          'customer',
-          'phone_number',
-        ])
-          [field, 'like', '%$trimmedSearch%'],
-      ]);
+    final searchFilters = _closedSaleSearchFilters(search);
+    if (searchFilters.isNotEmpty) {
+      queryParameters['or_filters'] = jsonEncode(searchFilters);
     }
     final response = await _client
         .get(
@@ -355,6 +368,43 @@ class SaleService {
         .where((sale) => sale.name.isNotEmpty)
         .toList(growable: false);
     return ClosedSalePage(items: sales, hasMore: rows.length == limit);
+  }
+
+  Future<int> getClosedSaleCount({
+    required String outlet,
+    String search = '',
+    String startDate = '',
+    String endDate = '',
+  }) async {
+    final queryParameters = <String, String>{
+      'doctype': 'Sale',
+      'filters': jsonEncode(
+        _closedSaleFilters(
+          outlet: outlet,
+          startDate: startDate,
+          endDate: endDate,
+        ),
+      ),
+      'fields': '[]',
+      'distinct': 'false',
+    };
+    final searchFilters = _closedSaleSearchFilters(search);
+    if (searchFilters.isNotEmpty) {
+      queryParameters['or_filters'] = jsonEncode(searchFilters);
+    }
+    final response = await _client
+        .get(
+          baseUri
+              .resolve(ApiEndpoint.reportViewCount)
+              .replace(queryParameters: queryParameters),
+          headers: const {'Accept': 'application/json'},
+        )
+        .timeout(const Duration(seconds: 30));
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw SaleServiceException(response.statusCode);
+    }
+    return _parseCountResponse(response.body);
   }
 
   Future<List<ClosedSale>> getRecentClosedSales({
@@ -528,16 +578,7 @@ class SaleService {
       throw SaleServiceException(response.statusCode);
     }
 
-    dynamic payload = jsonDecode(response.body);
-    if (payload is Map && payload.containsKey('message')) {
-      payload = payload['message'];
-    }
-    if (payload is Map) payload = payload['count'];
-    final count = payload is num
-        ? payload.toInt()
-        : int.tryParse(payload?.toString().trim() ?? '');
-    if (count == null) throw const SaleServiceException(200);
-    return count < 0 ? 0 : count;
+    return _parseCountResponse(response.body);
   }
 
   Future<Map<String, dynamic>> saveOrder(
@@ -592,6 +633,46 @@ class SaleService {
       throw SaleServiceException(response.statusCode);
     }
   }
+}
+
+List<List<dynamic>> _closedSaleFilters({
+  required String outlet,
+  required String startDate,
+  required String endDate,
+}) {
+  return [
+    ['sale_status', '=', 'Closed'],
+    ['outlet', '=', outlet],
+    if (startDate.trim().isNotEmpty) ['posting_date', '>=', startDate.trim()],
+    if (endDate.trim().isNotEmpty) ['posting_date', '<=', endDate.trim()],
+  ];
+}
+
+List<List<dynamic>> _closedSaleSearchFilters(String search) {
+  final trimmedSearch = search.trim();
+  if (trimmedSearch.isEmpty) return const [];
+  return [
+    for (final field in const [
+      'name',
+      'customer_name',
+      'customer',
+      'phone_number',
+    ])
+      [field, 'like', '%$trimmedSearch%'],
+  ];
+}
+
+int _parseCountResponse(String body) {
+  dynamic payload = jsonDecode(body);
+  if (payload is Map && payload.containsKey('message')) {
+    payload = payload['message'];
+  }
+  if (payload is Map) payload = payload['count'];
+  final count = payload is num
+      ? payload.toInt()
+      : int.tryParse(payload?.toString().trim() ?? '');
+  if (count == null) throw const SaleServiceException(200);
+  return count < 0 ? 0 : count;
 }
 
 class SaleServiceException implements Exception {

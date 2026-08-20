@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
@@ -139,76 +140,134 @@ void main() {
     expect(harness.sell.openedSale.value?.name, 'SO-DRAFT-0001');
   });
 
-  testWidgets(
-    'closed sales screen lists metadata and opens order for editing',
-    (tester) async {
-      final harness = await _pumpShell(tester);
+  testWidgets('closed sales screen lists metadata and opens sale details', (
+    tester,
+  ) async {
+    final harness = await _pumpShell(
+      tester,
+      physicalSize: const Size(1500, 900),
+    );
 
-      await _tapDestination(tester, AppDestination.closedSales);
-      final closedSaleController = Get.find<ClosedSaleController>();
-      expect(closedSaleController.sales.single.name, 'SO-CLOSED-0001');
-      expect(
-        find.byKey(const ValueKey('closed-sale-list-screen')),
-        findsOneWidget,
-      );
-      expect(
-        tester
-            .getSize(find.byKey(const ValueKey('closed-sale-app-bar')))
-            .height,
-        82,
-      );
-      final searchHeight = tester
-          .getSize(find.byKey(const ValueKey('closed-sale-search-input')))
-          .height;
-      expect(
-        tester
-            .getSize(
-              find.byKey(const ValueKey('closed-sale-start-date-filter')),
-            )
-            .height,
-        searchHeight,
-      );
-      expect(
-        tester
-            .getSize(find.byKey(const ValueKey('closed-sale-end-date-filter')))
-            .height,
-        searchHeight,
-      );
-      expect(
+    await _tapDestination(tester, AppDestination.closedSales);
+    final closedSaleController = Get.find<ClosedSaleController>();
+    expect(closedSaleController.sales.single.name, 'SO-CLOSED-0001');
+    expect(closedSaleController.sales.single.totalSplitBill, 2);
+    expect(closedSaleController.totalRecords.value, 4);
+    expect(find.text('1 of 4'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('closed-sale-pager-card')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('closed-sale-split-icon-SO-CLOSED-0001')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('closed-sale-list-screen')),
+      findsOneWidget,
+    );
+    expect(
+      tester.getSize(find.byKey(const ValueKey('closed-sale-app-bar'))).height,
+      82,
+    );
+    final searchHeight = tester
+        .getSize(find.byKey(const ValueKey('closed-sale-search-input')))
+        .height;
+    expect(
+      tester
+          .getSize(find.byKey(const ValueKey('closed-sale-start-date-filter')))
+          .height,
+      searchHeight,
+    );
+    expect(
+      tester
+          .getSize(find.byKey(const ValueKey('closed-sale-end-date-filter')))
+          .height,
+      searchHeight,
+    );
+    expect(
+      find.byKey(const ValueKey('closed-sale-SO-CLOSED-0001')),
+      findsOneWidget,
+    );
+    expect(find.text('Administrator'), findsOneWidget);
+    expect(find.text('មិនទាន់បង់ប្រាក់'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('closed-sale-customer-avatar-SO-CLOSED-0001')),
+      findsOneWidget,
+    );
+
+    await tester.tapAt(
+      tester.getCenter(
         find.byKey(const ValueKey('closed-sale-SO-CLOSED-0001')),
-        findsOneWidget,
-      );
-      expect(find.text('Administrator'), findsOneWidget);
-      expect(find.text('បានបិទ'), findsOneWidget);
+      ),
+      buttons: kSecondaryButton,
+    );
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('closed-sale-context-view-detail')),
+      findsOneWidget,
+    );
+    await tester.tap(
+      find.byKey(const ValueKey('closed-sale-context-view-detail')),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('sale-detail-screen')), findsOneWidget);
+    Navigator.of(
+      tester.element(find.byKey(const ValueKey('sale-detail-screen'))),
+    ).pop();
+    await tester.pumpAndSettle();
 
-      final viewButton = tester.widget<OutlinedButton>(
-        find.byKey(const ValueKey('view-closed-sale-SO-CLOSED-0001')),
-      );
-      expect(viewButton.onPressed, isNotNull);
-      await tester.tap(
-        find.byKey(const ValueKey('view-closed-sale-SO-CLOSED-0001')),
-      );
-      await tester.pumpAndSettle();
-      expect(
-        find.byKey(const ValueKey('pending-sale-view-dialog')),
-        findsOneWidget,
-      );
-      await tester.tap(find.byKey(const ValueKey('close-pending-sale-view')));
-      await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('open-closed-sale-detail-SO-CLOSED-0001')),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('sale-detail-screen')), findsOneWidget);
+    Navigator.of(
+      tester.element(find.byKey(const ValueKey('sale-detail-screen'))),
+    ).pop();
+    await tester.pumpAndSettle();
 
-      await tester.drag(
-        find.byKey(const ValueKey('closed-sale-horizontal-scroll')),
-        const Offset(-650, 0),
-      );
-      await tester.pumpAndSettle();
-      await tester.tap(
-        find.byKey(const ValueKey('edit-closed-sale-SO-CLOSED-0001')),
-      );
-      await tester.pumpAndSettle();
-      expect(harness.shell.selectedDestination.value, AppDestination.sale);
-      expect(harness.sell.openedSale.value?.name, 'SO-CLOSED-0001');
-    },
-  );
+    await tester.tap(
+      find.byKey(const ValueKey('closed-sale-sort-total_amount')),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      closedSaleController.sortField.value,
+      ClosedSaleSortField.totalAmount,
+    );
+    expect(closedSaleController.sortAscending.value, isTrue);
+    expect(
+      harness.preferences.getString(
+        ClosedSaleController.sortFieldPreferenceKey,
+      ),
+      'total_amount',
+    );
+    expect(
+      harness.preferences.getBool(
+        ClosedSaleController.sortAscendingPreferenceKey,
+      ),
+      isTrue,
+    );
+
+    final viewButton = tester.widget<OutlinedButton>(
+      find.byKey(const ValueKey('view-closed-sale-SO-CLOSED-0001')),
+    );
+    expect(viewButton.onPressed, isNotNull);
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('view-closed-sale-SO-CLOSED-0001')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('view-closed-sale-SO-CLOSED-0001')),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('pending-sale-view-dialog')),
+      findsOneWidget,
+    );
+    await tester.tap(find.byKey(const ValueKey('close-pending-sale-view')));
+    await tester.pumpAndSettle();
+  });
 
   testWidgets('empty navigation and unfinished Continue and Clear actions', (
     tester,
@@ -345,10 +404,11 @@ Future<void> _tapDestination(
 Future<_ShellHarness> _pumpShell(
   WidgetTester tester, {
   bool failSave = false,
+  Size physicalSize = const Size(1024, 768),
 }) async {
   SharedPreferences.setMockInitialValues({});
   final preferences = await SharedPreferences.getInstance();
-  tester.view.physicalSize = const Size(1024, 768);
+  tester.view.physicalSize = physicalSize;
   tester.view.devicePixelRatio = 1;
   addTearDown(() {
     tester.view.resetPhysicalSize();
@@ -394,9 +454,11 @@ Future<_ShellHarness> _pumpShell(
               'customer_name': 'អតិថិជន C457',
               'phone_number': '012345678',
               'driver_name': 'អ្នកបើកបរ 01',
+              'total_split_bill': 2,
               'total_sale_quantity': 2,
               'total_amount': 30000,
               'sale_status': 'Closed',
+              'status': 'Unpaid',
               'owner': 'Administrator',
               'creation': '2026-08-18 08:30:00',
             },
@@ -544,7 +606,11 @@ Future<_ShellHarness> _pumpShell(
     ),
   );
   Get.lazyPut<ClosedSaleController>(
-    () => ClosedSaleController(sellController: sell, appShellController: shell),
+    () => ClosedSaleController(
+      sellController: sell,
+      appShellController: shell,
+      preferences: preferences,
+    ),
   );
 
   await tester.pumpWidget(
@@ -558,6 +624,7 @@ Future<_ShellHarness> _pumpShell(
   return _ShellHarness(
     sell: sell,
     shell: shell,
+    preferences: preferences,
     savedStatuses: savedStatuses,
     serverMessages: serverMessages,
   );
@@ -575,12 +642,14 @@ class _ShellHarness {
   const _ShellHarness({
     required this.sell,
     required this.shell,
+    required this.preferences,
     required this.savedStatuses,
     required this.serverMessages,
   });
 
   final SellController sell;
   final AppShellController shell;
+  final SharedPreferences preferences;
   final List<String> savedStatuses;
   final List<FrappeServerMessage> serverMessages;
 }

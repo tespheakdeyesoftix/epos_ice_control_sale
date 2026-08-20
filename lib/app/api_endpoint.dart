@@ -114,12 +114,11 @@ abstract final class ApiEndpoint {
   static const dailySaleSummary =
       'api/method/ice_control.api.v1.sale.get_daily_sale_summary';
 
-  /// Uses Frappe's report-view count API to count today's Closed sales.
+  /// Uses Frappe's report-view count API to count filtered Sale documents.
   ///
   /// Method: `GET`
-  /// Query parameters: `doctype=Sale`, JSON `filters` for outlet,
-  /// `sale_status = Closed`, and today's posting-date timespan, plus
-  /// `fields=[]` and `distinct=false`.
+  /// Query parameters: `doctype=Sale`, JSON `filters`, optional JSON
+  /// `or_filters`, plus `fields=[]` and `distinct=false`.
   /// Returns: the count as a number or `{ "count": number }`, optionally
   /// wrapped in `message`.
   static const reportViewCount = 'api/method/frappe.desk.reportview.get_count';

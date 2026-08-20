@@ -230,6 +230,7 @@ class IceSaleApp extends StatelessWidget {
                 () => ClosedSaleController(
                   sellController: Get.find<SellController>(),
                   appShellController: Get.find<AppShellController>(),
+                  preferences: preferences,
                 ),
               );
               Get.lazyPut<ReportController>(

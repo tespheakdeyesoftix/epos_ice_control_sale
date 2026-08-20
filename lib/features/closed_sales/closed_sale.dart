@@ -9,6 +9,7 @@ class ClosedSale {
     this.customerPhoto = '',
     this.phoneNumber = '',
     this.driverName = '',
+    this.totalSplitBill = 0,
     this.totalSaleQuantity = 0,
     this.outletUnit = '',
     this.totalAmount = 0,
@@ -28,6 +29,7 @@ class ClosedSale {
       customerPhoto: textValue(json['customer_photo']),
       phoneNumber: textValue(json['phone_number']),
       driverName: textValue(json['driver_name']),
+      totalSplitBill: toDoubleValue(json['total_split_bill']).toInt(),
       totalSaleQuantity: toDoubleValue(json['total_sale_quantity']),
       outletUnit: textValue(json['outlet_unit']),
       totalAmount: toDoubleValue(json['total_amount']),
@@ -46,6 +48,7 @@ class ClosedSale {
   final String customerPhoto;
   final String phoneNumber;
   final String driverName;
+  final int totalSplitBill;
   final double totalSaleQuantity;
   final String outletUnit;
   final double totalAmount;
