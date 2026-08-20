@@ -184,7 +184,17 @@ void main() {
       final viewButton = tester.widget<OutlinedButton>(
         find.byKey(const ValueKey('view-closed-sale-SO-CLOSED-0001')),
       );
-      expect(viewButton.onPressed, isNull);
+      expect(viewButton.onPressed, isNotNull);
+      await tester.tap(
+        find.byKey(const ValueKey('view-closed-sale-SO-CLOSED-0001')),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('pending-sale-view-dialog')),
+        findsOneWidget,
+      );
+      await tester.tap(find.byKey(const ValueKey('close-pending-sale-view')));
+      await tester.pumpAndSettle();
 
       await tester.drag(
         find.byKey(const ValueKey('closed-sale-horizontal-scroll')),

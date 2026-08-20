@@ -1,22 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
-import '../../shared/select_date_dialog_widget.dart';
 import '../../shared/note_dialog_widget.dart';
+import '../../shared/select_date_dialog_widget.dart';
 import '../../utils/helpers.dart';
 import '../login/login_controller.dart';
+import '../pending_sales/widgets/pending_sale_view_dialog_widget.dart';
 import 'closed_sale.dart';
 import 'closed_sale_controller.dart';
 
 class ClosedSaleListScreen extends GetView<ClosedSaleController> {
   const ClosedSaleListScreen({super.key});
 
-  static const _tableWidth = 1480.0;
+  static const _desktopBreakpoint = 1040.0;
+  static const _tableWidth = 1320.0;
 
   Future<void> _deleteSale(BuildContext context, ClosedSale sale) {
-    if (!controller.checkDeleteBillPermission()) {
-      return Future<void>.value();
-    }
+    if (!controller.checkDeleteBillPermission()) return Future.value();
     return showNoteDialog(
       context,
       promptTitle: 'មូលហេតុដែលលុបបុង ${sale.name}',
@@ -27,22 +27,27 @@ class ClosedSaleListScreen extends GetView<ClosedSaleController> {
     );
   }
 
-  Future<void> _selectStartDate(BuildContext context) async {
+  Future<void> _selectDate(BuildContext context, {required bool start}) async {
     final selected = await showSelectDateDialog(
       context,
-      initialDate: controller.startDatePickerInitial,
+      initialDate: start
+          ? controller.startDatePickerInitial
+          : controller.endDatePickerInitial,
     );
     if (selected == null || !context.mounted) return;
-    await controller.setStartDate(selected);
+    if (start) {
+      await controller.setStartDate(selected);
+    } else {
+      await controller.setEndDate(selected);
+    }
   }
 
-  Future<void> _selectEndDate(BuildContext context) async {
-    final selected = await showSelectDateDialog(
+  Future<void> _viewSale(BuildContext context, ClosedSale sale) {
+    return showPendingSaleViewDialog(
       context,
-      initialDate: controller.endDatePickerInitial,
+      saleService: controller.sellController.saleService,
+      name: sale.name,
     );
-    if (selected == null || !context.mounted) return;
-    await controller.setEndDate(selected);
   }
 
   @override
@@ -51,39 +56,33 @@ class ClosedSaleListScreen extends GetView<ClosedSaleController> {
     return Obx(
       () => ColoredBox(
         key: const ValueKey('closed-sale-list-screen'),
-        color: colors.surfaceContainerLowest,
+        color: colors.surfaceContainerLow,
         child: Column(
           children: [
-            _AppBar(
+            _PageHeader(
+              todayCount: controller.todayClosedSaleCount.value,
+              isLoading: controller.isLoading.value,
+              onRefresh: controller.refreshAll,
+            ),
+            _FilterBar(
               searchController: controller.searchController,
               hasSearchText: controller.searchText.value.isNotEmpty,
               startDate: controller.startDate.value,
               endDate: controller.endDate.value,
-              isLoading: controller.isLoading.value,
               onSearchChanged: controller.handleSearchChanged,
               onClearSearch: controller.clearSearch,
-              onStartDateTap: () => _selectStartDate(context),
+              onStartDateTap: () => _selectDate(context, start: true),
               onClearStartDate: controller.clearStartDate,
-              onEndDateTap: () => _selectEndDate(context),
+              onEndDateTap: () => _selectDate(context, start: false),
               onClearEndDate: controller.clearEndDate,
-              onRefresh: controller.refreshAll,
             ),
+            _ResultSummary(sales: controller.sales),
             Expanded(
               child: LayoutBuilder(
-                builder: (context, constraints) => SingleChildScrollView(
-                  key: const ValueKey('closed-sale-horizontal-scroll'),
-                  scrollDirection: Axis.horizontal,
-                  child: SizedBox(
-                    width: _tableWidth,
-                    height: constraints.maxHeight,
-                    child: Column(
-                      children: [
-                        const _TableHeader(),
-                        Expanded(child: _buildBody(context, colors)),
-                      ],
-                    ),
-                  ),
-                ),
+                builder: (context, constraints) =>
+                    constraints.maxWidth >= _desktopBreakpoint
+                    ? _desktopBody(context, colors, constraints)
+                    : _compactBody(context, colors, constraints),
               ),
             ),
           ],
@@ -92,7 +91,57 @@ class ClosedSaleListScreen extends GetView<ClosedSaleController> {
     );
   }
 
-  Widget _buildBody(BuildContext context, ColorScheme colors) {
+  Widget _desktopBody(
+    BuildContext context,
+    ColorScheme colors,
+    BoxConstraints constraints,
+  ) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+      child: Card(
+        margin: EdgeInsets.zero,
+        clipBehavior: Clip.antiAlias,
+        child: SingleChildScrollView(
+          key: const ValueKey('closed-sale-horizontal-scroll'),
+          scrollDirection: Axis.horizontal,
+          child: SizedBox(
+            width: constraints.maxWidth - 40 < _tableWidth
+                ? _tableWidth
+                : constraints.maxWidth - 40,
+            height: constraints.maxHeight,
+            child: Column(
+              children: [
+                const _TableHeader(),
+                Expanded(child: _listBody(context, colors)),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _compactBody(
+    BuildContext context,
+    ColorScheme colors,
+    BoxConstraints constraints,
+  ) {
+    return SingleChildScrollView(
+      key: const ValueKey('closed-sale-horizontal-scroll'),
+      scrollDirection: Axis.horizontal,
+      child: SizedBox(
+        width: constraints.maxWidth,
+        height: constraints.maxHeight,
+        child: _listBody(context, colors, compact: true),
+      ),
+    );
+  }
+
+  Widget _listBody(
+    BuildContext context,
+    ColorScheme colors, {
+    bool compact = false,
+  }) {
     if (controller.sales.isEmpty && controller.isLoading.value) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -111,23 +160,40 @@ class ClosedSaleListScreen extends GetView<ClosedSaleController> {
       );
     }
 
-    final groupedSales = controller.groupedSales;
     return ListView(
       key: const ValueKey('closed-sale-list'),
       controller: controller.scrollController,
+      padding: compact
+          ? const EdgeInsets.fromLTRB(16, 0, 16, 20)
+          : EdgeInsets.zero,
       children: [
-        for (final group in groupedSales.entries) ...[
-          _DateGroupHeader(date: group.key, count: group.value.length),
+        for (final group in controller.groupedSales.entries) ...[
+          _DateGroupHeader(
+            date: group.key,
+            count: group.value.length,
+            compact: compact,
+          ),
           for (var index = 0; index < group.value.length; index++)
-            _ClosedSaleRow(
-              sale: group.value[index],
-              alternate: index.isOdd,
-              onEdit: () => controller.editOrder(group.value[index].name),
-              onDelete: () => _deleteSale(context, group.value[index]),
-              isDeleting: controller.deletingSaleNames.contains(
-                group.value[index].name,
-              ),
-            ),
+            compact
+                ? _ClosedSaleCard(
+                    sale: group.value[index],
+                    onView: () => _viewSale(context, group.value[index]),
+                    onEdit: () => controller.editOrder(group.value[index].name),
+                    onDelete: () => _deleteSale(context, group.value[index]),
+                    isDeleting: controller.deletingSaleNames.contains(
+                      group.value[index].name,
+                    ),
+                  )
+                : _ClosedSaleRow(
+                    sale: group.value[index],
+                    alternate: index.isOdd,
+                    onView: () => _viewSale(context, group.value[index]),
+                    onEdit: () => controller.editOrder(group.value[index].name),
+                    onDelete: () => _deleteSale(context, group.value[index]),
+                    isDeleting: controller.deletingSaleNames.contains(
+                      group.value[index].name,
+                    ),
+                  ),
         ],
         if (controller.isLoading.value)
           const Padding(
@@ -148,33 +214,15 @@ class ClosedSaleListScreen extends GetView<ClosedSaleController> {
   }
 }
 
-class _AppBar extends StatelessWidget {
-  const _AppBar({
-    required this.searchController,
-    required this.hasSearchText,
-    required this.startDate,
-    required this.endDate,
+class _PageHeader extends StatelessWidget {
+  const _PageHeader({
+    required this.todayCount,
     required this.isLoading,
-    required this.onSearchChanged,
-    required this.onClearSearch,
-    required this.onStartDateTap,
-    required this.onClearStartDate,
-    required this.onEndDateTap,
-    required this.onClearEndDate,
     required this.onRefresh,
   });
 
-  final TextEditingController searchController;
-  final bool hasSearchText;
-  final DateTime? startDate;
-  final DateTime? endDate;
+  final int todayCount;
   final bool isLoading;
-  final ValueChanged<String> onSearchChanged;
-  final VoidCallback onClearSearch;
-  final VoidCallback onStartDateTap;
-  final VoidCallback onClearStartDate;
-  final VoidCallback onEndDateTap;
-  final VoidCallback onClearEndDate;
   final VoidCallback onRefresh;
 
   @override
@@ -183,74 +231,61 @@ class _AppBar extends StatelessWidget {
     return Container(
       key: const ValueKey('closed-sale-app-bar'),
       height: 82,
-      padding: const EdgeInsets.symmetric(horizontal: 24),
+      padding: const EdgeInsets.symmetric(horizontal: 22),
       decoration: BoxDecoration(
         color: colors.surface,
         border: Border(bottom: BorderSide(color: colors.outlineVariant)),
       ),
       child: Row(
         children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: colors.primaryContainer,
+              borderRadius: BorderRadius.circular(13),
+            ),
+            child: Icon(Icons.receipt_long_outlined, color: colors.primary),
+          ),
+          const SizedBox(width: 13),
           Expanded(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'បញ្ជីការលក់បានបិទ',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+                ),
+                Text(
+                  'ពិនិត្យ កែប្រែ និងគ្រប់គ្រងបុងលក់ដែលបានបិទ',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: colors.onSurfaceVariant,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: colors.primaryContainer.withValues(alpha: 0.65),
+              borderRadius: BorderRadius.circular(12),
+            ),
             child: Text(
-              'បញ្ជីការលក់ដែលបានបិទ',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+              'ថ្ងៃនេះ  $todayCount',
               style: TextStyle(
-                color: colors.onSurface,
-                fontSize: 22,
-                fontWeight: FontWeight.w700,
+                color: colors.onPrimaryContainer,
+                fontWeight: FontWeight.w800,
               ),
             ),
-          ),
-          SizedBox(
-            width: 220,
-            height: 42,
-            child: TextField(
-              key: const ValueKey('closed-sale-search-input'),
-              controller: searchController,
-              onChanged: onSearchChanged,
-              decoration: InputDecoration(
-                hintText: 'Search',
-                isDense: true,
-                prefixIcon: const Icon(Icons.search_rounded, size: 20),
-                prefixIconConstraints: const BoxConstraints(
-                  minWidth: 40,
-                  minHeight: 40,
-                ),
-                suffixIcon: !hasSearchText
-                    ? null
-                    : IconButton(
-                        key: const ValueKey('clear-closed-sale-search'),
-                        onPressed: onClearSearch,
-                        padding: EdgeInsets.zero,
-                        visualDensity: VisualDensity.compact,
-                        icon: const Icon(Icons.close_rounded, size: 18),
-                      ),
-                suffixIconConstraints: const BoxConstraints(
-                  minWidth: 40,
-                  minHeight: 40,
-                ),
-                contentPadding: const EdgeInsets.symmetric(vertical: 10),
-              ),
-            ),
-          ),
-          const SizedBox(width: 10),
-          _DateFilter(
-            filterKey: const ValueKey('closed-sale-start-date-filter'),
-            clearKey: const ValueKey('clear-closed-sale-start-date'),
-            placeholder: 'Start Date',
-            date: startDate,
-            onTap: onStartDateTap,
-            onClear: onClearStartDate,
-          ),
-          const SizedBox(width: 8),
-          _DateFilter(
-            filterKey: const ValueKey('closed-sale-end-date-filter'),
-            clearKey: const ValueKey('clear-closed-sale-end-date'),
-            placeholder: 'End Date',
-            date: endDate,
-            onTap: onEndDateTap,
-            onClear: onClearEndDate,
           ),
           const SizedBox(width: 10),
           IconButton(
@@ -265,6 +300,106 @@ class _AppBar extends StatelessWidget {
             icon: const Icon(Icons.refresh_rounded),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _FilterBar extends StatelessWidget {
+  const _FilterBar({
+    required this.searchController,
+    required this.hasSearchText,
+    required this.startDate,
+    required this.endDate,
+    required this.onSearchChanged,
+    required this.onClearSearch,
+    required this.onStartDateTap,
+    required this.onClearStartDate,
+    required this.onEndDateTap,
+    required this.onClearEndDate,
+  });
+
+  final TextEditingController searchController;
+  final bool hasSearchText;
+  final DateTime? startDate;
+  final DateTime? endDate;
+  final ValueChanged<String> onSearchChanged;
+  final VoidCallback onClearSearch;
+  final VoidCallback onStartDateTap;
+  final VoidCallback onClearStartDate;
+  final VoidCallback onEndDateTap;
+  final VoidCallback onClearEndDate;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 10),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final compact = constraints.maxWidth < 760;
+          final search = SizedBox(
+            height: 44,
+            child: TextField(
+              key: const ValueKey('closed-sale-search-input'),
+              controller: searchController,
+              onChanged: onSearchChanged,
+              decoration: InputDecoration(
+                hintText: 'ស្វែងរកលេខបុង ឬអតិថិជន',
+                isDense: true,
+                prefixIcon: const Icon(Icons.search_rounded, size: 20),
+                suffixIcon: !hasSearchText
+                    ? null
+                    : IconButton(
+                        key: const ValueKey('clear-closed-sale-search'),
+                        tooltip: 'សម្អាតការស្វែងរក',
+                        onPressed: onClearSearch,
+                        icon: const Icon(Icons.close_rounded, size: 18),
+                      ),
+              ),
+            ),
+          );
+          final dates = Row(
+            children: [
+              Expanded(
+                child: _DateFilter(
+                  filterKey: const ValueKey('closed-sale-start-date-filter'),
+                  clearKey: const ValueKey('clear-closed-sale-start-date'),
+                  placeholder: 'ចាប់ពីថ្ងៃ',
+                  date: startDate,
+                  onTap: onStartDateTap,
+                  onClear: onClearStartDate,
+                ),
+              ),
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 7),
+                child: Icon(Icons.arrow_forward_rounded, size: 18),
+              ),
+              Expanded(
+                child: _DateFilter(
+                  filterKey: const ValueKey('closed-sale-end-date-filter'),
+                  clearKey: const ValueKey('clear-closed-sale-end-date'),
+                  placeholder: 'ដល់ថ្ងៃ',
+                  date: endDate,
+                  onTap: onEndDateTap,
+                  onClear: onClearEndDate,
+                ),
+              ),
+            ],
+          );
+          if (compact) {
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [search, const SizedBox(height: 10), dates],
+            );
+          }
+          return Row(
+            children: [
+              Expanded(child: search),
+              const SizedBox(width: 12),
+              SizedBox(width: 390, child: dates),
+            ],
+          );
+        },
       ),
     );
   }
@@ -291,10 +426,9 @@ class _DateFilter extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     return SizedBox(
-      width: 160,
-      height: 42,
+      height: 44,
       child: Material(
-        color: colors.surfaceContainerLow,
+        color: colors.surface,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
           side: BorderSide(color: colors.outlineVariant),
@@ -304,7 +438,7 @@ class _DateFilter extends StatelessWidget {
           key: filterKey,
           onTap: onTap,
           child: Padding(
-            padding: const EdgeInsets.only(left: 10, right: 2),
+            padding: const EdgeInsets.only(left: 11, right: 3),
             child: Row(
               children: [
                 Icon(
@@ -312,7 +446,7 @@ class _DateFilter extends StatelessWidget {
                   size: 18,
                   color: colors.primary,
                 ),
-                const SizedBox(width: 6),
+                const SizedBox(width: 7),
                 Expanded(
                   child: Text(
                     date == null ? placeholder : _displayDate(date!),
@@ -325,7 +459,7 @@ class _DateFilter extends StatelessWidget {
                       fontSize: 12,
                       fontWeight: date == null
                           ? FontWeight.w400
-                          : FontWeight.w600,
+                          : FontWeight.w700,
                     ),
                   ),
                 ),
@@ -352,41 +486,104 @@ class _DateFilter extends StatelessWidget {
   }
 }
 
-class _TableHeader extends StatelessWidget {
-  const _TableHeader();
+class _ResultSummary extends StatelessWidget {
+  const _ResultSummary({required this.sales});
+
+  final List<ClosedSale> sales;
 
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    return Container(
-      height: 48,
-      padding: const EdgeInsets.symmetric(horizontal: 18),
-      decoration: BoxDecoration(
-        color: colors.surfaceContainer,
-        border: Border(bottom: BorderSide(color: colors.outlineVariant)),
-      ),
-      child: const Row(
+    final quantity = sales.fold<double>(
+      0,
+      (sum, sale) => sum + sale.totalSaleQuantity,
+    );
+    final amount = sales.fold<double>(0, (sum, sale) => sum + sale.totalAmount);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
+      child: Row(
         children: [
-          _HeaderCell('លេខឯកសារ', flex: 17),
-          _HeaderCell('កាលបរិច្ឆេទ', flex: 13),
-          _HeaderCell('អតិថិជន', flex: 22),
-          _HeaderCell('អ្នកបើកបរ', flex: 18),
-          _HeaderCell('ចំនួន', flex: 10, align: TextAlign.right),
-          _HeaderCell('ទឹកប្រាក់សរុប', flex: 16, align: TextAlign.right),
-          _HeaderCell('ស្ថានភាព', flex: 12, align: TextAlign.center),
-          _HeaderCell('បង្កើតដោយ', flex: 16),
-          _HeaderCell('ពេលបង្កើត', flex: 14),
-          _HeaderCell('សកម្មភាព', flex: 30, align: TextAlign.center),
+          Text(
+            'លទ្ធផល ${sales.length} បុង',
+            style: const TextStyle(fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(width: 14),
+          _SummaryValue(
+            icon: Icons.inventory_2_outlined,
+            text: 'ចំនួន ${formatQuantity(quantity)}',
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: _SummaryValue(
+              icon: Icons.payments_outlined,
+              text: 'សរុប ${formatMoney(amount)} រៀល',
+            ),
+          ),
+          Text(
+            'តាមទិន្នន័យដែលបានផ្ទុក',
+            style: TextStyle(color: colors.onSurfaceVariant, fontSize: 11),
+          ),
         ],
       ),
     );
   }
 }
 
+class _SummaryValue extends StatelessWidget {
+  const _SummaryValue({required this.icon, required this.text});
+  final IconData icon;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) => Row(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      Icon(icon, size: 16, color: Theme.of(context).colorScheme.primary),
+      const SizedBox(width: 5),
+      Flexible(
+        child: Text(
+          text,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+            fontSize: 12,
+          ),
+        ),
+      ),
+    ],
+  );
+}
+
+class _TableHeader extends StatelessWidget {
+  const _TableHeader();
+
+  @override
+  Widget build(BuildContext context) => Container(
+    height: 48,
+    padding: const EdgeInsets.symmetric(horizontal: 16),
+    color: Theme.of(context).colorScheme.surfaceContainer,
+    child: const Row(
+      children: [
+        _HeaderCell('លេខបុង', flex: 16),
+        _HeaderCell('អតិថិជន', flex: 24),
+        _HeaderCell('អ្នកបើកបរ', flex: 16),
+        _HeaderCell('ចំនួន', flex: 10, align: TextAlign.right),
+        _HeaderCell('ទឹកប្រាក់សរុប', flex: 16, align: TextAlign.right),
+        _HeaderCell('ស្ថានភាព', flex: 12, align: TextAlign.center),
+        _HeaderCell('បង្កើតដោយ', flex: 15),
+        _HeaderCell('ពេលបង្កើត', flex: 13),
+        _HeaderCell('សកម្មភាព', flex: 26, align: TextAlign.center),
+      ],
+    ),
+  );
+}
+
 class _ClosedSaleRow extends StatelessWidget {
   const _ClosedSaleRow({
     required this.sale,
     required this.alternate,
+    required this.onView,
     required this.onEdit,
     required this.onDelete,
     required this.isDeleting,
@@ -394,6 +591,7 @@ class _ClosedSaleRow extends StatelessWidget {
 
   final ClosedSale sale;
   final bool alternate;
+  final VoidCallback onView;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
   final bool isDeleting;
@@ -403,18 +601,17 @@ class _ClosedSaleRow extends StatelessWidget {
     final colors = Theme.of(context).colorScheme;
     return Container(
       key: ValueKey('closed-sale-${sale.name}'),
-      constraints: const BoxConstraints(minHeight: 56),
-      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 9),
+      constraints: const BoxConstraints(minHeight: 60),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
       decoration: BoxDecoration(
         color: alternate ? colors.surfaceContainerLow : colors.surface,
         border: Border(bottom: BorderSide(color: colors.outlineVariant)),
       ),
       child: Row(
         children: [
-          _DataCell(sale.name, flex: 17, emphasized: true),
-          _DataCell(_formatDate(sale.postingDate), flex: 13),
-          _DataCell(_customerLabel(sale), flex: 22),
-          _DataCell(_fallback(sale.driverName), flex: 18),
+          _DataCell(sale.name, flex: 16, emphasized: true),
+          _DataCell(_customerLabel(sale), flex: 24),
+          _DataCell(_fallback(sale.driverName), flex: 16),
           _DataCell(
             formatQuantity(sale.totalSaleQuantity),
             flex: 10,
@@ -430,57 +627,20 @@ class _ClosedSaleRow extends StatelessWidget {
             flex: 12,
             child: Center(child: _StatusChip(status: sale.saleStatus)),
           ),
-          _DataCell(_fallback(sale.owner), flex: 16),
+          _DataCell(_fallback(sale.owner), flex: 15),
           _DataCell(
             formatTimeAgo(sale.creation),
-            flex: 14,
+            flex: 13,
             tooltip: formatExactDateTime(sale.creation),
           ),
           Expanded(
-            flex: 30,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                OutlinedButton.icon(
-                  key: ValueKey('view-closed-sale-${sale.name}'),
-                  onPressed: null,
-                  icon: const Icon(Icons.visibility_outlined, size: 17),
-                  label: const Text('មើល'),
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 10),
-                    visualDensity: VisualDensity.compact,
-                  ),
-                ),
-                const SizedBox(width: 7),
-                FilledButton.tonalIcon(
-                  key: ValueKey('edit-closed-sale-${sale.name}'),
-                  onPressed: onEdit,
-                  icon: const Icon(Icons.edit_outlined, size: 17),
-                  label: const Text('កែបុង'),
-                  style: FilledButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 10),
-                    visualDensity: VisualDensity.compact,
-                  ),
-                ),
-                const SizedBox(width: 7),
-                OutlinedButton.icon(
-                  key: ValueKey('delete-closed-sale-${sale.name}'),
-                  onPressed: isDeleting ? null : onDelete,
-                  icon: isDeleting
-                      ? const SizedBox.square(
-                          dimension: 17,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.delete_outline_rounded, size: 17),
-                  label: const Text('លុប'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: colors.error,
-                    side: BorderSide(color: colors.error),
-                    padding: const EdgeInsets.symmetric(horizontal: 10),
-                    visualDensity: VisualDensity.compact,
-                  ),
-                ),
-              ],
+            flex: 26,
+            child: _SaleActions(
+              sale: sale,
+              onView: onView,
+              onEdit: onEdit,
+              onDelete: onDelete,
+              isDeleting: isDeleting,
             ),
           ),
         ],
@@ -489,9 +649,223 @@ class _ClosedSaleRow extends StatelessWidget {
   }
 }
 
+class _ClosedSaleCard extends StatelessWidget {
+  const _ClosedSaleCard({
+    required this.sale,
+    required this.onView,
+    required this.onEdit,
+    required this.onDelete,
+    required this.isDeleting,
+  });
+
+  final ClosedSale sale;
+  final VoidCallback onView;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
+  final bool isDeleting;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Card(
+      key: ValueKey('closed-sale-${sale.name}'),
+      margin: const EdgeInsets.only(bottom: 10),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    sale.name,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+                _StatusChip(status: sale.saleStatus),
+              ],
+            ),
+            const SizedBox(height: 5),
+            Text(
+              _customerLabel(sale),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(color: colors.onSurfaceVariant),
+            ),
+            const SizedBox(height: 13),
+            Row(
+              children: [
+                Expanded(
+                  child: _CardMetric(
+                    label: 'ចំនួន',
+                    value: formatQuantity(sale.totalSaleQuantity),
+                  ),
+                ),
+                Expanded(
+                  flex: 2,
+                  child: _CardMetric(
+                    label: 'ទឹកប្រាក់សរុប',
+                    value: '${formatMoney(sale.totalAmount)} រៀល',
+                    emphasized: true,
+                  ),
+                ),
+                Expanded(
+                  child: _CardMetric(
+                    label: 'អ្នកបើកបរ',
+                    value: _fallback(sale.driverName),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Divider(height: 1, color: colors.outlineVariant),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          _fallback(sale.owner),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: colors.onSurfaceVariant,
+                            fontSize: 11,
+                          ),
+                        ),
+                      ),
+                      Text(
+                        ' • ${formatTimeAgo(sale.creation)}',
+                        style: TextStyle(
+                          color: colors.onSurfaceVariant,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                _SaleActions(
+                  sale: sale,
+                  onView: onView,
+                  onEdit: onEdit,
+                  onDelete: onDelete,
+                  isDeleting: isDeleting,
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CardMetric extends StatelessWidget {
+  const _CardMetric({
+    required this.label,
+    required this.value,
+    this.emphasized = false,
+  });
+  final String label;
+  final String value;
+  final bool emphasized;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.only(right: 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: TextStyle(color: colors.onSurfaceVariant, fontSize: 11),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: emphasized ? colors.primary : colors.onSurface,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SaleActions extends StatelessWidget {
+  const _SaleActions({
+    required this.sale,
+    required this.onView,
+    required this.onEdit,
+    required this.onDelete,
+    required this.isDeleting,
+  });
+  final ClosedSale sale;
+  final VoidCallback onView;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
+  final bool isDeleting;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      mainAxisAlignment: MainAxisAlignment.end,
+      children: [
+        SizedBox(
+          width: 38,
+          height: 34,
+          child: OutlinedButton(
+            key: ValueKey('view-closed-sale-${sale.name}'),
+            onPressed: onView,
+            style: OutlinedButton.styleFrom(
+              padding: EdgeInsets.zero,
+              visualDensity: VisualDensity.compact,
+            ),
+            child: const Icon(Icons.visibility_outlined, size: 19),
+          ),
+        ),
+        IconButton(
+          key: ValueKey('edit-closed-sale-${sale.name}'),
+          tooltip: 'កែបុង',
+          onPressed: onEdit,
+          color: colors.primary,
+          visualDensity: VisualDensity.compact,
+          icon: const Icon(Icons.edit_outlined, size: 20),
+        ),
+        IconButton(
+          key: ValueKey('delete-closed-sale-${sale.name}'),
+          tooltip: 'លុប',
+          onPressed: isDeleting ? null : onDelete,
+          color: colors.error,
+          visualDensity: VisualDensity.compact,
+          icon: isDeleting
+              ? const SizedBox.square(
+                  dimension: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Icon(Icons.delete_outline_rounded, size: 20),
+        ),
+      ],
+    );
+  }
+}
+
 class _StatusChip extends StatelessWidget {
   const _StatusChip({required this.status});
-
   final String status;
 
   @override
@@ -501,14 +875,14 @@ class _StatusChip extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
       decoration: BoxDecoration(
         color: colors.primaryContainer,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(999),
       ),
       child: Text(
         status.toLowerCase() == 'closed' ? 'បានបិទ' : _fallback(status),
         style: TextStyle(
           color: colors.onPrimaryContainer,
-          fontSize: 12,
-          fontWeight: FontWeight.w700,
+          fontSize: 11,
+          fontWeight: FontWeight.w800,
         ),
       ),
     );
@@ -517,7 +891,6 @@ class _StatusChip extends StatelessWidget {
 
 class _HeaderCell extends StatelessWidget {
   const _HeaderCell(this.text, {required this.flex, this.align});
-
   final String text;
   final int flex;
   final TextAlign? align;
@@ -528,7 +901,7 @@ class _HeaderCell extends StatelessWidget {
     child: Text(
       text,
       textAlign: align,
-      style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+      style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12),
     ),
   );
 }
@@ -541,7 +914,6 @@ class _DataCell extends StatelessWidget {
     this.emphasized = false,
     this.tooltip,
   });
-
   final String text;
   final int flex;
   final TextAlign? align;
@@ -559,7 +931,7 @@ class _DataCell extends StatelessWidget {
       style: TextStyle(
         color: emphasized ? colors.onSurface : colors.onSurfaceVariant,
         fontWeight: emphasized ? FontWeight.w700 : FontWeight.w400,
-        fontSize: 13,
+        fontSize: 12,
       ),
     );
     return Expanded(
@@ -572,33 +944,35 @@ class _DataCell extends StatelessWidget {
 }
 
 class _DateGroupHeader extends StatelessWidget {
-  const _DateGroupHeader({required this.date, required this.count});
-
+  const _DateGroupHeader({
+    required this.date,
+    required this.count,
+    required this.compact,
+  });
   final String date;
   final int count;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     return Container(
       key: ValueKey('closed-sale-date-$date'),
-      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 9),
-      color: colors.primaryContainer.withValues(alpha: 0.55),
+      margin: compact ? const EdgeInsets.only(top: 4, bottom: 8) : null,
+      padding: EdgeInsets.symmetric(horizontal: compact ? 2 : 16, vertical: 9),
+      color: compact ? Colors.transparent : colors.primaryContainer,
       child: Row(
         children: [
-          Icon(Icons.calendar_today_outlined, size: 16, color: colors.primary),
-          const SizedBox(width: 8),
+          Icon(Icons.calendar_today_outlined, size: 15, color: colors.primary),
+          const SizedBox(width: 7),
           Text(
             _formatDate(date),
-            style: TextStyle(
-              color: colors.onPrimaryContainer,
-              fontWeight: FontWeight.w700,
-            ),
+            style: const TextStyle(fontWeight: FontWeight.w800),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 7),
           Text(
-            '($count)',
-            style: TextStyle(color: colors.onSurfaceVariant, fontSize: 12),
+            '$count បុង',
+            style: TextStyle(color: colors.onSurfaceVariant, fontSize: 11),
           ),
         ],
       ),
@@ -613,7 +987,6 @@ class _MessageState extends StatelessWidget {
     this.actionLabel,
     this.onAction,
   });
-
   final IconData icon;
   final String message;
   final String? actionLabel;
@@ -626,7 +999,15 @@ class _MessageState extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 44, color: colors.onSurfaceVariant),
+          Container(
+            width: 68,
+            height: 68,
+            decoration: BoxDecoration(
+              color: colors.surfaceContainer,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, size: 34, color: colors.onSurfaceVariant),
+          ),
           const SizedBox(height: 12),
           Text(message, style: TextStyle(color: colors.onSurfaceVariant)),
           if (actionLabel != null && onAction != null) ...[
