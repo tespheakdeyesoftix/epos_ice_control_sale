@@ -7,6 +7,7 @@ import '../../shared/welcome_card_widget.dart';
 import '../login/login_controller.dart';
 import '../navigation/app_destination.dart';
 import '../navigation/app_shell_controller.dart';
+import '../pending_sales/widgets/pending_sale_view_dialog_widget.dart';
 import '../sell/widgets/pending_order_list_dialog_widget.dart';
 import 'sale_summary_controller.dart';
 import 'widgets/sale_summary_kpi_widget.dart';
@@ -71,6 +72,19 @@ class SaleSummaryScreen extends StatelessWidget {
                       context,
                       saleService: shell.sellController.saleService,
                       outlet: outletSession.currentOutlet.value,
+                      onView: (name) => showPendingSaleViewDialog(
+                        context,
+                        saleService: shell.sellController.saleService,
+                        name: name,
+                      ),
+                      onEdit: (name) async {
+                        await shell.sellController.openPendingOrder(name);
+                        if (!context.mounted) return;
+                        await shell.navigateTo(
+                          AppDestination.sale,
+                          resolveUnfinishedSale: () async => true,
+                        );
+                      },
                     );
                   },
                 ),
