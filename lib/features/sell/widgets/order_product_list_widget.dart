@@ -367,7 +367,7 @@ class _OrderProductLine extends StatelessWidget {
     final colors = Theme.of(context).colorScheme;
     final productColor = colorFromHex(line.color, fallback: colors.primary);
     return Material(
-      key: ValueKey('order-product-card-${line.productCode}'),
+      key: ValueKey('order-product-card-${line.productCode}-${line.unit}'),
       color: colors.surfaceContainerLow,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(13),
@@ -443,8 +443,9 @@ class _OrderProductLine extends StatelessWidget {
                             Text(
                               '${formatQuantity(line.totalSaleQuantity)} x ${showPrices ? formatMoney(line.price) : '***'} / ${line.unit}',
                               style: TextStyle(
-                                color: colors.onSurfaceVariant,
+                                color: colors.error,
                                 fontSize: 12,
+                                fontWeight: FontWeight.w600,
                               ),
                             ),
                             if (line.freeQuantity > 0)

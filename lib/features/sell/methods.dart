@@ -262,6 +262,10 @@ class ProductPriceChangePermissionException implements Exception {
   String get message => 'អ្នកមិនមានសិទ្ធិកែប្រែតម្លៃទំនិញទេ។';
 }
 
+class SaleProductUnitAlreadySelectedException implements Exception {
+  const SaleProductUnitAlreadySelectedException();
+}
+
 class PosPaymentPermissionException implements Exception {
   const PosPaymentPermissionException();
 

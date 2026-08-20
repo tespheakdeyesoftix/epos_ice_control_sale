@@ -25,6 +25,7 @@ import 'widgets/product_card_widget.dart';
 import 'widgets/select_customer_widget.dart';
 import 'widgets/select_driver_widget.dart';
 import 'widgets/save_order_success_widget.dart';
+import 'widgets/select_product_unit_dialog_widget.dart';
 
 extension on BuildContext {
   ColorScheme get colors => Theme.of(this).colorScheme;
@@ -150,6 +151,9 @@ class SellScreen extends GetView<SellController> {
                                 final updated = await showEditSaleOrderDialog(
                                   context,
                                   saleProduct: line,
+                                  product: controller.productByCode(
+                                    line.productCode,
+                                  ),
                                   canShowPrice: canShowPrice,
                                   canChangePrice:
                                       controller.canChangeProductPrice,
@@ -157,9 +161,18 @@ class SellScreen extends GetView<SellController> {
                                 );
                                 if (updated != null) {
                                   try {
-                                    controller.updateSaleProduct(updated);
+                                    controller.updateSaleProduct(
+                                      updated,
+                                      originalItem: line,
+                                    );
                                   } on ProductPriceChangePermissionException {
                                     _showProductPriceChangePermissionDenied();
+                                  } on SaleProductUnitAlreadySelectedException {
+                                    Get.rawSnackbar(
+                                      message:
+                                          'ទំនិញ និងឯកតានេះត្រូវបានជ្រើសរើសរួចហើយ។',
+                                      snackPosition: SnackPosition.TOP,
+                                    );
                                   }
                                 }
                               },
@@ -794,10 +807,19 @@ class _ProductPanel extends StatelessWidget {
                     product: product,
                     imageUri: controller.productImage(product),
                     onTap: () async {
-                      if (controller.hasProduct(product)) {
+                      var selectedProduct = product;
+                      if (product.productUnits.length > 1) {
+                        final unitProduct = await showSelectProductUnitDialog(
+                          context,
+                          product: product,
+                        );
+                        if (unitProduct == null || !context.mounted) return;
+                        selectedProduct = unitProduct;
+                      }
+                      if (controller.hasProduct(selectedProduct)) {
                         Get.rawSnackbar(
                           messageText: Text(
-                            'ទំនិញ «${product.name}» ត្រូវបានជ្រើសរើសរួចហើយ។',
+                            'ទំនិញ «${selectedProduct.name}» ត្រូវបានជ្រើសរើសរួចហើយ។',
                             style: TextStyle(
                               color: context.colors.onInverseSurface,
                               fontWeight: FontWeight.w600,
@@ -819,7 +841,10 @@ class _ProductPanel extends StatelessWidget {
                       }
                       final quantity = await showInputNumberDialog(context);
                       if (quantity != null) {
-                        controller.addProduct(product, quantity: quantity);
+                        controller.addProduct(
+                          selectedProduct,
+                          quantity: quantity,
+                        );
                       }
                     },
                   );

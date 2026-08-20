@@ -17,6 +17,8 @@ class Product {
     this.saleTransactionType = 'Sale',
     this.isInventoryProduct = false,
     this.cost = 0,
+    this.productUnits = const [],
+    this.baseUnit,
   });
 
   final String code;
@@ -34,6 +36,41 @@ class Product {
   final String saleTransactionType;
   final bool isInventoryProduct;
   final double cost;
+  final List<ProductUnit> productUnits;
+  final String? baseUnit;
+
+  Product forUnit(ProductUnit productUnit) {
+    return Product(
+      code: code,
+      name: name,
+      category: category,
+      unit: productUnit.unit,
+      price: productUnit.price,
+      color: color,
+      photo: productUnit.photo.trim().isEmpty ? photo : productUnit.photo,
+      revenueGroup: revenueGroup,
+      multiplier: productUnit.multiplier,
+      allowSumQuantity: allowSumQuantity,
+      allowSplitBill: allowSplitBill,
+      allowChangeSaleType: allowChangeSaleType,
+      saleTransactionType: saleTransactionType,
+      isInventoryProduct: isInventoryProduct,
+      cost: cost,
+      productUnits: productUnits,
+      baseUnit: resolvedBaseUnit,
+    );
+  }
+
+  String get resolvedBaseUnit {
+    final explicitBaseUnit = baseUnit?.trim() ?? '';
+    if (explicitBaseUnit.isNotEmpty) return explicitBaseUnit;
+    for (final productUnit in productUnits) {
+      if (productUnit.isBaseUnit && productUnit.unit.trim().isNotEmpty) {
+        return productUnit.unit;
+      }
+    }
+    return unit;
+  }
 
   factory Product.fromJson(Map<String, dynamic> json) {
     return Product(
@@ -52,8 +89,44 @@ class Product {
       saleTransactionType: _saleTransactionType(json),
       isInventoryProduct: toDoubleValue(json['is_inventory_product']) == 1,
       cost: toDoubleValue(json['cost']),
+      productUnits: _productUnits(json['product_units']),
     );
   }
+}
+
+class ProductUnit {
+  const ProductUnit({
+    required this.unit,
+    required this.price,
+    this.multiplier = 1,
+    this.isBaseUnit = false,
+    this.photo = '',
+  });
+
+  factory ProductUnit.fromJson(Map<String, dynamic> json) {
+    return ProductUnit(
+      unit: (json['unit'] ?? '').toString().trim(),
+      price: toDoubleValue(json['price']),
+      multiplier: toDoubleValue(json['multiplier'], fallback: 1),
+      isBaseUnit: toDoubleValue(json['base_product_unit']) == 1,
+      photo: (json['photo'] ?? '').toString().trim(),
+    );
+  }
+
+  final String unit;
+  final double price;
+  final double multiplier;
+  final bool isBaseUnit;
+  final String photo;
+}
+
+List<ProductUnit> _productUnits(dynamic value) {
+  if (value is! List) return const [];
+  return value
+      .whereType<Map>()
+      .map((row) => ProductUnit.fromJson(Map<String, dynamic>.from(row)))
+      .where((row) => row.unit.isNotEmpty)
+      .toList(growable: false);
 }
 
 String _saleTransactionType(Map<String, dynamic> json) {

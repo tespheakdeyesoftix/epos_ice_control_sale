@@ -1,10 +1,81 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ice_control_sale/app/app_theme.dart';
+import 'package:ice_control_sale/features/sell/product.dart';
 import 'package:ice_control_sale/features/sell/sale_product.dart';
 import 'package:ice_control_sale/features/sell/widgets/edit_sale_order_widget.dart';
 
 void main() {
+  testWidgets('changes unit, price, and multiplier for multi-unit product', (
+    tester,
+  ) async {
+    SaleProduct? updated;
+    const product = Product(
+      code: 'P-UNIT',
+      name: 'Block Ice',
+      category: 'Ice',
+      unit: 'Block',
+      price: 15000,
+      color: '#1677FF',
+      photo: '',
+      productUnits: [
+        ProductUnit(unit: 'Case', price: 700000, multiplier: 6),
+        ProductUnit(unit: 'Block', price: 15000, isBaseUnit: true),
+      ],
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light,
+        home: Builder(
+          builder: (context) => TextButton(
+            onPressed: () async {
+              updated = await showEditSaleOrderDialog(
+                context,
+                product: product,
+                saleProduct: const SaleProduct(
+                  productCode: 'P-UNIT',
+                  productName: 'Block Ice',
+                  productCategory: 'Ice',
+                  unit: 'Block',
+                  baseUnit: 'Block',
+                  price: 15000,
+                  productPrice: 15000,
+                ),
+              );
+            },
+            child: const Text('Edit'),
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('Edit'));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('edit-sale-unit')), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('edit-sale-unit')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('select-product-unit-Case')));
+    await tester.pumpAndSettle();
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('edit-sale-unit')),
+        matching: find.text('Case'),
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('700,000'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('save-sale-order-edit')));
+    await tester.pumpAndSettle();
+
+    expect(updated?.unit, 'Case');
+    expect(updated?.baseUnit, 'Block');
+    expect(updated?.price, 700000);
+    expect(updated?.productPrice, 700000);
+    expect(updated?.multiplier, 6);
+  });
+
   testWidgets('return, free and split quantities cannot exceed quantity', (
     tester,
   ) async {

@@ -13,6 +13,56 @@ import 'package:ice_control_sale/services/product_service.dart';
 import 'package:ice_control_sale/services/sale_service.dart';
 
 void main() {
+  test('uses product code and unit together as the order-line identity', () {
+    final client = MockClient((_) async => http.Response('{}', 200));
+    final baseUri = Uri.parse('http://127.0.0.1:8888/');
+    final controller = SellController(
+      productService: ProductService(baseUri, client: client),
+      customerService: CustomerService(baseUri, client: client),
+      saleService: SaleService(baseUri, client: client),
+      outletName: 'Main Outlet',
+      stationName: 'Cashier 01',
+    );
+    const product = Product(
+      code: 'P001',
+      name: 'Block Ice',
+      category: 'Ice',
+      unit: 'Block',
+      price: 15000,
+      color: '#1677FF',
+      photo: '',
+      productUnits: [
+        ProductUnit(unit: 'Case', price: 700000, multiplier: 6),
+        ProductUnit(unit: 'Block', price: 15000, isBaseUnit: true),
+      ],
+    );
+    final caseProduct = product.forUnit(product.productUnits.first);
+    final blockProduct = product.forUnit(product.productUnits.last);
+
+    expect(controller.addProduct(caseProduct), isTrue);
+    expect(controller.addProduct(blockProduct), isTrue);
+    expect(controller.addProduct(caseProduct), isFalse);
+    expect(controller.saleProducts, hasLength(2));
+
+    final caseLine = controller.saleProducts.first;
+    final blockLine = controller.saleProducts.last;
+    controller.updateSaleProduct(blockLine.copyWith(quantity: 3));
+    expect(controller.saleProducts.first.quantity, 1);
+    expect(controller.saleProducts.last.quantity, 3);
+
+    expect(
+      () => controller.updateSaleProduct(
+        caseLine.copyWith(unit: 'Block'),
+        originalItem: caseLine,
+      ),
+      throwsA(isA<SaleProductUnitAlreadySelectedException>()),
+    );
+
+    controller.remove(caseLine);
+    expect(controller.saleProducts, hasLength(1));
+    expect(controller.saleProducts.single.unit, 'Block');
+  });
+
   test('reprices existing and new products for selected customer', () async {
     var requestedCustomer = '';
     final client = MockClient((request) async {
