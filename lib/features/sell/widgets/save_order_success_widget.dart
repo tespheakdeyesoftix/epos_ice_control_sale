@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../../app/app_theme.dart';
+import '../../../utils/helpers.dart';
 
 Future<void> showSaveOrderSuccessDialog(
   BuildContext context, {
@@ -48,7 +49,7 @@ class _SaveOrderSuccessWidgetState extends State<SaveOrderSuccessWidget> {
         widget.savedOrder['name'] ??
         widget.savedOrder['id'] ??
         widget.savedOrder['reference_number'];
-    return value?.toString().trim() ?? '';
+    return textValue(value);
   }
 
   @override

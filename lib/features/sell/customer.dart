@@ -20,15 +20,15 @@ class Customer {
 
   factory Customer.fromJson(Map<String, dynamic> json) {
     return Customer(
-      name: _text(json['name']),
-      customerCode: _text(json['customer_code']),
-      customerName: _text(json['customer_name']),
-      phoneNumber1: _text(json['phone_number_1']),
-      phoneNumber2: _text(json['phone_number_2']),
-      customerGroup: _text(json['customer_group']),
-      keyword: _text(json['keyword']),
-      plateNumber: _text(json['plate_number']),
-      photo: _text(json['photo']),
+      name: textValue(json['name']),
+      customerCode: textValue(json['customer_code']),
+      customerName: textValue(json['customer_name']),
+      phoneNumber1: textValue(json['phone_number_1']),
+      phoneNumber2: textValue(json['phone_number_2']),
+      customerGroup: textValue(json['customer_group']),
+      keyword: textValue(json['keyword']),
+      plateNumber: textValue(json['plate_number']),
+      photo: textValue(json['photo']),
       canEditBill: toDoubleValue(json['can_edit_bill']) == 1,
       canShowPrice: toDoubleValue(json['can_show_price']) == 1,
       canSplitBill: toDoubleValue(json['can_split_bill']) == 1,
@@ -51,5 +51,3 @@ class Customer {
   String get displayCode => customerCode.isEmpty ? name : customerCode;
   String get displayName => customerName.isEmpty ? name : customerName;
 }
-
-String _text(dynamic value) => value == null ? '' : value.toString().trim();

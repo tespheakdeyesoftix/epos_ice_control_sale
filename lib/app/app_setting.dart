@@ -26,22 +26,22 @@ class AppSetting {
     final paymentRows = json['payment_types'];
     return AppSetting(
       raw: Map.unmodifiable(json),
-      businessNameEn: _text(json['business_name_en']),
-      businessNameKh: _text(json['business_name_kh']),
-      address: _text(json['address']),
-      phoneNumber1: _text(json['phone_number_1']),
-      photo: _text(json['photo']),
-      propertyCode: _text(json['property_code']),
-      outlet: _text(json['outlet']),
-      defaultUnit: _text(json['default_unit']),
-      defaultStockLocation: _text(json['default_stock_location']),
-      defaultCurrency: _text(json['default_currency']),
-      currencySymbol: _text(json['currency_symbol']),
-      currencyFormat: _text(json['currency_format']),
-      secondCurrency: _text(json['second_currency']),
-      secondCurrencySymbol: _text(json['second_currency_symbol']),
+      businessNameEn: textValue(json['business_name_en']),
+      businessNameKh: textValue(json['business_name_kh']),
+      address: textValue(json['address']),
+      phoneNumber1: textValue(json['phone_number_1']),
+      photo: textValue(json['photo']),
+      propertyCode: textValue(json['property_code']),
+      outlet: textValue(json['outlet']),
+      defaultUnit: textValue(json['default_unit']),
+      defaultStockLocation: textValue(json['default_stock_location']),
+      defaultCurrency: textValue(json['default_currency']),
+      currencySymbol: textValue(json['currency_symbol']),
+      currencyFormat: textValue(json['currency_format']),
+      secondCurrency: textValue(json['second_currency']),
+      secondCurrencySymbol: textValue(json['second_currency_symbol']),
       exchangeRate: toDoubleValue(json['exchange_rate'], fallback: 1),
-      defaultPrintTemplate: _text(json['default_print_template']),
+      defaultPrintTemplate: textValue(json['default_print_template']),
       paymentTypes: paymentRows is List
           ? paymentRows
                 .whereType<Map>()
@@ -74,5 +74,3 @@ class AppSetting {
   final String defaultPrintTemplate;
   final List<Map<String, dynamic>> paymentTypes;
 }
-
-String _text(dynamic value) => value == null ? '' : value.toString().trim();

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+String textValue(Object? value) => value?.toString().trim() ?? '';
+
 double toDoubleValue(dynamic value, {double fallback = 0}) {
   if (value is num) return value.toDouble();
   return double.tryParse(value?.toString() ?? '') ?? fallback;

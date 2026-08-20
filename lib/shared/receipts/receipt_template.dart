@@ -2,6 +2,8 @@ import 'dart:convert';
 
 import 'package:pdf/pdf.dart';
 
+import '../../utils/helpers.dart';
+
 enum ReceiptPageSize {
   a6('A6'),
   a5('A5'),
@@ -181,14 +183,14 @@ class ReceiptBlock {
 
   factory ReceiptBlock.fromJson(Map<String, dynamic> json) {
     return ReceiptBlock(
-      id: _text(json['id']).isEmpty
-          ? '${_text(json['type'])}_${DateTime.now().microsecondsSinceEpoch}'
-          : _text(json['id']),
+      id: textValue(json['id']).isEmpty
+          ? '${textValue(json['type'])}_${DateTime.now().microsecondsSinceEpoch}'
+          : textValue(json['id']),
       type: ReceiptBlockType.parse(json['type']),
       visible: _bool(json['visible'], fallback: true),
-      alignment: _text(json['alignment']).isEmpty
+      alignment: textValue(json['alignment']).isEmpty
           ? 'left'
-          : _text(json['alignment']),
+          : textValue(json['alignment']),
       fontSize: _double(json['font_size'], fallback: 9),
       bold: _bool(json['bold']),
       position: ReceiptPositionMode.parse(json['position']),
@@ -206,10 +208,10 @@ class ReceiptBlock {
       padding: ReceiptInsetsMm.tryParse(json['padding']),
       spacingBefore: _double(json['spacing_before'], fallback: 0),
       spacingAfter: _double(json['spacing_after'], fallback: 4),
-      showIf: _text(json['show_if']),
-      fieldname: _text(json['fieldname']),
-      label: _text(json['label']),
-      text: _text(json['text']),
+      showIf: textValue(json['show_if']),
+      fieldname: textValue(json['fieldname']),
+      label: textValue(json['label']),
+      text: textValue(json['text']),
       properties: Map<String, dynamic>.unmodifiable(
         json['properties'] is Map
             ? Map<String, dynamic>.from(json['properties'] as Map)
@@ -402,20 +404,22 @@ class ReceiptTemplate {
         blocks.add(ReceiptBlock.fromJson(blockJson));
       }
     }
-    final templateName = _text(json['template_name']);
+    final templateName = textValue(json['template_name']);
     final page = layoutMap['page'] is Map
         ? Map<String, dynamic>.from(layoutMap['page'] as Map)
         : const <String, dynamic>{};
     final pageSize = ReceiptPageSize.parse(page['size'] ?? json['paper_size']);
     return ReceiptTemplate(
-      name: _text(json['name']).isEmpty ? templateName : _text(json['name']),
+      name: textValue(json['name']).isEmpty
+          ? templateName
+          : textValue(json['name']),
       templateName: templateName,
-      description: _text(json['description']),
+      description: textValue(json['description']),
       pageSize: pageSize,
       orientation: ReceiptOrientation.parse(
         page['orientation'] ?? json['orientation'],
       ),
-      templateLogo: _text(json['template_logo']),
+      templateLogo: textValue(json['template_logo']),
       schemaVersion: _int(json['schema_version'], fallback: 1),
       marginMm: _double(
         page['margin_mm'],
@@ -686,34 +690,34 @@ class ReceiptTemplate {
 
 Map<String, dynamic> _normalizeBlockJson(Map<String, dynamic> source) {
   final json = Map<String, dynamic>.from(source);
-  switch (_text(json['type'])) {
+  switch (textValue(json['type'])) {
     case 'template_logo':
       json['type'] = 'image';
-      json['fieldname'] = _text(json['fieldname']).isEmpty
+      json['fieldname'] = textValue(json['fieldname']).isEmpty
           ? 'template_logo'
           : json['fieldname'];
     case 'business_name':
       json['type'] = 'text';
-      json['text'] = _text(json['text']).isEmpty
+      json['text'] = textValue(json['text']).isEmpty
           ? '{{business_name_kh}}\n{{business_name_en}}'
           : json['text'];
     case 'invoice_title':
       json['type'] = 'text';
-      json['text'] = _text(json['text']).isEmpty ? 'INVOICE' : json['text'];
+      json['text'] = textValue(json['text']).isEmpty ? 'INVOICE' : json['text'];
     case 'business_contact':
       json['type'] = 'text';
-      json['text'] = _text(json['text']).isEmpty
+      json['text'] = textValue(json['text']).isEmpty
           ? '{{address}}  {{phone_number_1}}'
           : json['text'];
     case 'sale_info':
       json['type'] = 'text';
-      json['text'] = _text(json['text']).isEmpty
+      json['text'] = textValue(json['text']).isEmpty
           ? '{{name}}  {{posting_date}}  {{seller}}  {{station}}'
           : json['text'];
     case 'token_text':
       json['type'] = 'text';
   }
-  if (_text(json['type']) == 'table') {
+  if (textValue(json['type']) == 'table') {
     final properties = json['properties'] is Map
         ? Map<String, dynamic>.from(json['properties'] as Map)
         : <String, dynamic>{};
@@ -755,15 +759,15 @@ void _validateBlockJson(Map<String, dynamic> json, String path, int depth) {
     throw FormatException('$path exceeds the maximum nesting depth of 12.');
   }
   final knownTypes = ReceiptBlockType.values.map((type) => type.key).toSet();
-  if (!knownTypes.contains(_text(json['type']))) {
+  if (!knownTypes.contains(textValue(json['type']))) {
     throw FormatException('$path has an unknown type.');
   }
-  if (_text(json['type']) == ReceiptBlockType.table.key) {
+  if (textValue(json['type']) == ReceiptBlockType.table.key) {
     final properties = json['properties'];
     if (properties is! Map) {
       throw FormatException('$path.table requires rows or source/columns.');
     }
-    final source = _text(properties['source']);
+    final source = textValue(properties['source']);
     final rows = properties['rows'];
     final columns = properties['columns'];
     if (source.isEmpty && rows is! List) {
@@ -884,7 +888,7 @@ void _validateBlockLayout(
   }
   final isDynamicTable =
       block.type == ReceiptBlockType.table &&
-      _text(block.properties['source']).isNotEmpty;
+      textValue(block.properties['source']).isNotEmpty;
   if ((block.type == ReceiptBlockType.productTable || isDynamicTable) &&
       (!isTopLevel || block.position != ReceiptPositionMode.flow)) {
     errors.add(
@@ -940,8 +944,6 @@ bool _overlaps(ReceiptBlock a, ReceiptBlock b) =>
     a.xMm! + a.widthMm! > b.xMm! &&
     a.yMm! < b.yMm! + b.heightMm! &&
     a.yMm! + a.heightMm! > b.yMm!;
-
-String _text(Object? value) => value?.toString().trim() ?? '';
 
 bool _bool(Object? value, {bool fallback = false}) {
   if (value == null) return fallback;
