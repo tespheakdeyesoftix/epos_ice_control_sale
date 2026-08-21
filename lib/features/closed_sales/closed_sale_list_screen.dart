@@ -64,6 +64,10 @@ class ClosedSaleListScreen extends GetView<ClosedSaleController> {
     return showClosedSalePrintPreview(context, sale: sale);
   }
 
+  Future<void> _openPaymentHistory(BuildContext context, ClosedSale sale) {
+    return showClosedSalePaymentHistory(context, sale: sale);
+  }
+
   Future<void> _showAdvancedSearch(BuildContext context) async {
     final result = await showClosedSaleAdvancedSearchDialog(
       context,
@@ -135,7 +139,7 @@ class ClosedSaleListScreen extends GetView<ClosedSaleController> {
             children: [
               Icon(Icons.preview_outlined, size: 19),
               SizedBox(width: 10),
-              Text('Print Preview Invoice'),
+              Text('មើលវិក្កយបត្រមុនបោះពុម្ព'),
             ],
           ),
         ),
@@ -146,7 +150,7 @@ class ClosedSaleListScreen extends GetView<ClosedSaleController> {
             children: [
               Icon(Icons.payments_outlined, size: 19),
               SizedBox(width: 10),
-              Text('View Payment History'),
+              Text('មើលប្រវត្តិការទូទាត់'),
             ],
           ),
         ),
@@ -158,7 +162,7 @@ class ClosedSaleListScreen extends GetView<ClosedSaleController> {
             children: [
               Icon(Icons.edit_outlined, size: 19),
               SizedBox(width: 10),
-              Text('Edit Bill'),
+              Text('កែប្រែបុង'),
             ],
           ),
         ),
@@ -169,7 +173,7 @@ class ClosedSaleListScreen extends GetView<ClosedSaleController> {
             children: [
               Icon(Icons.delete_outline_rounded, size: 19, color: colors.error),
               const SizedBox(width: 10),
-              Text('Delete Bill', style: TextStyle(color: colors.error)),
+              Text('លុបបុង', style: TextStyle(color: colors.error)),
             ],
           ),
         ),
@@ -182,11 +186,7 @@ class ClosedSaleListScreen extends GetView<ClosedSaleController> {
       case _ClosedSaleContextAction.printPreview:
         await _openPrintPreview(context, sale);
       case _ClosedSaleContextAction.paymentHistory:
-        await _openSaleDetailAction(
-          context,
-          sale,
-          SaleDetailInitialAction.paymentHistory,
-        );
+        await _openPaymentHistory(context, sale);
       case _ClosedSaleContextAction.editBill:
         await _openSaleDetailAction(
           context,

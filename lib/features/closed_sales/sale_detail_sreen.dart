@@ -28,7 +28,29 @@ import 'widgets/split_bill_parent_banner_widget.dart';
 
 const double _saleDetailDialogBreakpoint = 900;
 
-enum SaleDetailInitialAction { paymentHistory, edit, delete }
+enum SaleDetailInitialAction { edit, delete }
+
+SaleDetailController _createSaleDetailController(ClosedSale sale) {
+  final sell = Get.isRegistered<SellController>()
+      ? Get.find<SellController>()
+      : null;
+  return SaleDetailController(
+    summary: sale,
+    saleService: sell?.saleService,
+    closedSaleController: Get.isRegistered<ClosedSaleController>()
+        ? Get.find<ClosedSaleController>()
+        : null,
+    printService: Get.isRegistered<ReceiptPrintService>()
+        ? Get.find<ReceiptPrintService>()
+        : null,
+    appSettingController: Get.isRegistered<AppSettingController>()
+        ? Get.find<AppSettingController>()
+        : null,
+    loginController: Get.isRegistered<LoginController>()
+        ? Get.find<LoginController>()
+        : null,
+  );
+}
 
 Future<void> showSaleDetail(
   BuildContext context, {
@@ -74,25 +96,7 @@ Future<void> showClosedSalePrintPreview(
   BuildContext context, {
   required ClosedSale sale,
 }) async {
-  final sell = Get.isRegistered<SellController>()
-      ? Get.find<SellController>()
-      : null;
-  final controller = SaleDetailController(
-    summary: sale,
-    saleService: sell?.saleService,
-    closedSaleController: Get.isRegistered<ClosedSaleController>()
-        ? Get.find<ClosedSaleController>()
-        : null,
-    printService: Get.isRegistered<ReceiptPrintService>()
-        ? Get.find<ReceiptPrintService>()
-        : null,
-    appSettingController: Get.isRegistered<AppSettingController>()
-        ? Get.find<AppSettingController>()
-        : null,
-    loginController: Get.isRegistered<LoginController>()
-        ? Get.find<LoginController>()
-        : null,
-  );
+  final controller = _createSaleDetailController(sale);
   try {
     await controller.load();
     await controller.loadPrintTemplates();
@@ -105,6 +109,28 @@ Future<void> showClosedSalePrintPreview(
       buildPdf: (template) => controller.buildPrintPreview(template: template),
       onTemplateChanged: (template) =>
           controller.selectedPrintTemplate.value = template,
+    );
+  } finally {
+    controller.onClose();
+  }
+}
+
+Future<void> showClosedSalePaymentHistory(
+  BuildContext context, {
+  required ClosedSale sale,
+}) async {
+  final controller = _createSaleDetailController(sale);
+  try {
+    await controller.load();
+    if (!context.mounted || controller.saleService == null) return;
+    final displayedSale = controller.displayedSale;
+    await showSalePaymentHistoryDialog(
+      context,
+      loadHistory: controller.loadPaymentHistory,
+      saleName: displayedSale.name,
+      canShowPrice: displayedSale.canShowPrice,
+      currencySymbol:
+          controller.appSettingController?.current?.currencySymbol ?? '',
     );
   } finally {
     controller.onClose();
@@ -147,8 +173,6 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
     await controller.load();
     if (!mounted) return;
     switch (widget.initialAction) {
-      case SaleDetailInitialAction.paymentHistory:
-        await _showPaymentHistory();
       case SaleDetailInitialAction.edit:
         await _editOrder();
       case SaleDetailInitialAction.delete:
@@ -158,27 +182,8 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
     }
   }
 
-  SaleDetailController _createController() {
-    final sell = Get.isRegistered<SellController>()
-        ? Get.find<SellController>()
-        : null;
-    return SaleDetailController(
-      summary: widget.sale,
-      saleService: sell?.saleService,
-      closedSaleController: Get.isRegistered<ClosedSaleController>()
-          ? Get.find<ClosedSaleController>()
-          : null,
-      printService: Get.isRegistered<ReceiptPrintService>()
-          ? Get.find<ReceiptPrintService>()
-          : null,
-      appSettingController: Get.isRegistered<AppSettingController>()
-          ? Get.find<AppSettingController>()
-          : null,
-      loginController: Get.isRegistered<LoginController>()
-          ? Get.find<LoginController>()
-          : null,
-    );
-  }
+  SaleDetailController _createController() =>
+      _createSaleDetailController(widget.sale);
 
   @override
   void dispose() {
