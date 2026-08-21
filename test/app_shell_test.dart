@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
@@ -25,6 +26,33 @@ import 'package:ice_control_sale/services/sale_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
+  testWidgets('F3 and the rail icon open global search', (tester) async {
+    await _pumpShell(tester);
+
+    final logo = find.byKey(const ValueKey('rail-company-logo'));
+    final searchButton = find.byKey(
+      const ValueKey('rail-global-search-button'),
+    );
+    expect(searchButton, findsOneWidget);
+    expect(
+      tester.getTopLeft(searchButton).dy,
+      greaterThan(tester.getTopLeft(logo).dy),
+    );
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.f3);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('global-search-dialog')), findsOneWidget);
+    expect(find.byKey(const ValueKey('global-search-input')), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('close-global-search')));
+    await tester.pumpAndSettle();
+    await tester.tap(searchButton);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('global-search-dialog')), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('close-global-search')));
+    await tester.pumpAndSettle();
+  });
+
   testWidgets('compact user profile remains visible on every destination', (
     tester,
   ) async {

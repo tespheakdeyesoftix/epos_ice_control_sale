@@ -323,6 +323,48 @@ void main() {
     );
   });
 
+  test('global search can request latest modified closed sales', () async {
+    late http.Request sentRequest;
+    final client = MockClient((request) async {
+      sentRequest = request;
+      return http.Response(
+        jsonEncode({'data': <Object>[]}),
+        200,
+        headers: {'content-type': 'application/json'},
+      );
+    });
+    final service = SaleService(
+      Uri.parse('http://127.0.0.1:8888/'),
+      client: client,
+    );
+
+    await service.getClosedSales(
+      outlet: 'OUTLET-1',
+      search: 'C457',
+      sortField: 'modified',
+      limit: 10,
+    );
+
+    expect(
+      sentRequest.url.queryParameters['order_by'],
+      'modified desc, name desc',
+    );
+    expect(sentRequest.url.queryParameters['limit_page_length'], '10');
+    final filters = jsonDecode(sentRequest.url.queryParameters['filters']!);
+    expect(filters, contains(equals(['sale_status', '=', 'Closed'])));
+    expect(filters, contains(equals(['outlet', '=', 'OUTLET-1'])));
+    final searchFilters = jsonDecode(
+      sentRequest.url.queryParameters['or_filters']!,
+    );
+    expect(searchFilters, contains(equals(['name', 'like', '%C457%'])));
+    expect(
+      searchFilters,
+      contains(equals(['customer_name', 'like', '%C457%'])),
+    );
+    expect(searchFilters, contains(equals(['customer', 'like', '%C457%'])));
+    expect(searchFilters, contains(equals(['phone_number', 'like', '%C457%'])));
+  });
+
   test('closed sale count uses the same filters as the record list', () async {
     final requests = <http.Request>[];
     final client = MockClient((request) async {

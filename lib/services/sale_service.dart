@@ -258,6 +258,7 @@ class SaleService {
     'total_sale_quantity',
     'total_amount',
     'creation',
+    'modified',
   };
 
   Future<Sale> getSale(String name) async {

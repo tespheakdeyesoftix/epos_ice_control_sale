@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
 import '../../app/app_setting.dart';
@@ -13,6 +14,8 @@ import '../../shared/user_profile_widget.dart';
 import '../../shared/warning_pending_order_widget.dart';
 import '../closed_sales/closed_sale_list_screen.dart';
 import '../closed_sales/closed_sale_controller.dart';
+import '../closed_sales/sale_detail_sreen.dart';
+import '../global_search/global_search_dialog.dart';
 import '../login/login_controller.dart';
 import '../pending_sales/pending_sale_list_screen.dart';
 import '../report/report_screen.dart';
@@ -29,6 +32,22 @@ enum _SaleLeaveAction { close, closeAndPrint, hold, clear, continueSale }
 
 class AppShellScreen extends GetView<AppShellController> {
   const AppShellScreen({super.key});
+
+  Future<void> _openGlobalSearch(BuildContext context) async {
+    if (controller.isGlobalSearchOpen.value) return;
+    controller.isGlobalSearchOpen.value = true;
+    try {
+      final sale = await showGlobalSearchDialog(
+        context,
+        saleService: controller.sellController.saleService,
+        outletProvider: () => controller.sellController.activeOutletName,
+      );
+      if (sale == null || !context.mounted) return;
+      await showSaleDetail(context, sale: sale);
+    } finally {
+      controller.isGlobalSearchOpen.value = false;
+    }
+  }
 
   Future<void> _navigate(
     BuildContext context,
@@ -274,135 +293,162 @@ class AppShellScreen extends GetView<AppShellController> {
     final loginController = Get.find<LoginController>();
     final themeController = Get.find<ThemeController>();
     final closedSaleController = Get.find<ClosedSaleController>();
-    return Scaffold(
-      body: Stack(
-        children: [
-          SafeArea(
-            child: Obx(() {
-              final selected = controller.selectedDestination.value;
-              final visited = controller.visitedDestinations.toSet();
-              return Row(
-                children: [
-                  Container(
-                    key: const ValueKey('app-navigation-rail'),
-                    width: 64,
-                    decoration: BoxDecoration(
-                      color: colors.surface,
-                      border: Border(
-                        right: BorderSide(color: colors.outlineVariant),
-                      ),
-                    ),
-                    child: NavigationRail(
-                      minWidth: 64,
-                      selectedIndex: selected.index,
-                      labelType: NavigationRailLabelType.none,
-                      groupAlignment: -0.8,
-                      backgroundColor: colors.surface,
-                      indicatorColor: colors.primaryContainer,
-                      useIndicator: true,
-                      leading: Padding(
-                        padding: const EdgeInsets.only(top: 10, bottom: 18),
-                        child: _RailCompanyAvatar(
-                          settingController: settingController,
+    return CallbackShortcuts(
+      bindings: {
+        const SingleActivator(LogicalKeyboardKey.f3): () =>
+            _openGlobalSearch(context),
+      },
+      child: Focus(
+        autofocus: true,
+        child: Scaffold(
+          body: Stack(
+            children: [
+              SafeArea(
+                child: Obx(() {
+                  final selected = controller.selectedDestination.value;
+                  final visited = controller.visitedDestinations.toSet();
+                  return Row(
+                    children: [
+                      Container(
+                        key: const ValueKey('app-navigation-rail'),
+                        width: 64,
+                        decoration: BoxDecoration(
+                          color: colors.surface,
+                          border: Border(
+                            right: BorderSide(color: colors.outlineVariant),
+                          ),
                         ),
-                      ),
-                      trailingAtBottom: true,
-                      trailing: Padding(
-                        padding: const EdgeInsets.only(bottom: 10),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            IconButton(
-                              key: const ValueKey('rail-settings-button'),
-                              tooltip: 'ការកំណត់',
-                              onPressed: () => Navigator.of(context).push(
-                                MaterialPageRoute<void>(
-                                  builder: (_) => const SettingScreen(),
+                        child: NavigationRail(
+                          minWidth: 64,
+                          selectedIndex: selected.index,
+                          labelType: NavigationRailLabelType.none,
+                          groupAlignment: -0.8,
+                          backgroundColor: colors.surface,
+                          indicatorColor: colors.primaryContainer,
+                          useIndicator: true,
+                          leading: Padding(
+                            padding: const EdgeInsets.only(top: 10, bottom: 12),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                _RailCompanyAvatar(
+                                  settingController: settingController,
                                 ),
-                              ),
-                              icon: const Icon(Icons.settings_outlined),
-                            ),
-                            SizedBox(
-                              width: 32,
-                              child: Divider(
-                                key: const ValueKey('rail-profile-separator'),
-                                height: 17,
-                                color: colors.outlineVariant,
-                              ),
-                            ),
-                            Obx(
-                              () => UserProfileWidget(
-                                username: loginController.currentUsername.value,
-                                userImageUrl:
-                                    loginController.currentUserImageUrl.value,
-                                isDark: themeController.isDark.value,
-                                onThemeToggle: themeController.toggleTheme,
-                                onLogout: loginController.logout,
-                                compact: true,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      onDestinationSelected: controller.isNavigating.value
-                          ? null
-                          : (index) => _navigate(
-                              context,
-                              AppDestination.values[index],
-                            ),
-                      destinations: AppDestination.values
-                          .map(
-                            (destination) => NavigationRailDestination(
-                              icon: Tooltip(
-                                key: ValueKey(
-                                  'nav-destination-${destination.name}',
+                                const SizedBox(height: 8),
+                                IconButton(
+                                  key: const ValueKey(
+                                    'rail-global-search-button',
+                                  ),
+                                  tooltip: 'ស្វែងរកវិក្កយបត្រលក់ (F3)',
+                                  onPressed: () => _openGlobalSearch(context),
+                                  icon: const Icon(Icons.search_rounded),
                                 ),
-                                message: destination.label,
-                                child: _RailDestinationIcon(
-                                  destination: destination,
-                                  pendingCount: controller
-                                      .sellController
-                                      .pendingOrderCount
-                                      .value,
-                                  closedCount: closedSaleController
-                                      .todayClosedSaleCount
-                                      .value,
-                                ),
-                              ),
-                              label: Text(destination.label),
+                              ],
                             ),
-                          )
-                          .toList(growable: false),
-                    ),
-                  ),
-                  Expanded(
-                    child: IndexedStack(
-                      index: selected.index,
-                      children: AppDestination.values
-                          .map(
-                            (destination) => visited.contains(destination)
-                                ? KeyedSubtree(
-                                    key: ValueKey(
-                                      'destination-screen-${destination.name}',
+                          ),
+                          trailingAtBottom: true,
+                          trailing: Padding(
+                            padding: const EdgeInsets.only(bottom: 10),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                IconButton(
+                                  key: const ValueKey('rail-settings-button'),
+                                  tooltip: 'ការកំណត់',
+                                  onPressed: () => Navigator.of(context).push(
+                                    MaterialPageRoute<void>(
+                                      builder: (_) => const SettingScreen(),
                                     ),
-                                    child: _screenFor(destination),
-                                  )
-                                : const SizedBox.shrink(),
-                          )
-                          .toList(growable: false),
-                    ),
-                  ),
-                ],
-              );
-            }),
+                                  ),
+                                  icon: const Icon(Icons.settings_outlined),
+                                ),
+                                SizedBox(
+                                  width: 32,
+                                  child: Divider(
+                                    key: const ValueKey(
+                                      'rail-profile-separator',
+                                    ),
+                                    height: 17,
+                                    color: colors.outlineVariant,
+                                  ),
+                                ),
+                                Obx(
+                                  () => UserProfileWidget(
+                                    username:
+                                        loginController.currentUsername.value,
+                                    userImageUrl: loginController
+                                        .currentUserImageUrl
+                                        .value,
+                                    isDark: themeController.isDark.value,
+                                    onThemeToggle: themeController.toggleTheme,
+                                    onLogout: loginController.logout,
+                                    compact: true,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          onDestinationSelected: controller.isNavigating.value
+                              ? null
+                              : (index) => _navigate(
+                                  context,
+                                  AppDestination.values[index],
+                                ),
+                          destinations: AppDestination.values
+                              .map(
+                                (destination) => NavigationRailDestination(
+                                  icon: Tooltip(
+                                    key: ValueKey(
+                                      'nav-destination-${destination.name}',
+                                    ),
+                                    message: destination.label,
+                                    child: _RailDestinationIcon(
+                                      destination: destination,
+                                      pendingCount: controller
+                                          .sellController
+                                          .pendingOrderCount
+                                          .value,
+                                      closedCount: closedSaleController
+                                          .todayClosedSaleCount
+                                          .value,
+                                    ),
+                                  ),
+                                  label: Text(destination.label),
+                                ),
+                              )
+                              .toList(growable: false),
+                        ),
+                      ),
+                      Expanded(
+                        child: IndexedStack(
+                          index: selected.index,
+                          children: AppDestination.values
+                              .map(
+                                (destination) => visited.contains(destination)
+                                    ? KeyedSubtree(
+                                        key: ValueKey(
+                                          'destination-screen-${destination.name}',
+                                        ),
+                                        child: _screenFor(destination),
+                                      )
+                                    : const SizedBox.shrink(),
+                              )
+                              .toList(growable: false),
+                        ),
+                      ),
+                    ],
+                  );
+                }),
+              ),
+              if (loginController.currentSession.value != null)
+                PendingOrderWarningLauncher(
+                  saleService: controller.sellController.saleService,
+                  outlet: controller.sellController.activeOutletName,
+                  onEdit: (name) => _editPendingOrder(context, name),
+                ),
+            ],
           ),
-          if (loginController.currentSession.value != null)
-            PendingOrderWarningLauncher(
-              saleService: controller.sellController.saleService,
-              outlet: controller.sellController.activeOutletName,
-              onEdit: (name) => _editPendingOrder(context, name),
-            ),
-        ],
+        ),
       ),
     );
   }

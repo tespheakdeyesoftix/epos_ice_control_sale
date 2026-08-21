@@ -10,6 +10,7 @@ class AppShellController extends GetxController {
   final selectedDestination = AppDestination.sale.obs;
   final visitedDestinations = <AppDestination>{AppDestination.sale}.obs;
   final isNavigating = false.obs;
+  final isGlobalSearchOpen = false.obs;
 
   Future<bool> navigateTo(
     AppDestination destination, {
