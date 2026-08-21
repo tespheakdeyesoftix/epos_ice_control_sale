@@ -43,9 +43,7 @@ class ClosedSaleListScreen extends GetView<ClosedSaleController> {
   }
 
   Future<void> _openSaleDetail(BuildContext context, ClosedSale sale) {
-    return Navigator.of(context).push<void>(
-      MaterialPageRoute<void>(builder: (_) => SaleDetailScreen(sale: sale)),
-    );
+    return showSaleDetail(context, sale: sale);
   }
 
   Future<void> _showAdvancedSearch(BuildContext context) async {

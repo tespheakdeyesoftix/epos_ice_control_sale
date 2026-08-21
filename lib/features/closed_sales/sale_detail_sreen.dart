@@ -6,6 +6,7 @@ import 'package:printing/printing.dart';
 import '../../app/app_setting_controller.dart';
 import '../../app/app_theme.dart';
 import '../../features/login/login_controller.dart';
+import '../../features/sell/sale.dart';
 import '../../features/sell/sell_controller.dart';
 import '../../services/receipt_print_service.dart';
 import '../../shared/note_dialog_widget.dart';
@@ -15,17 +16,64 @@ import 'closed_sale.dart';
 import 'closed_sale_controller.dart';
 import 'sale_detail_controller.dart';
 import 'widgets/sale_detail_dialogs.dart';
+import 'widgets/customer_credit_warning_card.dart';
 import 'widgets/sale_invoice_header_card.dart';
 import 'widgets/sale_product_detail_card.dart';
 import 'widgets/sale_summary_note_card.dart';
 import 'widgets/sale_timeline_card.dart';
 import 'widgets/split_bill_list_dialog_widget.dart';
+import 'widgets/split_bill_parent_banner_widget.dart';
+
+const double _saleDetailDialogBreakpoint = 900;
+
+Future<void> showSaleDetail(BuildContext context, {required ClosedSale sale}) {
+  final size = MediaQuery.sizeOf(context);
+  final useFullScreen =
+      size.width < _saleDetailDialogBreakpoint || size.height < 650;
+
+  return showDialog<void>(
+    context: context,
+    barrierDismissible: false,
+    useSafeArea: true,
+    builder: (dialogContext) {
+      final content = Navigator(
+        onGenerateRoute: (_) => MaterialPageRoute<void>(
+          builder: (_) => SaleDetailScreen(
+            sale: sale,
+            isDialogPresentation: true,
+            onClose: () => Navigator.of(dialogContext).pop(),
+          ),
+        ),
+      );
+      if (useFullScreen) {
+        return Dialog.fullscreen(child: content);
+      }
+      return Dialog(
+        insetPadding: const EdgeInsets.all(22),
+        clipBehavior: Clip.antiAlias,
+        child: SizedBox(
+          width: (size.width * .94).clamp(0.0, 1476.0),
+          height: size.height * .94,
+          child: content,
+        ),
+      );
+    },
+  );
+}
 
 class SaleDetailScreen extends StatefulWidget {
-  const SaleDetailScreen({super.key, required this.sale, this.controller});
+  const SaleDetailScreen({
+    super.key,
+    required this.sale,
+    this.controller,
+    this.isDialogPresentation = false,
+    this.onClose,
+  });
 
   final ClosedSale sale;
   final SaleDetailController? controller;
+  final bool isDialogPresentation;
+  final VoidCallback? onClose;
 
   @override
   State<SaleDetailScreen> createState() => _SaleDetailScreenState();
@@ -133,7 +181,13 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
     );
     if (selected == null || !mounted) return;
     await Navigator.of(context).push<void>(
-      MaterialPageRoute<void>(builder: (_) => SaleDetailScreen(sale: selected)),
+      MaterialPageRoute<void>(
+        builder: (_) => SaleDetailScreen(
+          sale: selected,
+          isDialogPresentation: widget.isDialogPresentation,
+          onClose: widget.onClose,
+        ),
+      ),
     );
   }
 
@@ -144,9 +198,23 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
       MaterialPageRoute<void>(
         builder: (_) => SaleDetailScreen(
           sale: ClosedSale(name: parentBillNumber, postingDate: ''),
+          isDialogPresentation: widget.isDialogPresentation,
+          onClose: widget.onClose,
         ),
       ),
     );
+  }
+
+  Future<void> _closeDetail() async {
+    controller.noteFocusNode.unfocus();
+    await controller.saveNoteOnFocusLost();
+    if (!mounted) return;
+    final close = widget.onClose;
+    if (close != null) {
+      close();
+    } else {
+      Navigator.of(context).pop();
+    }
   }
 
   Future<void> _showPrintPreview() async {
@@ -419,165 +487,411 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
     return Scaffold(
       key: const ValueKey('sale-detail-screen'),
       backgroundColor: colors.surfaceContainerLow,
-      body: SafeArea(
-        child: Obx(() {
-          final sale = controller.displayedSale;
-          final currencySymbol =
-              controller.appSettingController?.current?.currencySymbol ?? '';
-          return Stack(
-            children: [
-              RefreshIndicator(
-                onRefresh: controller.load,
-                child: CustomScrollView(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  slivers: [
-                    SliverPadding(
-                      padding: const EdgeInsets.all(18),
-                      sliver: SliverToBoxAdapter(
-                        child: Center(
-                          child: ConstrainedBox(
-                            constraints: const BoxConstraints(maxWidth: 1440),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                SaleInvoiceHeaderCard(
-                                  sale: sale,
-                                  rawDocument: controller.rawDocument,
-                                  imageBaseUri: controller.saleService?.baseUri,
-                                  onBack: () => Navigator.of(context).pop(),
-                                  onRefresh: controller.isLoading.value
-                                      ? null
-                                      : controller.load,
-                                  onReprint: controller.isPrinting.value
-                                      ? null
-                                      : (copies) => controller.reprintReceipt(
-                                          copies: copies,
-                                        ),
-                                  onEdit:
-                                      controller.closedSaleController == null
-                                      ? null
-                                      : _editOrder,
-                                  onDelete:
-                                      controller.closedSaleController == null
-                                      ? null
-                                      : _deleteOrder,
-                                  onPreview: _showPrintPreview,
-                                  onPaymentHistory: () =>
-                                      showPaymentHistoryDialog(
-                                        context,
-                                        payments: controller.payments,
-                                        totalPayment: sale.totalPayment,
-                                        canShowPrice: sale.canShowPrice,
-                                        currencySymbol: currencySymbol,
-                                      ),
-                                  onViewSplitBills:
-                                      sale.canSplitBill &&
-                                          sale.totalSplitBill > 0
-                                      ? _viewSplitBills
-                                      : null,
-                                  onEditReferenceNumber:
-                                      controller.isSavingReferenceNumber.value
-                                      ? null
-                                      : _editReferenceNumber,
-                                  onOpenParentBill:
-                                      sale.parentBillNumber.trim().isEmpty
-                                      ? null
-                                      : _viewParentBill,
-                                  isPrinting: controller.isPrinting.value,
-                                  isRefreshing: controller.isLoading.value,
-                                  currencySymbol: currencySymbol,
-                                ),
-                                if (controller.errorMessage.value != null) ...[
-                                  const SizedBox(height: 12),
-                                  _LoadErrorBanner(
-                                    message: controller.errorMessage.value!,
-                                    onRetry: controller.load,
+      body: Column(
+        children: [
+          if (widget.isDialogPresentation)
+            Obx(
+              () => _SaleDetailDialogTitleBar(
+                sale: controller.displayedSale,
+                currencySymbol:
+                    controller.appSettingController?.current?.currencySymbol ??
+                    '',
+                showBackButton: Navigator.of(context).canPop(),
+                onBack: () => Navigator.of(context).pop(),
+                onOpenParentBill:
+                    controller.displayedSale.parentBillNumber.trim().isEmpty
+                    ? null
+                    : _viewParentBill,
+                onRefresh: controller.isLoading.value ? null : controller.load,
+                isRefreshing: controller.isLoading.value,
+                onClose: _closeDetail,
+              ),
+            ),
+          Expanded(
+            child: SafeArea(
+              top: !widget.isDialogPresentation,
+              child: Obx(() {
+                final sale = controller.displayedSale;
+                final currencySymbol =
+                    controller.appSettingController?.current?.currencySymbol ??
+                    '';
+                return Stack(
+                  children: [
+                    RefreshIndicator(
+                      onRefresh: controller.load,
+                      child: CustomScrollView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        slivers: [
+                          SliverPadding(
+                            padding: EdgeInsets.fromLTRB(
+                              18,
+                              widget.isDialogPresentation ? 14 : 18,
+                              18,
+                              18,
+                            ),
+                            sliver: SliverToBoxAdapter(
+                              child: Center(
+                                child: ConstrainedBox(
+                                  constraints: const BoxConstraints(
+                                    maxWidth: 1440,
                                   ),
-                                ],
-                                const SizedBox(height: 14),
-                                LayoutBuilder(
-                                  builder: (context, constraints) {
-                                    final main = Column(
-                                      children: [
-                                        SaleProductDetailCard(
-                                          products: sale.saleProducts,
-                                          canShowPrice: sale.canShowPrice,
-                                          currencySymbol: currencySymbol,
-                                        ),
-                                        const SizedBox(height: 14),
-                                        SaleSummaryNoteCard(
-                                          sale: sale,
-                                          canShowPrice: sale.canShowPrice,
-                                          currencySymbol: currencySymbol,
-                                          noteController:
-                                              controller.noteController,
-                                          noteFocusNode:
-                                              controller.noteFocusNode,
-                                          isSavingNote:
-                                              controller.isSavingNote.value,
-                                          noteSaveError:
-                                              controller.noteSaveError.value,
-                                          onNoteFocusChanged: (hasFocus) {
-                                            if (!hasFocus) {
-                                              controller.saveNoteOnFocusLost();
-                                            }
-                                          },
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.stretch,
+                                    children: [
+                                      SaleInvoiceHeaderCard(
+                                        sale: sale,
+                                        rawDocument: controller.rawDocument,
+                                        imageBaseUri:
+                                            controller.saleService?.baseUri,
+                                        onBack: () =>
+                                            Navigator.of(context).pop(),
+                                        showBackButton:
+                                            !widget.isDialogPresentation,
+                                        onClose: null,
+                                        onRefresh: controller.isLoading.value
+                                            ? null
+                                            : controller.load,
+                                        onReprint: controller.isPrinting.value
+                                            ? null
+                                            : (copies) =>
+                                                  controller.reprintReceipt(
+                                                    copies: copies,
+                                                  ),
+                                        onEdit:
+                                            controller.closedSaleController ==
+                                                null
+                                            ? null
+                                            : _editOrder,
+                                        onDelete:
+                                            controller.closedSaleController ==
+                                                null
+                                            ? null
+                                            : _deleteOrder,
+                                        onPreview: _showPrintPreview,
+                                        onPaymentHistory: () =>
+                                            showPaymentHistoryDialog(
+                                              context,
+                                              payments: controller.payments,
+                                              totalPayment: sale.totalPayment,
+                                              canShowPrice: sale.canShowPrice,
+                                              currencySymbol: currencySymbol,
+                                            ),
+                                        onViewSplitBills:
+                                            sale.canSplitBill &&
+                                                sale.totalSplitBill > 0
+                                            ? _viewSplitBills
+                                            : null,
+                                        onEditReferenceNumber:
+                                            controller
+                                                .isSavingReferenceNumber
+                                                .value
+                                            ? null
+                                            : _editReferenceNumber,
+                                        onOpenParentBill:
+                                            sale.parentBillNumber.trim().isEmpty
+                                            ? null
+                                            : _viewParentBill,
+                                        isPrinting: controller.isPrinting.value,
+                                        isRefreshing:
+                                            controller.isLoading.value,
+                                        currencySymbol: currencySymbol,
+                                        showDocumentHeader:
+                                            !widget.isDialogPresentation,
+                                      ),
+                                      if (controller.errorMessage.value !=
+                                          null) ...[
+                                        const SizedBox(height: 12),
+                                        _LoadErrorBanner(
+                                          message:
+                                              controller.errorMessage.value!,
+                                          onRetry: controller.load,
                                         ),
                                       ],
-                                    );
-                                    final timeline = SaleTimelineCard(
-                                      entries: controller.timeline,
-                                      textController:
-                                          controller.commentController,
-                                      isPosting: controller.isPosting.value,
-                                      onPost: controller.isPosting.value
-                                          ? null
-                                          : controller.postTimelineEntry,
-                                      canEditComment: controller.canEditComment,
-                                      editingCommentNames:
-                                          controller.editingCommentNames,
-                                      onEditComment: _editComment,
-                                    );
-                                    if (constraints.maxWidth < 1450) {
-                                      return Column(
-                                        children: [
-                                          main,
-                                          const SizedBox(height: 14),
-                                          timeline,
-                                        ],
-                                      );
-                                    }
-                                    return Row(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Expanded(flex: 7, child: main),
-                                        const SizedBox(width: 14),
-                                        Expanded(flex: 4, child: timeline),
-                                      ],
-                                    );
-                                  },
+                                      const SizedBox(height: 14),
+                                      LayoutBuilder(
+                                        builder: (context, constraints) {
+                                          final main = Column(
+                                            children: [
+                                              SaleProductDetailCard(
+                                                products: sale.saleProducts,
+                                                canShowPrice: sale.canShowPrice,
+                                                currencySymbol: currencySymbol,
+                                              ),
+                                              const SizedBox(height: 14),
+                                              SaleSummaryNoteCard(
+                                                sale: sale,
+                                                canShowPrice: sale.canShowPrice,
+                                                currencySymbol: currencySymbol,
+                                                noteController:
+                                                    controller.noteController,
+                                                noteFocusNode:
+                                                    controller.noteFocusNode,
+                                                isSavingNote: controller
+                                                    .isSavingNote
+                                                    .value,
+                                                noteSaveError: controller
+                                                    .noteSaveError
+                                                    .value,
+                                                onNoteFocusChanged: (hasFocus) {
+                                                  if (!hasFocus) {
+                                                    controller
+                                                        .saveNoteOnFocusLost();
+                                                  }
+                                                },
+                                              ),
+                                            ],
+                                          );
+                                          final timeline = SaleTimelineCard(
+                                            entries: controller.timeline,
+                                            textController:
+                                                controller.commentController,
+                                            isPosting:
+                                                controller.isPosting.value,
+                                            onPost: controller.isPosting.value
+                                                ? null
+                                                : controller.postTimelineEntry,
+                                            canEditComment:
+                                                controller.canEditComment,
+                                            editingCommentNames:
+                                                controller.editingCommentNames,
+                                            onEditComment: _editComment,
+                                          );
+                                          if (constraints.maxWidth < 1450) {
+                                            return Column(
+                                              children: [
+                                                main,
+                                                const SizedBox(height: 14),
+                                                timeline,
+                                              ],
+                                            );
+                                          }
+                                          return Row(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Expanded(flex: 7, child: main),
+                                              const SizedBox(width: 14),
+                                              Expanded(
+                                                flex: 4,
+                                                child: timeline,
+                                              ),
+                                            ],
+                                          );
+                                        },
+                                      ),
+                                      const SizedBox(height: 18),
+                                    ],
+                                  ),
                                 ),
-                                const SizedBox(height: 18),
-                              ],
+                              ),
                             ),
                           ),
-                        ),
+                        ],
                       ),
                     ),
+                    if (controller.isLoading.value)
+                      const Positioned(
+                        left: 0,
+                        right: 0,
+                        top: 0,
+                        child: LinearProgressIndicator(minHeight: 3),
+                      ),
                   ],
-                ),
+                );
+              }),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SaleDetailDialogTitleBar extends StatelessWidget {
+  const _SaleDetailDialogTitleBar({
+    required this.sale,
+    required this.currencySymbol,
+    required this.showBackButton,
+    required this.onBack,
+    required this.onOpenParentBill,
+    required this.onRefresh,
+    required this.isRefreshing,
+    required this.onClose,
+  });
+
+  final Sale sale;
+  final String currencySymbol;
+  final bool showBackButton;
+  final VoidCallback onBack;
+  final VoidCallback? onOpenParentBill;
+  final VoidCallback? onRefresh;
+  final bool isRefreshing;
+  final VoidCallback onClose;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Container(
+      key: const ValueKey('sale-detail-dialog-app-bar'),
+      height: 58,
+      color: colors.inverseSurface,
+      child: Row(
+        children: [
+          if (showBackButton)
+            SizedBox(
+              width: 58,
+              height: 58,
+              child: IconButton(
+                key: const ValueKey('sale-detail-dialog-back'),
+                tooltip: 'ត្រឡប់ក្រោយ',
+                onPressed: onBack,
+                color: colors.onInverseSurface,
+                icon: const Icon(Icons.arrow_back_rounded),
               ),
-              if (controller.isLoading.value)
-                const Positioned(
-                  left: 0,
-                  right: 0,
-                  top: 0,
-                  child: LinearProgressIndicator(minHeight: 3),
+            )
+          else ...[
+            const SizedBox(width: 20),
+            Icon(Icons.receipt_long_rounded, color: colors.onInverseSurface),
+            const SizedBox(width: 10),
+          ],
+          Expanded(
+            child: Row(
+              children: [
+                Flexible(
+                  child: Text(
+                    'ព័ត៌មានលម្អិតវិក្កយបត្រ · ${sale.name}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: colors.onInverseSurface,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
                 ),
-            ],
-          );
-        }),
+                if (sale.parentBillNumber.trim().isNotEmpty &&
+                    onOpenParentBill != null) ...[
+                  const SizedBox(width: 9),
+                  SplitBillParentBannerWidget(
+                    parentBillNumber: sale.parentBillNumber,
+                    onOpenParent: onOpenParentBill!,
+                  ),
+                ],
+                if (sale.canSplitBill && sale.totalSplitBill > 0) ...[
+                  const SizedBox(width: 9),
+                  const _DialogMasterInvoicePill(),
+                ],
+              ],
+            ),
+          ),
+          if (CustomerCreditWarningCard.shouldShow(sale)) ...[
+            CustomerCreditWarningCard(
+              sale: sale,
+              currencySymbol: currencySymbol,
+            ),
+            const SizedBox(width: 8),
+          ],
+          _DialogStatusPill(
+            label: sale.status.isEmpty ? sale.saleStatus : sale.status,
+          ),
+          const SizedBox(width: 8),
+          IconButton(
+            key: const ValueKey('refresh-sale-detail-dialog'),
+            tooltip: 'ផ្ទុកឡើងវិញ',
+            onPressed: isRefreshing ? null : onRefresh,
+            color: colors.onInverseSurface,
+            icon: Icon(
+              isRefreshing
+                  ? Icons.hourglass_top_rounded
+                  : Icons.refresh_rounded,
+            ),
+          ),
+          const SizedBox(width: 6),
+          SizedBox(
+            width: 58,
+            height: 58,
+            child: IconButton(
+              key: const ValueKey('close-sale-detail-dialog'),
+              tooltip: 'បិទ',
+              onPressed: onClose,
+              color: colors.onError,
+              style: IconButton.styleFrom(
+                backgroundColor: colors.error,
+                shape: const RoundedRectangleBorder(),
+              ),
+              icon: const Icon(Icons.close_rounded),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DialogStatusPill extends StatelessWidget {
+  const _DialogStatusPill({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final color = switch (label.trim().toLowerCase()) {
+      'paid' => const Color(0xFF4ADE80),
+      'unpaid' => const Color(0xFFFCA5A5),
+      'partially paid' => const Color(0xFFFBBF24),
+      _ => colors.onInverseSurface,
+    };
+    final text = switch (label.trim().toLowerCase()) {
+      'paid' => 'បានទូទាត់',
+      'unpaid' => 'មិនទាន់ទូទាត់',
+      'partially paid' => 'បានទូទាត់ខ្លះ',
+      'closed' => 'បានបិទ',
+      'draft' => 'ព្រាង',
+      'deleted' => 'បានលុប',
+      '' => 'បានបិទ',
+      _ => label,
+    };
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: .14),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: color.withValues(alpha: .5)),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(
+          color: color,
+          fontSize: 12,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+    );
+  }
+}
+
+class _DialogMasterInvoicePill extends StatelessWidget {
+  const _DialogMasterInvoicePill();
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+      decoration: BoxDecoration(
+        color: colors.tertiary.withValues(alpha: .2),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: colors.tertiary.withValues(alpha: .55)),
+      ),
+      child: Text(
+        'វិក្កយបត្រមេ',
+        style: TextStyle(
+          color: colors.onInverseSurface,
+          fontSize: 12,
+          fontWeight: FontWeight.w800,
+        ),
       ),
     );
   }

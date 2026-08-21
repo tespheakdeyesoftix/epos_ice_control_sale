@@ -145,11 +145,7 @@ class SaleSummaryScreen extends StatelessWidget {
                           );
                         },
                         onOrderTap: (sale) {
-                          Navigator.of(context).push(
-                            MaterialPageRoute<void>(
-                              builder: (_) => SaleDetailScreen(sale: sale),
-                            ),
-                          );
+                          showSaleDetail(context, sale: sale);
                         },
                         onEdit: (sale) => Get.find<ClosedSaleController>()
                             .editOrder(sale.name),

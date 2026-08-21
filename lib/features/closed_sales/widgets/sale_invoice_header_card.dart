@@ -13,6 +13,8 @@ class SaleInvoiceHeaderCard extends StatelessWidget {
     required this.rawDocument,
     required this.imageBaseUri,
     required this.onBack,
+    required this.showBackButton,
+    required this.onClose,
     required this.onRefresh,
     required this.onReprint,
     required this.onEdit,
@@ -25,12 +27,15 @@ class SaleInvoiceHeaderCard extends StatelessWidget {
     required this.isPrinting,
     required this.isRefreshing,
     required this.currencySymbol,
+    this.showDocumentHeader = true,
   });
 
   final Sale sale;
   final Map<String, dynamic> rawDocument;
   final Uri? imageBaseUri;
   final VoidCallback onBack;
+  final bool showBackButton;
+  final VoidCallback? onClose;
   final VoidCallback? onRefresh;
   final ValueChanged<int>? onReprint;
   final VoidCallback? onEdit;
@@ -43,6 +48,7 @@ class SaleInvoiceHeaderCard extends StatelessWidget {
   final bool isPrinting;
   final bool isRefreshing;
   final String currencySymbol;
+  final bool showDocumentHeader;
 
   @override
   Widget build(BuildContext context) {
@@ -64,80 +70,93 @@ class SaleInvoiceHeaderCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                IconButton.filledTonal(
-                  key: const ValueKey('sale-detail-back'),
-                  tooltip: 'ត្រឡប់ក្រោយ',
-                  onPressed: onBack,
-                  icon: const Icon(Icons.arrow_back_rounded),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'វិក្កយបត្រ',
-                        style: theme.textTheme.labelLarge?.copyWith(
-                          color: colors.primary,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 1.6,
-                        ),
-                      ),
-                      const SizedBox(height: 3),
-                      Wrap(
-                        spacing: 9,
-                        runSpacing: 6,
-                        crossAxisAlignment: WrapCrossAlignment.center,
-                        children: [
-                          Text(
-                            sale.name,
-                            style: theme.textTheme.headlineSmall?.copyWith(
-                              fontWeight: FontWeight.w800,
-                            ),
+            if (showDocumentHeader) ...[
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (showBackButton) ...[
+                    IconButton.filledTonal(
+                      key: const ValueKey('sale-detail-back'),
+                      tooltip: 'ត្រឡប់ក្រោយ',
+                      onPressed: onBack,
+                      icon: const Icon(Icons.arrow_back_rounded),
+                    ),
+                    const SizedBox(width: 14),
+                  ],
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'វិក្កយបត្រ',
+                          style: theme.textTheme.labelLarge?.copyWith(
+                            color: colors.primary,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 1.6,
                           ),
-                          if (sale.parentBillNumber.trim().isNotEmpty &&
-                              onOpenParentBill != null)
-                            SplitBillParentBannerWidget(
-                              parentBillNumber: sale.parentBillNumber,
-                              onOpenParent: onOpenParentBill!,
+                        ),
+                        const SizedBox(height: 3),
+                        Wrap(
+                          spacing: 9,
+                          runSpacing: 6,
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          children: [
+                            Text(
+                              sale.name,
+                              style: theme.textTheme.headlineSmall?.copyWith(
+                                fontWeight: FontWeight.w800,
+                              ),
                             ),
-                          if (isMasterInvoice) const _MasterInvoicePill(),
-                        ],
-                      ),
-                    ],
+                            if (sale.parentBillNumber.trim().isNotEmpty &&
+                                onOpenParentBill != null)
+                              SplitBillParentBannerWidget(
+                                parentBillNumber: sale.parentBillNumber,
+                                onOpenParent: onOpenParentBill!,
+                              ),
+                            if (isMasterInvoice) const _MasterInvoicePill(),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (CustomerCreditWarningCard.shouldShow(sale)) ...[
-                      CustomerCreditWarningCard(
-                        sale: sale,
-                        currencySymbol: currencySymbol,
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (CustomerCreditWarningCard.shouldShow(sale)) ...[
+                        CustomerCreditWarningCard(
+                          sale: sale,
+                          currencySymbol: currencySymbol,
+                        ),
+                        const SizedBox(width: 8),
+                      ],
+                      _StatusPill(
+                        label: sale.status.isEmpty
+                            ? sale.saleStatus
+                            : sale.status,
                       ),
                       const SizedBox(width: 8),
+                      _ActionButton(
+                        icon: isRefreshing
+                            ? Icons.hourglass_top_rounded
+                            : Icons.refresh_rounded,
+                        label: 'ផ្ទុកឡើងវិញ',
+                        onPressed: isRefreshing ? null : onRefresh,
+                      ),
+                      if (onClose != null) ...[
+                        const SizedBox(width: 8),
+                        IconButton.filledTonal(
+                          key: const ValueKey('close-sale-detail-dialog'),
+                          tooltip: 'បិទព័ត៌មានវិក្កយបត្រ',
+                          onPressed: onClose,
+                          icon: const Icon(Icons.close_rounded),
+                        ),
+                      ],
                     ],
-                    _StatusPill(
-                      label: sale.status.isEmpty
-                          ? sale.saleStatus
-                          : sale.status,
-                    ),
-                    const SizedBox(width: 8),
-                    _ActionButton(
-                      icon: isRefreshing
-                          ? Icons.hourglass_top_rounded
-                          : Icons.refresh_rounded,
-                      label: 'ផ្ទុកឡើងវិញ',
-                      onPressed: isRefreshing ? null : onRefresh,
-                    ),
-                  ],
-                ),
-              ],
-            ),
-            const SizedBox(height: 22),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 22),
+            ],
             LayoutBuilder(
               builder: (context, constraints) {
                 final customer = _CustomerPanel(

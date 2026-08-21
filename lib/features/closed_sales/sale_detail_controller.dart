@@ -238,7 +238,13 @@ class SaleDetailController extends GetxController {
   Future<void> saveNoteOnFocusLost() async {
     final service = saleService;
     final value = noteController.text;
-    if (service == null || isSavingNote.value || value == _lastSavedNote) {
+    if (isSavingNote.value) {
+      while (isSavingNote.value) {
+        await Future<void>.delayed(const Duration(milliseconds: 25));
+      }
+      return;
+    }
+    if (service == null || value == _lastSavedNote) {
       return;
     }
     isSavingNote.value = true;
