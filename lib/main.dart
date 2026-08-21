@@ -42,6 +42,11 @@ Future<void> main() async {
         TargetPlatform.macOS,
       }.contains(defaultTargetPlatform)) {
     await windowManager.ensureInitialized();
+    await windowManager.waitUntilReadyToShow(const WindowOptions(), () async {
+      await windowManager.maximize();
+      await windowManager.show();
+      await windowManager.focus();
+    });
   }
   await GetStorage.init(NotePresetRepository.containerName);
   final preferences = await SharedPreferences.getInstance();

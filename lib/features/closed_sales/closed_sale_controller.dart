@@ -355,13 +355,13 @@ class ClosedSaleController extends GetxController {
     selectedSaleName.value = name;
   }
 
-  Future<void> editOrder(String name) async {
+  Future<bool> editOrder(String name) async {
     if (!sellController.canOpenPendingOrder) {
       _showMessage(
         'សូមរក្សាទុកការលក់បច្ចុប្បន្នជាមុនសិន មុននឹងកែបុងដែលបានបិទ។',
         indicator: 'orange',
       );
-      return;
+      return false;
     }
     try {
       await sellController.openClosedOrder(name);
@@ -369,6 +369,7 @@ class ClosedSaleController extends GetxController {
         AppDestination.sale,
         resolveUnfinishedSale: () async => true,
       );
+      return true;
     } on ClosedSaleOpenValidationException {
       _showMessage(
         'សូមរក្សាទុកការលក់បច្ចុប្បន្នជាមុនសិន មុននឹងកែបុងដែលបានបិទ។',
@@ -383,6 +384,7 @@ class ClosedSaleController extends GetxController {
     } on Exception {
       _showMessage('មិនអាចបើកបុងលក់នេះបានទេ។', indicator: 'red');
     }
+    return false;
   }
 
   Future<bool> deleteSale(String name, String deletedNote) async {

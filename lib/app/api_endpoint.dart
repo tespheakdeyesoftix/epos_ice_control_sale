@@ -58,6 +58,21 @@ abstract final class ApiEndpoint {
   /// Returns: `{ "data": Sale }`, including `sale_products`.
   static String sale(String name) => '$sales/${Uri.encodeComponent(name)}';
 
+  /// Loads a Sale together with Frappe form timeline metadata such as tracked
+  /// versions, comments, and user display information.
+  static const loadDocument = 'api/method/frappe.desk.form.load.getdoc';
+
+  /// Adds a regular user comment to a document timeline.
+  static const addComment = 'api/method/frappe.desk.form.utils.add_comment';
+
+  /// Updates a timeline comment owned by the current Frappe user.
+  static const updateComment =
+      'api/method/frappe.desk.form.utils.update_comment';
+
+  /// Updates selected fields on any Frappe document.
+  static const updateDocument =
+      'api/method/ice_control.api.v1.utils.update_doc';
+
   /// Creates or updates a Sale order.
   ///
   /// Method: `POST`

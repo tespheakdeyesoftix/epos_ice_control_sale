@@ -58,7 +58,11 @@ class Sale {
       phoneNumber: textValue(json['phone_number']),
       customerGroup: textValue(json['customer_group']),
       customerPhoto: textValue(json['customer_photo']),
-      canShowPrice: _flag(json['can_show_price']),
+      canShowPrice: _flag(
+        json.containsKey('can_show_price')
+            ? json['can_show_price']
+            : json['can_see_price'],
+      ),
       canSplitBill: _flag(json['can_split_bill']),
       canEditBill: _flag(json['can_edit_bill']),
       driver: textValue(json['driver']),

@@ -27,7 +27,7 @@ class SaveOrderSuccessWidget extends StatefulWidget {
     super.key,
     required this.savedOrder,
     this.title = 'រក្សាទុកការលក់បានជោគជ័យ',
-    this.secondsToClose = 5,
+    this.secondsToClose = 3,
     this.pauseCountdown,
   });
 

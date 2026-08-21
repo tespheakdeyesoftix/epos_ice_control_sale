@@ -16,6 +16,7 @@ class ClosedSale {
     this.saleStatus = '',
     this.status = '',
     this.owner = '',
+    this.seller = '',
     this.creation,
     this.modified,
   });
@@ -36,6 +37,7 @@ class ClosedSale {
       saleStatus: textValue(json['sale_status']),
       status: textValue(json['status']),
       owner: textValue(json['owner']),
+      seller: textValue(json['seller']),
       creation: DateTime.tryParse(textValue(json['creation'])),
       modified: DateTime.tryParse(textValue(json['modified'])),
     );
@@ -55,6 +57,7 @@ class ClosedSale {
   final String saleStatus;
   final String status;
   final String owner;
+  final String seller;
   final DateTime? creation;
   final DateTime? modified;
 }

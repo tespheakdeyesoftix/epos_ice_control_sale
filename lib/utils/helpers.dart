@@ -13,6 +13,11 @@ String formatMoney(num value) {
       .replaceAllMapped(RegExp(r'\B(?=(\d{3})+(?!\d))'), (_) => ',');
 }
 
+String formatCurrency(num value, String currencySymbol) {
+  final symbol = currencySymbol.trim();
+  return symbol.isEmpty ? formatMoney(value) : '${formatMoney(value)} $symbol';
+}
+
 String formatQuantity(num value) {
   final decimal = value.toDouble();
   if (!decimal.isFinite) return value.toString();

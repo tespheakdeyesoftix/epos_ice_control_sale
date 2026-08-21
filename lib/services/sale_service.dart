@@ -245,6 +245,7 @@ class SaleService {
     'sale_status',
     'status',
     'owner',
+    'seller',
     'creation',
     'modified',
   ];
@@ -277,6 +278,106 @@ class SaleService {
         : null;
     if (data == null) throw const SaleServiceException(200);
     return Sale.fromJson(Map<String, dynamic>.from(data));
+  }
+
+  Future<Map<String, dynamic>> loadSaleDocument(String name) async {
+    final response = await _client
+        .get(
+          baseUri
+              .resolve(ApiEndpoint.loadDocument)
+              .replace(
+                queryParameters: {'doctype': 'Sale', 'name': name.trim()},
+              ),
+          headers: const {'Accept': 'application/json'},
+        )
+        .timeout(const Duration(seconds: 30));
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw SaleServiceException(response.statusCode);
+    }
+    final payload = jsonDecode(response.body);
+    if (payload is! Map) throw const SaleServiceException(200);
+    return Map<String, dynamic>.from(payload);
+  }
+
+  Future<void> addSaleComment({
+    required String saleName,
+    required String content,
+    required String email,
+    required String author,
+  }) async {
+    final response = await _client
+        .post(
+          baseUri.resolve(ApiEndpoint.addComment),
+          headers: const {'Accept': 'application/json'},
+          body: {
+            'reference_doctype': 'Sale',
+            'reference_name': saleName.trim(),
+            'content': content.trim(),
+            'comment_email': email.trim(),
+            'comment_by': author.trim(),
+          },
+        )
+        .timeout(const Duration(seconds: 30));
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw SaleServiceException(response.statusCode);
+    }
+  }
+
+  Future<void> updateSaleComment({
+    required String commentName,
+    required String content,
+  }) async {
+    final response = await _client
+        .post(
+          baseUri.resolve(ApiEndpoint.updateComment),
+          headers: const {'Accept': 'application/json'},
+          body: {'name': commentName.trim(), 'content': content.trim()},
+        )
+        .timeout(const Duration(seconds: 30));
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw SaleServiceException(response.statusCode);
+    }
+  }
+
+  Future<void> updateSaleNote({
+    required String saleName,
+    required String note,
+  }) => updateSaleField(saleName: saleName, fieldName: 'note', value: note);
+
+  Future<void> updateSaleReferenceNumber({
+    required String saleName,
+    required String referenceNumber,
+  }) => updateSaleField(
+    saleName: saleName,
+    fieldName: 'reference_number',
+    value: referenceNumber,
+  );
+
+  Future<void> updateSaleField({
+    required String saleName,
+    required String fieldName,
+    required Object? value,
+  }) async {
+    final response = await _client
+        .post(
+          baseUri.resolve(ApiEndpoint.updateDocument),
+          headers: const {'Accept': 'application/json'},
+          body: {
+            'doctype': 'Sale',
+            'name': saleName.trim(),
+            'data': jsonEncode({fieldName: value}),
+            'doc_flags': jsonEncode({
+              'ignore_permissions': true,
+              'ignore_validate': true,
+              'ignore_update': true,
+              'ignore_validate_update_after_submit': true,
+            }),
+          },
+        )
+        .timeout(const Duration(seconds: 30));
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw SaleServiceException(response.statusCode);
+    }
   }
 
   Future<Sale> searchBillForEdit({
@@ -440,6 +541,24 @@ class SaleService {
         .where((sale) => sale.name.isNotEmpty)
         .toList(growable: false);
     return ClosedSalePage(items: sales, hasMore: rows.length == limit);
+  }
+
+  Future<List<ClosedSale>> getSplitBills({
+    required String parentBillNumber,
+  }) async {
+    final rows = await getDoctypeRows(
+      doctype: 'Sale',
+      fields: const [..._closedSaleFields, 'parent_bill_number'],
+      filters: [
+        ['parent_bill_number', '=', parentBillNumber.trim()],
+      ],
+      orderBy: 'posting_date desc, creation desc',
+      limit: 200,
+    );
+    return rows
+        .map(ClosedSale.fromJson)
+        .where((sale) => sale.name.isNotEmpty)
+        .toList(growable: false);
   }
 
   Future<int> getClosedSaleCount({

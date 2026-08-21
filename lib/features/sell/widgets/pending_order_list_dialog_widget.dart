@@ -677,7 +677,7 @@ class _PendingOrderRow extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(horizontal: 8),
                       visualDensity: VisualDensity.compact,
                     ),
-                    child: const Text('កែ'),
+                    child: const Text('កែបុង'),
                   ),
                 ],
               ),
