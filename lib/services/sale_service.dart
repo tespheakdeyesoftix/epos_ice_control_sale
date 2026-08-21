@@ -163,6 +163,67 @@ class SaleService {
   final Uri baseUri;
   final http.Client _client;
 
+  Future<Map<String, dynamic>> getDoctypeMeta(String doctype) async {
+    final response = await _client
+        .get(
+          baseUri
+              .resolve(ApiEndpoint.doctypeMeta)
+              .replace(queryParameters: {'doctype': doctype.trim()}),
+          headers: const {'Accept': 'application/json'},
+        )
+        .timeout(const Duration(seconds: 20));
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw SaleServiceException(response.statusCode);
+    }
+
+    dynamic payload = jsonDecode(response.body);
+    if (payload is Map && payload.containsKey('message')) {
+      payload = payload['message'];
+    }
+    if (payload is String) payload = jsonDecode(payload);
+    if (payload is Map && payload['data'] is Map) payload = payload['data'];
+    if (payload is! Map) throw const SaleServiceException(200);
+    return Map<String, dynamic>.from(payload);
+  }
+
+  Future<List<Map<String, dynamic>>> getDoctypeRows({
+    required String doctype,
+    required List<String> fields,
+    List<List<dynamic>> filters = const [],
+    List<List<dynamic>> orFilters = const [],
+    String orderBy = 'name asc',
+    int offset = 0,
+    int limit = 20,
+  }) async {
+    final query = <String, String>{
+      'fields': jsonEncode(fields),
+      'filters': jsonEncode(filters),
+      'order_by': orderBy,
+      'limit_start': '$offset',
+      'limit_page_length': '$limit',
+    };
+    if (orFilters.isNotEmpty) query['or_filters'] = jsonEncode(orFilters);
+    final response = await _client
+        .get(
+          baseUri
+              .resolve(ApiEndpoint.resource(doctype))
+              .replace(queryParameters: query),
+          headers: const {'Accept': 'application/json'},
+        )
+        .timeout(const Duration(seconds: 20));
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw SaleServiceException(response.statusCode);
+    }
+    final payload = jsonDecode(response.body);
+    final rows = payload is Map && payload['data'] is List
+        ? payload['data'] as List
+        : const [];
+    return rows
+        .whereType<Map>()
+        .map((row) => Map<String, dynamic>.from(row))
+        .toList(growable: false);
+  }
+
   static const pendingOrderPageSize = 30;
   static const closedSalePageSize = 20;
   static const _pendingOrderFields = [
@@ -195,7 +256,6 @@ class SaleService {
     'total_split_bill',
     'total_sale_quantity',
     'total_amount',
-    'owner',
     'creation',
   };
 
@@ -320,6 +380,12 @@ class SaleService {
     String endDate = '',
     String sortField = 'posting_date',
     bool sortAscending = false,
+    String customer = '',
+    String driver = '',
+    String status = '',
+    bool splitBillOnly = false,
+    String productCode = '',
+    String productChildDoctype = 'Sale Product',
     int offset = 0,
     int limit = closedSalePageSize,
   }) async {
@@ -328,6 +394,12 @@ class SaleService {
       outlet: outlet,
       startDate: startDate,
       endDate: endDate,
+      customer: customer,
+      driver: driver,
+      status: status,
+      splitBillOnly: splitBillOnly,
+      productCode: productCode,
+      productChildDoctype: productChildDoctype,
     );
     final safeSortField = closedSaleSortFields.contains(sortField)
         ? sortField
@@ -375,6 +447,12 @@ class SaleService {
     String search = '',
     String startDate = '',
     String endDate = '',
+    String customer = '',
+    String driver = '',
+    String status = '',
+    bool splitBillOnly = false,
+    String productCode = '',
+    String productChildDoctype = 'Sale Product',
   }) async {
     final queryParameters = <String, String>{
       'doctype': 'Sale',
@@ -383,6 +461,12 @@ class SaleService {
           outlet: outlet,
           startDate: startDate,
           endDate: endDate,
+          customer: customer,
+          driver: driver,
+          status: status,
+          splitBillOnly: splitBillOnly,
+          productCode: productCode,
+          productChildDoctype: productChildDoctype,
         ),
       ),
       'fields': '[]',
@@ -639,12 +723,31 @@ List<List<dynamic>> _closedSaleFilters({
   required String outlet,
   required String startDate,
   required String endDate,
+  String customer = '',
+  String driver = '',
+  String status = '',
+  bool splitBillOnly = false,
+  String productCode = '',
+  String productChildDoctype = 'Sale Product',
 }) {
   return [
     ['sale_status', '=', 'Closed'],
     ['outlet', '=', outlet],
     if (startDate.trim().isNotEmpty) ['posting_date', '>=', startDate.trim()],
     if (endDate.trim().isNotEmpty) ['posting_date', '<=', endDate.trim()],
+    if (customer.trim().isNotEmpty) ['customer', '=', customer.trim()],
+    if (driver.trim().isNotEmpty) ['driver', '=', driver.trim()],
+    if (status.trim().isNotEmpty) ['status', '=', status.trim()],
+    if (splitBillOnly) ['total_split_bill', '>', 1],
+    if (productCode.trim().isNotEmpty)
+      [
+        productChildDoctype.trim().isEmpty
+            ? 'Sale Product'
+            : productChildDoctype.trim(),
+        'product_code',
+        '=',
+        productCode.trim(),
+      ],
   ];
 }
 

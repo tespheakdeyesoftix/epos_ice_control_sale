@@ -366,6 +366,96 @@ void main() {
     expect(total, 750);
   });
 
+  test('advanced closed-sale filters include child product filter', () async {
+    final requests = <http.Request>[];
+    final client = MockClient((request) async {
+      requests.add(request);
+      return request.url.path == '/api/resource/Sale'
+          ? http.Response(jsonEncode({'data': <Object>[]}), 200)
+          : http.Response(jsonEncode({'message': 4}), 200);
+    });
+    final service = SaleService(
+      Uri.parse('http://127.0.0.1:8888/'),
+      client: client,
+    );
+
+    await service.getClosedSales(
+      outlet: 'OUTLET-1',
+      customer: 'CUS-1',
+      driver: 'DRIVER-1',
+      status: 'Partially Paid',
+      splitBillOnly: true,
+      productCode: 'ICE-10KG',
+      productChildDoctype: 'Sale Product',
+    );
+    await service.getClosedSaleCount(
+      outlet: 'OUTLET-1',
+      customer: 'CUS-1',
+      driver: 'DRIVER-1',
+      status: 'Partially Paid',
+      splitBillOnly: true,
+      productCode: 'ICE-10KG',
+      productChildDoctype: 'Sale Product',
+    );
+
+    final filters = jsonDecode(requests.first.url.queryParameters['filters']!);
+    expect(filters[2], ['customer', '=', 'CUS-1']);
+    expect(filters[3], ['driver', '=', 'DRIVER-1']);
+    expect(filters[4], ['status', '=', 'Partially Paid']);
+    expect(filters[5], ['total_split_bill', '>', 1]);
+    expect(filters[6], ['Sale Product', 'product_code', '=', 'ICE-10KG']);
+    expect(
+      requests.last.url.queryParameters['filters'],
+      requests.first.url.queryParameters['filters'],
+    );
+  });
+
+  test('loads doctype meta and generic resource rows', () async {
+    final requests = <http.Request>[];
+    final client = MockClient((request) async {
+      requests.add(request);
+      if (request.url.path.endsWith('get_doctype_meta')) {
+        return http.Response(
+          jsonEncode({
+            'message': {
+              'title_field': 'customer_name',
+              'search_fields': 'phone_number_1,keyword',
+              'image_field': 'photo',
+              'fields': <Object>[],
+            },
+          }),
+          200,
+        );
+      }
+      return http.Response(
+        jsonEncode({
+          'data': [
+            {'name': 'CUS-1', 'customer_name': 'Customer One'},
+          ],
+        }),
+        200,
+      );
+    });
+    final service = SaleService(
+      Uri.parse('http://127.0.0.1:8888/'),
+      client: client,
+    );
+
+    final meta = await service.getDoctypeMeta('Customer');
+    final rows = await service.getDoctypeRows(
+      doctype: 'Customer',
+      fields: const ['name', 'customer_name'],
+      orFilters: const [
+        ['customer_name', 'like', '%One%'],
+      ],
+    );
+
+    expect(requests.first.url.queryParameters['doctype'], 'Customer');
+    expect(requests.last.url.path, '/api/resource/Customer');
+    expect(meta['title_field'], 'customer_name');
+    expect(rows.single['name'], 'CUS-1');
+  });
+
   test('រក្សាទុក Sale និង sale_products តាម Frappe API', () async {
     late http.Request sentRequest;
     final client = MockClient((request) async {

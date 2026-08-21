@@ -123,6 +123,14 @@ abstract final class ApiEndpoint {
   /// wrapped in `message`.
   static const reportViewCount = 'api/method/frappe.desk.reportview.get_count';
 
+  /// Returns the complete DocType metadata used by metadata-driven fields.
+  static const doctypeMeta =
+      'api/method/ice_control.api.v1.utils.get_doctype_meta';
+
+  /// Builds a Frappe resource-list endpoint for any DocType.
+  static String resource(String doctype) =>
+      'api/resource/${Uri.encodeComponent(doctype)}';
+
   /// Loads global/company and point-of-sale settings for the active location.
   ///
   /// Method: `GET`

@@ -18,7 +18,6 @@ enum ClosedSaleSortField {
   totalSplitBill('total_split_bill'),
   totalSaleQuantity('total_sale_quantity'),
   totalAmount('total_amount'),
-  owner('owner'),
   creation('creation');
 
   const ClosedSaleSortField(this.apiField);
@@ -50,20 +49,35 @@ class ClosedSaleController extends GetxController {
   final SharedPreferences? _preferences;
 
   final scrollController = ScrollController();
+  final horizontalScrollController = ScrollController();
   final searchController = TextEditingController();
   final searchText = ''.obs;
   final sales = <ClosedSale>[].obs;
   final startDate = Rxn<DateTime>();
   final endDate = Rxn<DateTime>();
+  final customerFilter = ''.obs;
+  final driverFilter = ''.obs;
+  final statusFilter = ''.obs;
+  final splitBillOnly = false.obs;
+  final productCodeFilter = ''.obs;
+  final productChildDoctype = 'Sale Product'.obs;
   final isLoading = false.obs;
   final isLoadingTodayCount = false.obs;
   final todayClosedSaleCount = 0.obs;
   final isLoadingTotalRecords = false.obs;
   final totalRecords = 0.obs;
   final deletingSaleNames = <String>{}.obs;
+  final selectedSaleName = RxnString();
   final errorMessage = RxnString();
   late final Rx<ClosedSaleSortField> sortField;
   late final RxBool sortAscending;
+
+  bool get hasAdvancedFilters =>
+      customerFilter.value.isNotEmpty ||
+      driverFilter.value.isNotEmpty ||
+      statusFilter.value.isNotEmpty ||
+      splitBillOnly.value ||
+      productCodeFilter.value.isNotEmpty;
 
   Timer? _searchDebounce;
   Worker? _closedSaleWorker;
@@ -95,6 +109,7 @@ class ClosedSaleController extends GetxController {
     _closedSaleWorker?.dispose();
     searchController.dispose();
     scrollController.dispose();
+    horizontalScrollController.dispose();
     super.onClose();
   }
 
@@ -114,6 +129,12 @@ class ClosedSaleController extends GetxController {
         endDate: endDate.value == null ? '' : _apiDate(endDate.value!),
         sortField: sortField.value.apiField,
         sortAscending: sortAscending.value,
+        customer: customerFilter.value,
+        driver: driverFilter.value,
+        status: statusFilter.value,
+        splitBillOnly: splitBillOnly.value,
+        productCode: productCodeFilter.value,
+        productChildDoctype: productChildDoctype.value,
         offset: sales.length,
       );
       sales.addAll(page.items);
@@ -162,6 +183,12 @@ class ClosedSaleController extends GetxController {
         search: searchController.text,
         startDate: startDate.value == null ? '' : _apiDate(startDate.value!),
         endDate: endDate.value == null ? '' : _apiDate(endDate.value!),
+        customer: customerFilter.value,
+        driver: driverFilter.value,
+        status: statusFilter.value,
+        splitBillOnly: splitBillOnly.value,
+        productCode: productCodeFilter.value,
+        productChildDoctype: productChildDoctype.value,
       );
       if (requestId == _totalCountRequestId) totalRecords.value = count;
     } on FrappeServerMessageException {
@@ -220,13 +247,43 @@ class ClosedSaleController extends GetxController {
       sortField.value = field;
       sortAscending.value = true;
     }
-    await Future.wait([
-      _preferences?.setString(sortFieldPreferenceKey, field.apiField) ??
-          Future<void>.value(),
-      _preferences?.setBool(sortAscendingPreferenceKey, sortAscending.value) ??
-          Future<void>.value(),
-    ]);
+    await _saveSorting();
     await refreshList();
+  }
+
+  Future<void> applyAdvancedSearch({
+    required String customer,
+    required String driver,
+    required String status,
+    required bool onlySplitBills,
+    required String productCode,
+    required String childDoctype,
+    required ClosedSaleSortField selectedSortField,
+    required bool ascending,
+  }) async {
+    customerFilter.value = customer.trim();
+    driverFilter.value = driver.trim();
+    statusFilter.value = status.trim();
+    splitBillOnly.value = onlySplitBills;
+    productCodeFilter.value = productCode.trim();
+    productChildDoctype.value = childDoctype.trim().isEmpty
+        ? 'Sale Product'
+        : childDoctype.trim();
+    sortField.value = selectedSortField;
+    sortAscending.value = ascending;
+    await _saveSorting();
+    await refreshList();
+  }
+
+  Future<void> _saveSorting() => Future.wait([
+    _preferences?.setString(sortFieldPreferenceKey, sortField.value.apiField) ??
+        Future<void>.value(),
+    _preferences?.setBool(sortAscendingPreferenceKey, sortAscending.value) ??
+        Future<void>.value(),
+  ]);
+
+  void selectSale(String name) {
+    selectedSaleName.value = name;
   }
 
   Future<void> editOrder(String name) async {

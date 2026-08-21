@@ -5,14 +5,18 @@ import '../../app/app_theme.dart';
 import '../../shared/network_image.dart';
 import '../../shared/select_date_dialog_widget.dart';
 import '../../utils/helpers.dart';
-import '../pending_sales/widgets/pending_sale_view_dialog_widget.dart';
 import 'closed_sale.dart';
 import 'closed_sale_controller.dart';
 import 'sale_detail_sreen.dart';
+import 'widgets/advance_search_dialog_widget.dart';
 import 'widgets/pagger_card_widget.dart';
 import 'widgets/quick_search_widget.dart';
 
 enum _ClosedSaleContextAction { viewBillDetail }
+
+const _actionColumnWidth = 245.0;
+const _sellerCreationGap = 18.0;
+const _sellerCreationFlex = 16;
 
 class ClosedSaleListScreen extends GetView<ClosedSaleController> {
   const ClosedSaleListScreen({super.key});
@@ -35,17 +39,37 @@ class ClosedSaleListScreen extends GetView<ClosedSaleController> {
     }
   }
 
-  Future<void> _viewSale(BuildContext context, ClosedSale sale) {
-    return showPendingSaleViewDialog(
-      context,
-      saleService: controller.sellController.saleService,
-      name: sale.name,
-    );
-  }
-
   Future<void> _openSaleDetail(BuildContext context, ClosedSale sale) {
     return Navigator.of(context).push<void>(
       MaterialPageRoute<void>(builder: (_) => SaleDetailScreen(sale: sale)),
+    );
+  }
+
+  Future<void> _showAdvancedSearch(BuildContext context) async {
+    final result = await showClosedSaleAdvancedSearchDialog(
+      context,
+      dataSource: controller.sellController.saleService,
+      initialValue: ClosedSaleAdvancedSearchResult(
+        customer: controller.customerFilter.value,
+        driver: controller.driverFilter.value,
+        status: controller.statusFilter.value,
+        splitBillOnly: controller.splitBillOnly.value,
+        productCode: controller.productCodeFilter.value,
+        productChildDoctype: controller.productChildDoctype.value,
+        sortField: controller.sortField.value,
+        sortAscending: controller.sortAscending.value,
+      ),
+    );
+    if (result == null || !context.mounted) return;
+    await controller.applyAdvancedSearch(
+      customer: result.customer,
+      driver: result.driver,
+      status: result.status,
+      onlySplitBills: result.splitBillOnly,
+      productCode: result.productCode,
+      childDoctype: result.productChildDoctype,
+      selectedSortField: result.sortField,
+      ascending: result.sortAscending,
     );
   }
 
@@ -97,6 +121,10 @@ class ClosedSaleListScreen extends GetView<ClosedSaleController> {
               todayCount: controller.todayClosedSaleCount.value,
               isLoading: controller.isLoading.value,
               onRefresh: controller.refreshAll,
+              advancedSearch: _AdvancedSearchButton(
+                hasFilters: controller.hasAdvancedFilters,
+                onPressed: () => _showAdvancedSearch(context),
+              ),
               quickSearch: ClosedSaleQuickSearchWidget(
                 searchController: controller.searchController,
                 hasSearchText: controller.searchText.value.isNotEmpty,
@@ -140,23 +168,31 @@ class ClosedSaleListScreen extends GetView<ClosedSaleController> {
       child: Card(
         margin: EdgeInsets.zero,
         clipBehavior: Clip.antiAlias,
-        child: SingleChildScrollView(
-          key: const ValueKey('closed-sale-horizontal-scroll'),
-          scrollDirection: Axis.horizontal,
-          child: SizedBox(
-            width: constraints.maxWidth - 40 < _tableWidth
-                ? _tableWidth
-                : constraints.maxWidth - 40,
-            height: constraints.maxHeight,
-            child: Column(
-              children: [
-                _TableHeader(
-                  sortField: controller.sortField.value,
-                  sortAscending: controller.sortAscending.value,
-                  onSort: controller.sortBy,
-                ),
-                Expanded(child: _listBody(context, colors)),
-              ],
+        child: Scrollbar(
+          controller: controller.horizontalScrollController,
+          thumbVisibility: true,
+          trackVisibility: true,
+          interactive: true,
+          scrollbarOrientation: ScrollbarOrientation.bottom,
+          child: SingleChildScrollView(
+            key: const ValueKey('closed-sale-horizontal-scroll'),
+            controller: controller.horizontalScrollController,
+            scrollDirection: Axis.horizontal,
+            child: SizedBox(
+              width: constraints.maxWidth - 40 < _tableWidth
+                  ? _tableWidth
+                  : constraints.maxWidth - 40,
+              height: constraints.maxHeight,
+              child: Column(
+                children: [
+                  _TableHeader(
+                    sortField: controller.sortField.value,
+                    sortAscending: controller.sortAscending.value,
+                    onSort: controller.sortBy,
+                  ),
+                  Expanded(child: _listBody(context, colors)),
+                ],
+              ),
             ),
           ),
         ),
@@ -169,13 +205,37 @@ class ClosedSaleListScreen extends GetView<ClosedSaleController> {
     ColorScheme colors,
     BoxConstraints constraints,
   ) {
-    return SingleChildScrollView(
-      key: const ValueKey('closed-sale-horizontal-scroll'),
-      scrollDirection: Axis.horizontal,
-      child: SizedBox(
-        width: constraints.maxWidth,
-        height: constraints.maxHeight,
-        child: _listBody(context, colors, compact: true),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 0, 12, 16),
+      child: Card(
+        margin: EdgeInsets.zero,
+        clipBehavior: Clip.antiAlias,
+        child: Scrollbar(
+          controller: controller.horizontalScrollController,
+          thumbVisibility: true,
+          trackVisibility: true,
+          interactive: true,
+          scrollbarOrientation: ScrollbarOrientation.bottom,
+          child: SingleChildScrollView(
+            key: const ValueKey('closed-sale-horizontal-scroll'),
+            controller: controller.horizontalScrollController,
+            scrollDirection: Axis.horizontal,
+            child: SizedBox(
+              width: _tableWidth,
+              height: constraints.maxHeight,
+              child: Column(
+                children: [
+                  _TableHeader(
+                    sortField: controller.sortField.value,
+                    sortAscending: controller.sortAscending.value,
+                    onSort: controller.sortBy,
+                  ),
+                  Expanded(child: _listBody(context, colors)),
+                ],
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -215,6 +275,11 @@ class ClosedSaleListScreen extends GetView<ClosedSaleController> {
               ? _ClosedSaleCard(
                   sale: controller.sales[index],
                   imageBaseUri: controller.sellController.saleService.baseUri,
+                  isSelected:
+                      controller.selectedSaleName.value ==
+                      controller.sales[index].name,
+                  onSelect: () =>
+                      controller.selectSale(controller.sales[index].name),
                   onContextMenu: (position) => _showContextMenu(
                     context,
                     controller.sales[index],
@@ -222,12 +287,18 @@ class ClosedSaleListScreen extends GetView<ClosedSaleController> {
                   ),
                   onOpenDetail: () =>
                       _openSaleDetail(context, controller.sales[index]),
-                  onView: () => _viewSale(context, controller.sales[index]),
+                  onView: () =>
+                      _openSaleDetail(context, controller.sales[index]),
                 )
               : _ClosedSaleRow(
                   sale: controller.sales[index],
                   imageBaseUri: controller.sellController.saleService.baseUri,
                   alternate: index.isOdd,
+                  isSelected:
+                      controller.selectedSaleName.value ==
+                      controller.sales[index].name,
+                  onSelect: () =>
+                      controller.selectSale(controller.sales[index].name),
                   onContextMenu: (position) => _showContextMenu(
                     context,
                     controller.sales[index],
@@ -235,7 +306,8 @@ class ClosedSaleListScreen extends GetView<ClosedSaleController> {
                   ),
                   onOpenDetail: () =>
                       _openSaleDetail(context, controller.sales[index]),
-                  onView: () => _viewSale(context, controller.sales[index]),
+                  onView: () =>
+                      _openSaleDetail(context, controller.sales[index]),
                 ),
         if (controller.isLoading.value)
           const Padding(
@@ -262,12 +334,14 @@ class _PageHeader extends StatelessWidget {
     required this.isLoading,
     required this.onRefresh,
     required this.quickSearch,
+    required this.advancedSearch,
   });
 
   final int todayCount;
   final bool isLoading;
   final VoidCallback onRefresh;
   final Widget quickSearch;
+  final Widget advancedSearch;
 
   @override
   Widget build(BuildContext context) {
@@ -336,6 +410,8 @@ class _PageHeader extends StatelessWidget {
           ],
           quickSearch,
           const SizedBox(width: 10),
+          advancedSearch,
+          const SizedBox(width: 8),
           IconButton(
             key: const ValueKey('refresh-closed-sale-list'),
             tooltip: 'ផ្ទុកឡើងវិញ',
@@ -348,6 +424,39 @@ class _PageHeader extends StatelessWidget {
             icon: const Icon(Icons.refresh_rounded),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _AdvancedSearchButton extends StatelessWidget {
+  const _AdvancedSearchButton({
+    required this.hasFilters,
+    required this.onPressed,
+  });
+
+  final bool hasFilters;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Badge(
+      isLabelVisible: hasFilters,
+      smallSize: 9,
+      backgroundColor: colors.tertiary,
+      child: IconButton(
+        key: const ValueKey('closed-sale-advanced-search'),
+        tooltip: 'ស្វែងរកកម្រិតខ្ពស់',
+        onPressed: onPressed,
+        color: hasFilters ? colors.onPrimary : colors.primary,
+        style: IconButton.styleFrom(
+          backgroundColor: hasFilters
+              ? colors.primary
+              : colors.surfaceContainerLow,
+          side: BorderSide(color: colors.outlineVariant),
+        ),
+        icon: const Icon(Icons.tune_rounded),
       ),
     );
   }
@@ -371,7 +480,7 @@ class _TableHeader extends StatelessWidget {
     color: Theme.of(context).colorScheme.surfaceContainer,
     child: Row(
       children: [
-        _sortableHeader('លេខបុង', 16, ClosedSaleSortField.name),
+        _sortableHeader('លេខបុង', 20, ClosedSaleSortField.name),
         _sortableHeader('កាលបរិច្ឆេទ', 13, ClosedSaleSortField.postingDate),
         _sortableHeader('អតិថិជន', 24, ClosedSaleSortField.customerName),
         _sortableHeader('អ្នកបើកបរ', 16, ClosedSaleSortField.driverName),
@@ -393,14 +502,15 @@ class _TableHeader extends StatelessWidget {
           ClosedSaleSortField.totalAmount,
           align: TextAlign.right,
         ),
-        _sortableHeader('បង្កើតដោយ', 15, ClosedSaleSortField.owner),
-        _sortableHeader('ពេលបង្កើត', 13, ClosedSaleSortField.creation),
-        const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 12),
-          child: Text(
-            'សកម្មភាព',
-            style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
-          ),
+        const SizedBox(width: _sellerCreationGap),
+        _sortableHeader(
+          'អ្នកលក់ / ពេលបង្កើត',
+          _sellerCreationFlex,
+          ClosedSaleSortField.creation,
+        ),
+        const SizedBox(
+          key: ValueKey('closed-sale-action-header'),
+          width: _actionColumnWidth,
         ),
       ],
     ),
@@ -429,6 +539,8 @@ class _ClosedSaleRow extends StatelessWidget {
     required this.sale,
     required this.imageBaseUri,
     required this.alternate,
+    required this.isSelected,
+    required this.onSelect,
     required this.onContextMenu,
     required this.onOpenDetail,
     required this.onView,
@@ -437,6 +549,8 @@ class _ClosedSaleRow extends StatelessWidget {
   final ClosedSale sale;
   final Uri imageBaseUri;
   final bool alternate;
+  final bool isSelected;
+  final VoidCallback onSelect;
   final ValueChanged<Offset> onContextMenu;
   final VoidCallback onOpenDetail;
   final VoidCallback onView;
@@ -447,13 +561,16 @@ class _ClosedSaleRow extends StatelessWidget {
     final semanticColors = AppSemanticColors.of(context);
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
+      onTap: onSelect,
       onSecondaryTapDown: (details) => onContextMenu(details.globalPosition),
       child: Container(
         key: ValueKey('closed-sale-${sale.name}'),
         constraints: const BoxConstraints(minHeight: 60),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
         decoration: BoxDecoration(
-          color: sale.totalSplitBill > 0
+          color: isSelected
+              ? colors.primaryContainer.withValues(alpha: 0.78)
+              : sale.totalSplitBill > 0
               ? semanticColors.success.withValues(
                   alpha: Theme.of(context).brightness == Brightness.dark
                       ? 0.16
@@ -462,7 +579,12 @@ class _ClosedSaleRow extends StatelessWidget {
               : alternate
               ? colors.surfaceContainerLow
               : colors.surface,
-          border: Border(bottom: BorderSide(color: colors.outlineVariant)),
+          border: Border(
+            left: isSelected
+                ? BorderSide(color: colors.primary, width: 4)
+                : BorderSide.none,
+            bottom: BorderSide(color: colors.outlineVariant),
+          ),
         ),
         child: Row(
           children: [
@@ -486,15 +608,18 @@ class _ClosedSaleRow extends StatelessWidget {
               align: TextAlign.right,
               emphasized: true,
             ),
-            _DataCell(_fallback(sale.owner), flex: 15),
-            _DataCell(
-              formatTimeAgo(sale.creation),
-              flex: 13,
-              tooltip: formatExactDateTime(sale.creation),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              child: _SaleActions(sale: sale, onView: onView),
+            const SizedBox(width: _sellerCreationGap),
+            _SellerCreationCell(sale: sale),
+            SizedBox(
+              key: ValueKey('closed-sale-action-${sale.name}'),
+              width: _actionColumnWidth,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  child: _SaleActions(sale: sale, onView: onView),
+                ),
+              ),
             ),
           ],
         ),
@@ -507,6 +632,8 @@ class _ClosedSaleCard extends StatelessWidget {
   const _ClosedSaleCard({
     required this.sale,
     required this.imageBaseUri,
+    required this.isSelected,
+    required this.onSelect,
     required this.onContextMenu,
     required this.onOpenDetail,
     required this.onView,
@@ -514,6 +641,8 @@ class _ClosedSaleCard extends StatelessWidget {
 
   final ClosedSale sale;
   final Uri imageBaseUri;
+  final bool isSelected;
+  final VoidCallback onSelect;
   final ValueChanged<Offset> onContextMenu;
   final VoidCallback onOpenDetail;
   final VoidCallback onView;
@@ -523,9 +652,19 @@ class _ClosedSaleCard extends StatelessWidget {
     final colors = Theme.of(context).colorScheme;
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
+      onTap: onSelect,
       onSecondaryTapDown: (details) => onContextMenu(details.globalPosition),
       child: Card(
         key: ValueKey('closed-sale-${sale.name}'),
+        color: isSelected
+            ? colors.primaryContainer.withValues(alpha: 0.78)
+            : null,
+        shape: isSelected
+            ? RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+                side: BorderSide(color: colors.primary, width: 2),
+              )
+            : null,
         margin: const EdgeInsets.only(bottom: 10),
         child: Padding(
           padding: const EdgeInsets.all(14),
@@ -602,24 +741,26 @@ class _ClosedSaleCard extends StatelessWidget {
               Row(
                 children: [
                   Expanded(
-                    child: Row(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Flexible(
+                        Text(
+                          _fallback(sale.owner),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.left,
+                          style: const TextStyle(fontWeight: FontWeight.w700),
+                        ),
+                        const SizedBox(height: 2),
+                        Tooltip(
+                          message: formatExactDateTime(sale.creation),
                           child: Text(
-                            _fallback(sale.owner),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
+                            formatTimeAgo(sale.creation),
+                            textAlign: TextAlign.left,
                             style: TextStyle(
                               color: colors.onSurfaceVariant,
                               fontSize: 11,
                             ),
-                          ),
-                        ),
-                        Text(
-                          ' • ${formatTimeAgo(sale.creation)}',
-                          style: TextStyle(
-                            color: colors.onSurfaceVariant,
-                            fontSize: 11,
                           ),
                         ),
                       ],
@@ -688,12 +829,14 @@ class _SaleActions extends StatelessWidget {
         _StatusChip(status: sale.status),
         const SizedBox(width: 8),
         SizedBox(
-          height: 38,
+          height: 34,
           child: OutlinedButton(
             key: ValueKey('view-closed-sale-${sale.name}'),
             onPressed: onView,
             style: OutlinedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              minimumSize: Size.zero,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               visualDensity: VisualDensity.compact,
             ),
             child: const Text(
@@ -823,7 +966,7 @@ class _DocumentLinkCell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Expanded(
-    flex: 16,
+    flex: 20,
     child: Align(
       alignment: Alignment.centerLeft,
       child: _DocumentNumberButton(sale: sale, onPressed: onPressed),
@@ -859,8 +1002,7 @@ class _DocumentNumberButton extends StatelessWidget {
           Flexible(
             child: Text(
               sale.name,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+              softWrap: true,
               style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
             ),
           ),
@@ -948,19 +1090,53 @@ class _CustomerAvatar extends StatelessWidget {
   }
 }
 
+class _SellerCreationCell extends StatelessWidget {
+  const _SellerCreationCell({required this.sale});
+
+  final ClosedSale sale;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Expanded(
+      flex: _sellerCreationFlex,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            _fallback(sale.owner),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.left,
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 2),
+          Tooltip(
+            message: formatExactDateTime(sale.creation),
+            child: Text(
+              formatTimeAgo(sale.creation),
+              textAlign: TextAlign.left,
+              style: TextStyle(color: colors.onSurfaceVariant, fontSize: 14),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _DataCell extends StatelessWidget {
   const _DataCell(
     this.text, {
     required this.flex,
     this.align,
     this.emphasized = false,
-    this.tooltip,
   });
   final String text;
   final int flex;
   final TextAlign? align;
   final bool emphasized;
-  final String? tooltip;
 
   @override
   Widget build(BuildContext context) {
@@ -976,12 +1152,7 @@ class _DataCell extends StatelessWidget {
         fontSize: 16,
       ),
     );
-    return Expanded(
-      flex: flex,
-      child: tooltip == null
-          ? content
-          : Tooltip(message: tooltip!, child: content),
-    );
+    return Expanded(flex: flex, child: content);
   }
 }
 

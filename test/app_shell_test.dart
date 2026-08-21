@@ -195,6 +195,22 @@ void main() {
       find.byKey(const ValueKey('closed-sale-customer-avatar-SO-CLOSED-0001')),
       findsOneWidget,
     );
+    final actionHeaderRect = tester.getRect(
+      find.byKey(const ValueKey('closed-sale-action-header')),
+    );
+    final actionCellRect = tester.getRect(
+      find.byKey(const ValueKey('closed-sale-action-SO-CLOSED-0001')),
+    );
+    expect(actionCellRect.left, closeTo(actionHeaderRect.left, 0.01));
+    expect(actionCellRect.width, actionHeaderRect.width);
+
+    await tester.tapAt(
+      tester.getCenter(
+        find.byKey(const ValueKey('closed-sale-SO-CLOSED-0001')),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(closedSaleController.selectedSaleName.value, 'SO-CLOSED-0001');
 
     await tester.tapAt(
       tester.getCenter(
@@ -261,11 +277,10 @@ void main() {
       find.byKey(const ValueKey('view-closed-sale-SO-CLOSED-0001')),
     );
     await tester.pumpAndSettle();
-    expect(
-      find.byKey(const ValueKey('pending-sale-view-dialog')),
-      findsOneWidget,
-    );
-    await tester.tap(find.byKey(const ValueKey('close-pending-sale-view')));
+    expect(find.byKey(const ValueKey('sale-detail-screen')), findsOneWidget);
+    Navigator.of(
+      tester.element(find.byKey(const ValueKey('sale-detail-screen'))),
+    ).pop();
     await tester.pumpAndSettle();
   });
 
