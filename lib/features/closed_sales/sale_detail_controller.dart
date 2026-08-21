@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 
@@ -90,6 +91,7 @@ class SaleDetailController extends GetxController {
   final rawDocument = <String, dynamic>{}.obs;
   final timeline = <SaleTimelineEntry>[].obs;
   final payments = <Map<String, dynamic>>[].obs;
+  final paymentHistory = <Map<String, dynamic>>[].obs;
   final printTemplates = <ReceiptTemplate>[ReceiptTemplate.standardA6].obs;
   final selectedPrintTemplate = ReceiptTemplate.standardA6.obs;
   final isLoading = false.obs;
@@ -101,6 +103,8 @@ class SaleDetailController extends GetxController {
   final errorMessage = RxnString();
   final noteSaveError = RxnString();
   bool _printTemplatesLoaded = false;
+  bool _paymentHistoryLoaded = false;
+  Future<List<Map<String, dynamic>>>? _paymentHistoryRequest;
   String _lastSavedNote = '';
 
   Sale get displayedSale => sale.value ?? _summarySale;
@@ -147,6 +151,7 @@ class SaleDetailController extends GetxController {
       if (document == null) throw const SaleServiceException(200);
       rawDocument.assignAll(document);
       sale.value = Sale.fromJson(document);
+      unawaited(_prefetchPaymentHistory());
       if (!noteFocusNode.hasFocus && !isSavingNote.value) {
         _lastSavedNote = sale.value?.note ?? '';
         noteController.text = _lastSavedNote;
@@ -289,6 +294,58 @@ class SaleDetailController extends GetxController {
       return false;
     } finally {
       isSavingReferenceNumber.value = false;
+    }
+  }
+
+  Future<void> _prefetchPaymentHistory() async {
+    try {
+      await loadPaymentHistory(force: true);
+    } on Exception {
+      // Payment history must not delay or block the invoice detail.
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> loadPaymentHistory({
+    bool force = false,
+  }) async {
+    final service = saleService;
+    if (service == null) return const [];
+    if (!force && _paymentHistoryLoaded) {
+      return List.unmodifiable(paymentHistory);
+    }
+    final pending = _paymentHistoryRequest;
+    if (pending != null) return pending;
+    final request = service.getSalePaymentHistory(displayedSale.name);
+    _paymentHistoryRequest = request;
+    try {
+      final rows = await request;
+      paymentHistory.assignAll(rows);
+      _paymentHistoryLoaded = true;
+      return List.unmodifiable(rows);
+    } finally {
+      if (identical(_paymentHistoryRequest, request)) {
+        _paymentHistoryRequest = null;
+      }
+    }
+  }
+
+  Future<bool> validateNoPaymentHistory({required bool deleting}) async {
+    try {
+      final rows = await loadPaymentHistory(force: true);
+      if (rows.isEmpty) return true;
+      _showMessage(
+        deleting
+            ? 'វិក្កយបត្រនេះមានការទូទាត់រួចហើយ មិនអាចលុបបានទេ។'
+            : 'វិក្កយបត្រនេះមានការទូទាត់រួចហើយ មិនអាចកែសម្រួលបានទេ។',
+        indicator: 'orange',
+      );
+      return false;
+    } on Exception {
+      _showMessage(
+        'មិនអាចពិនិត្យប្រវត្តិការទូទាត់បានទេ។ សូមព្យាយាមម្ដងទៀត។',
+        indicator: 'orange',
+      );
+      return false;
     }
   }
 

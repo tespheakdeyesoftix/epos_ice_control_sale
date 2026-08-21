@@ -92,6 +92,10 @@ abstract final class ApiEndpoint {
   /// body.
   static const deleteSale = 'api/method/ice_control.api.v1.sale.delete_sale';
 
+  /// Loads payment transactions recorded against one Sale.
+  static const salePaymentHistory =
+      'api/method/ice_control.api.v1.sale.get_sale_payment_history';
+
   /// Finds a Sale document that the cashier wants to open for editing.
   ///
   /// Method: `GET`

@@ -12,7 +12,13 @@ import 'widgets/advance_search_dialog_widget.dart';
 import 'widgets/pagger_card_widget.dart';
 import 'widgets/quick_search_widget.dart';
 
-enum _ClosedSaleContextAction { viewBillDetail }
+enum _ClosedSaleContextAction {
+  viewBillDetail,
+  printPreview,
+  paymentHistory,
+  editBill,
+  deleteBill,
+}
 
 const _actionColumnWidth = 245.0;
 const _sellerCreationGap = 18.0;
@@ -44,6 +50,18 @@ class ClosedSaleListScreen extends GetView<ClosedSaleController> {
 
   Future<void> _openSaleDetail(BuildContext context, ClosedSale sale) {
     return showSaleDetail(context, sale: sale);
+  }
+
+  Future<void> _openSaleDetailAction(
+    BuildContext context,
+    ClosedSale sale,
+    SaleDetailInitialAction action,
+  ) {
+    return showSaleDetail(context, sale: sale, initialAction: action);
+  }
+
+  Future<void> _openPrintPreview(BuildContext context, ClosedSale sale) {
+    return showClosedSalePrintPreview(context, sale: sale);
   }
 
   Future<void> _showAdvancedSearch(BuildContext context) async {
@@ -79,18 +97,27 @@ class ClosedSaleListScreen extends GetView<ClosedSaleController> {
     ClosedSale sale,
     Offset globalPosition,
   ) async {
+    final colors = Theme.of(context).colorScheme;
     final overlay = Overlay.of(context).context.findRenderObject() as RenderBox;
     final position = overlay.globalToLocal(globalPosition);
     final action = await showMenu<_ClosedSaleContextAction>(
       context: context,
+      color: colors.surfaceContainerHighest,
+      surfaceTintColor: Colors.transparent,
+      elevation: 12,
+      shadowColor: colors.shadow.withValues(alpha: 0.35),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(14),
+        side: BorderSide(color: colors.outlineVariant),
+      ),
       position: RelativeRect.fromLTRB(
         position.dx,
         position.dy,
         overlay.size.width - position.dx,
         overlay.size.height - position.dy,
       ),
-      items: const [
-        PopupMenuItem(
+      items: [
+        const PopupMenuItem(
           key: ValueKey('closed-sale-context-view-detail'),
           value: _ClosedSaleContextAction.viewBillDetail,
           child: Row(
@@ -101,11 +128,79 @@ class ClosedSaleListScreen extends GetView<ClosedSaleController> {
             ],
           ),
         ),
+        const PopupMenuItem(
+          key: ValueKey('closed-sale-context-print-preview'),
+          value: _ClosedSaleContextAction.printPreview,
+          child: Row(
+            children: [
+              Icon(Icons.preview_outlined, size: 19),
+              SizedBox(width: 10),
+              Text('Print Preview Invoice'),
+            ],
+          ),
+        ),
+        const PopupMenuItem(
+          key: ValueKey('closed-sale-context-payment-history'),
+          value: _ClosedSaleContextAction.paymentHistory,
+          child: Row(
+            children: [
+              Icon(Icons.payments_outlined, size: 19),
+              SizedBox(width: 10),
+              Text('View Payment History'),
+            ],
+          ),
+        ),
+        const PopupMenuDivider(),
+        const PopupMenuItem(
+          key: ValueKey('closed-sale-context-edit-bill'),
+          value: _ClosedSaleContextAction.editBill,
+          child: Row(
+            children: [
+              Icon(Icons.edit_outlined, size: 19),
+              SizedBox(width: 10),
+              Text('Edit Bill'),
+            ],
+          ),
+        ),
+        PopupMenuItem(
+          key: const ValueKey('closed-sale-context-delete-bill'),
+          value: _ClosedSaleContextAction.deleteBill,
+          child: Row(
+            children: [
+              Icon(Icons.delete_outline_rounded, size: 19, color: colors.error),
+              const SizedBox(width: 10),
+              Text('Delete Bill', style: TextStyle(color: colors.error)),
+            ],
+          ),
+        ),
       ],
     );
     if (!context.mounted) return;
-    if (action == _ClosedSaleContextAction.viewBillDetail) {
-      await _openSaleDetail(context, sale);
+    switch (action) {
+      case _ClosedSaleContextAction.viewBillDetail:
+        await _openSaleDetail(context, sale);
+      case _ClosedSaleContextAction.printPreview:
+        await _openPrintPreview(context, sale);
+      case _ClosedSaleContextAction.paymentHistory:
+        await _openSaleDetailAction(
+          context,
+          sale,
+          SaleDetailInitialAction.paymentHistory,
+        );
+      case _ClosedSaleContextAction.editBill:
+        await _openSaleDetailAction(
+          context,
+          sale,
+          SaleDetailInitialAction.edit,
+        );
+      case _ClosedSaleContextAction.deleteBill:
+        await _openSaleDetailAction(
+          context,
+          sale,
+          SaleDetailInitialAction.delete,
+        );
+      case null:
+        return;
     }
   }
 

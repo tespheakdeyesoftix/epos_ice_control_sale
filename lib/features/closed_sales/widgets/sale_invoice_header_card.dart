@@ -21,6 +21,7 @@ class SaleInvoiceHeaderCard extends StatelessWidget {
     required this.onDelete,
     required this.onPreview,
     required this.onPaymentHistory,
+    required this.paymentHistoryCount,
     required this.onViewSplitBills,
     required this.onEditReferenceNumber,
     required this.onOpenParentBill,
@@ -42,6 +43,7 @@ class SaleInvoiceHeaderCard extends StatelessWidget {
   final VoidCallback? onDelete;
   final VoidCallback? onPreview;
   final VoidCallback? onPaymentHistory;
+  final int paymentHistoryCount;
   final VoidCallback? onViewSplitBills;
   final VoidCallback? onEditReferenceNumber;
   final VoidCallback? onOpenParentBill;
@@ -213,6 +215,10 @@ class SaleInvoiceHeaderCard extends StatelessWidget {
                 _ActionButton(
                   icon: Icons.payments_outlined,
                   label: 'មើលប្រវត្តិការទូទាត់',
+                  badgeCount: paymentHistoryCount > 0
+                      ? paymentHistoryCount
+                      : null,
+                  badgeColor: colors.error,
                   onPressed: onPaymentHistory,
                 ),
                 _ActionButton(
@@ -643,6 +649,7 @@ class _ActionButton extends StatelessWidget {
     required this.onPressed,
     this.destructive = false,
     this.badgeCount,
+    this.badgeColor,
     this.standout = false,
   });
 
@@ -651,6 +658,7 @@ class _ActionButton extends StatelessWidget {
   final VoidCallback? onPressed;
   final bool destructive;
   final int? badgeCount;
+  final Color? badgeColor;
   final bool standout;
 
   @override
@@ -694,15 +702,18 @@ class _ActionButton extends StatelessWidget {
                 constraints: const BoxConstraints(minWidth: 22),
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
-                  color: standout
-                      ? Colors.white.withValues(alpha: .2)
-                      : colors.primary.withValues(alpha: .12),
+                  color:
+                      badgeColor ??
+                      (standout
+                          ? Colors.white.withValues(alpha: .2)
+                          : colors.primary.withValues(alpha: .12)),
                   borderRadius: BorderRadius.circular(999),
                 ),
                 child: Text(
                   '$badgeCount',
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
+                  style: TextStyle(
+                    color: badgeColor == null ? null : Colors.white,
                     fontSize: 11,
                     fontWeight: FontWeight.w800,
                   ),

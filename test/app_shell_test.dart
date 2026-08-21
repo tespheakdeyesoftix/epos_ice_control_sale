@@ -223,6 +223,22 @@ void main() {
       find.byKey(const ValueKey('closed-sale-context-view-detail')),
       findsOneWidget,
     );
+    expect(
+      find.byKey(const ValueKey('closed-sale-context-print-preview')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('closed-sale-context-payment-history')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('closed-sale-context-edit-bill')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('closed-sale-context-delete-bill')),
+      findsOneWidget,
+    );
     await tester.tap(
       find.byKey(const ValueKey('closed-sale-context-view-detail')),
     );

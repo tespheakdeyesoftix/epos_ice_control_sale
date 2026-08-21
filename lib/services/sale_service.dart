@@ -280,6 +280,33 @@ class SaleService {
     return Sale.fromJson(Map<String, dynamic>.from(data));
   }
 
+  Future<List<Map<String, dynamic>>> getSalePaymentHistory(
+    String saleName,
+  ) async {
+    final response = await _client
+        .get(
+          baseUri
+              .resolve(ApiEndpoint.salePaymentHistory)
+              .replace(queryParameters: {'sale_name': saleName.trim()}),
+          headers: const {'Accept': 'application/json'},
+        )
+        .timeout(const Duration(seconds: 30));
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw SaleServiceException(response.statusCode);
+    }
+    dynamic payload = jsonDecode(response.body);
+    if (payload is Map && payload.containsKey('message')) {
+      payload = payload['message'];
+    }
+    if (payload is String) payload = jsonDecode(payload);
+    if (payload is Map && payload['data'] is List) payload = payload['data'];
+    if (payload is! List) return const [];
+    return payload
+        .whereType<Map>()
+        .map((row) => Map<String, dynamic>.from(row))
+        .toList(growable: false);
+  }
+
   Future<Map<String, dynamic>> loadSaleDocument(String name) async {
     final response = await _client
         .get(

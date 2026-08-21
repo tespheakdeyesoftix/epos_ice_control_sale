@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/widget_previews.dart';
 import 'package:get/get.dart';
@@ -18,6 +20,7 @@ import 'sale_detail_controller.dart';
 import 'widgets/sale_detail_dialogs.dart';
 import 'widgets/customer_credit_warning_card.dart';
 import 'widgets/sale_invoice_header_card.dart';
+import 'widgets/sale_payment_history_dialog_widget.dart';
 import 'widgets/sale_product_detail_card.dart';
 import 'widgets/sale_summary_note_card.dart';
 import 'widgets/sale_timeline_card.dart';
@@ -26,7 +29,13 @@ import 'widgets/split_bill_parent_banner_widget.dart';
 
 const double _saleDetailDialogBreakpoint = 900;
 
-Future<void> showSaleDetail(BuildContext context, {required ClosedSale sale}) {
+enum SaleDetailInitialAction { paymentHistory, edit, delete }
+
+Future<void> showSaleDetail(
+  BuildContext context, {
+  required ClosedSale sale,
+  SaleDetailInitialAction? initialAction,
+}) {
   final size = MediaQuery.sizeOf(context);
   final useFullScreen =
       size.width < _saleDetailDialogBreakpoint || size.height < 650;
@@ -40,6 +49,7 @@ Future<void> showSaleDetail(BuildContext context, {required ClosedSale sale}) {
         onGenerateRoute: (_) => MaterialPageRoute<void>(
           builder: (_) => SaleDetailScreen(
             sale: sale,
+            initialAction: initialAction,
             isDialogPresentation: true,
             onClose: () => Navigator.of(dialogContext).pop(),
           ),
@@ -61,17 +71,149 @@ Future<void> showSaleDetail(BuildContext context, {required ClosedSale sale}) {
   );
 }
 
+Future<void> showClosedSalePrintPreview(
+  BuildContext context, {
+  required ClosedSale sale,
+}) async {
+  final sell = Get.isRegistered<SellController>()
+      ? Get.find<SellController>()
+      : null;
+  final controller = SaleDetailController(
+    summary: sale,
+    saleService: sell?.saleService,
+    closedSaleController: Get.isRegistered<ClosedSaleController>()
+        ? Get.find<ClosedSaleController>()
+        : null,
+    printService: Get.isRegistered<ReceiptPrintService>()
+        ? Get.find<ReceiptPrintService>()
+        : null,
+    appSettingController: Get.isRegistered<AppSettingController>()
+        ? Get.find<AppSettingController>()
+        : null,
+    loginController: Get.isRegistered<LoginController>()
+        ? Get.find<LoginController>()
+        : null,
+  );
+  try {
+    await controller.load();
+    await controller.loadPrintTemplates();
+    if (!context.mounted) return;
+    var selectedTemplate = controller.selectedPrintTemplate.value;
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        final windowSize = MediaQuery.sizeOf(dialogContext);
+        return StatefulBuilder(
+          builder: (context, setDialogState) => Dialog(
+            insetPadding: const EdgeInsets.all(18),
+            clipBehavior: Clip.antiAlias,
+            child: SizedBox(
+              width: windowSize.width >= 960 ? 860 : windowSize.width * .92,
+              height: windowSize.height * .90,
+              child: Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(18, 10, 8, 8),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.preview_rounded),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            'Print Preview Invoice — ${sale.name}',
+                            style: Theme.of(context).textTheme.titleMedium
+                                ?.copyWith(fontWeight: FontWeight.w800),
+                          ),
+                        ),
+                        if (controller.printTemplates.length > 1)
+                          SizedBox(
+                            width: 250,
+                            child: DropdownButtonFormField<ReceiptTemplate>(
+                              initialValue: selectedTemplate,
+                              isDense: true,
+                              decoration: const InputDecoration(
+                                labelText: 'Receipt template',
+                                border: OutlineInputBorder(),
+                                contentPadding: EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 10,
+                                ),
+                              ),
+                              items: [
+                                for (final template
+                                    in controller.printTemplates)
+                                  DropdownMenuItem(
+                                    value: template,
+                                    child: Text(
+                                      template.templateName.isEmpty
+                                          ? template.name
+                                          : template.templateName,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                              ],
+                              onChanged: (template) {
+                                if (template == null) return;
+                                setDialogState(() {
+                                  selectedTemplate = template;
+                                  controller.selectedPrintTemplate.value =
+                                      template;
+                                });
+                              },
+                            ),
+                          ),
+                        const SizedBox(width: 8),
+                        IconButton(
+                          tooltip: 'Close',
+                          onPressed: () => Navigator.pop(dialogContext),
+                          icon: const Icon(Icons.close_rounded),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Divider(height: 1),
+                  Expanded(
+                    child: PdfPreview(
+                      key: ValueKey(selectedTemplate.name),
+                      build: (_) => controller.buildPrintPreview(
+                        template: selectedTemplate,
+                      ),
+                      initialPageFormat: selectedTemplate.pageFormat,
+                      canChangeOrientation: false,
+                      canChangePageFormat: false,
+                      canDebug: false,
+                      allowPrinting: true,
+                      allowSharing: true,
+                      useActions: true,
+                      shouldRepaint: true,
+                      pdfFileName: '${sale.name}.pdf',
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  } finally {
+    controller.onClose();
+  }
+}
+
 class SaleDetailScreen extends StatefulWidget {
   const SaleDetailScreen({
     super.key,
     required this.sale,
     this.controller,
+    this.initialAction,
     this.isDialogPresentation = false,
     this.onClose,
   });
 
   final ClosedSale sale;
   final SaleDetailController? controller;
+  final SaleDetailInitialAction? initialAction;
   final bool isDialogPresentation;
   final VoidCallback? onClose;
 
@@ -88,7 +230,22 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
     super.initState();
     _ownsController = widget.controller == null;
     controller = widget.controller ?? _createController();
-    controller.load();
+    unawaited(_loadAndRunInitialAction());
+  }
+
+  Future<void> _loadAndRunInitialAction() async {
+    await controller.load();
+    if (!mounted) return;
+    switch (widget.initialAction) {
+      case SaleDetailInitialAction.paymentHistory:
+        await _showPaymentHistory();
+      case SaleDetailInitialAction.edit:
+        await _editOrder();
+      case SaleDetailInitialAction.delete:
+        await _deleteOrder();
+      case null:
+        return;
+    }
   }
 
   SaleDetailController _createController() {
@@ -120,13 +277,24 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
   }
 
   Future<void> _editOrder() async {
+    final canEdit = await controller.validateNoPaymentHistory(deleting: false);
+    if (!canEdit || !mounted) return;
+    controller.noteFocusNode.unfocus();
+    await controller.saveNoteOnFocusLost();
     final opened = await controller.editOrder();
-    if (opened && mounted) Navigator.of(context).pop();
+    if (!opened || !mounted) return;
+    if (widget.isDialogPresentation && widget.onClose != null) {
+      widget.onClose!();
+    } else {
+      Navigator.of(context).pop();
+    }
   }
 
   Future<void> _deleteOrder() async {
     final closedSales = controller.closedSaleController;
     if (closedSales == null || !closedSales.checkDeleteBillPermission()) return;
+    final canDelete = await controller.validateNoPaymentHistory(deleting: true);
+    if (!canDelete || !mounted) return;
     var deleted = false;
     await showNoteDialog(
       context,
@@ -139,7 +307,12 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
         return deleted;
       },
     );
-    if (deleted && mounted) Navigator.of(context).pop();
+    if (!deleted || !mounted) return;
+    if (widget.isDialogPresentation && widget.onClose != null) {
+      widget.onClose!();
+    } else {
+      Navigator.of(context).pop();
+    }
   }
 
   Future<void> _editComment(SaleTimelineEntry entry) async {
@@ -166,6 +339,20 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
     );
     if (value == null || !mounted) return;
     await controller.updateReferenceNumber(value);
+  }
+
+  Future<void> _showPaymentHistory() {
+    final service = controller.saleService;
+    if (service == null) return Future<void>.value();
+    final sale = controller.displayedSale;
+    return showSalePaymentHistoryDialog(
+      context,
+      loadHistory: controller.loadPaymentHistory,
+      saleName: sale.name,
+      canShowPrice: sale.canShowPrice,
+      currencySymbol:
+          controller.appSettingController?.current?.currencySymbol ?? '',
+    );
   }
 
   Future<void> _viewSplitBills() async {
@@ -569,14 +756,12 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
                                             ? null
                                             : _deleteOrder,
                                         onPreview: _showPrintPreview,
-                                        onPaymentHistory: () =>
-                                            showPaymentHistoryDialog(
-                                              context,
-                                              payments: controller.payments,
-                                              totalPayment: sale.totalPayment,
-                                              canShowPrice: sale.canShowPrice,
-                                              currencySymbol: currencySymbol,
-                                            ),
+                                        onPaymentHistory:
+                                            controller.saleService == null
+                                            ? null
+                                            : _showPaymentHistory,
+                                        paymentHistoryCount:
+                                            controller.paymentHistory.length,
                                         onViewSplitBills:
                                             sale.canSplitBill &&
                                                 sale.totalSplitBill > 0
@@ -617,6 +802,9 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
                                                 products: sale.saleProducts,
                                                 canShowPrice: sale.canShowPrice,
                                                 currencySymbol: currencySymbol,
+                                                imageBaseUri: controller
+                                                    .saleService
+                                                    ?.baseUri,
                                               ),
                                               const SizedBox(height: 14),
                                               SaleSummaryNoteCard(
@@ -633,6 +821,13 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
                                                 noteSaveError: controller
                                                     .noteSaveError
                                                     .value,
+                                                onViewPaymentHistory:
+                                                    sale.totalPayment > 0 &&
+                                                        controller
+                                                                .saleService !=
+                                                            null
+                                                    ? _showPaymentHistory
+                                                    : null,
                                                 onNoteFocusChanged: (hasFocus) {
                                                   if (!hasFocus) {
                                                     controller

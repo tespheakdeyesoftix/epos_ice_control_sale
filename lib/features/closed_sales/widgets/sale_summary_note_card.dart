@@ -13,6 +13,7 @@ class SaleSummaryNoteCard extends StatelessWidget {
     required this.noteFocusNode,
     required this.isSavingNote,
     required this.noteSaveError,
+    required this.onViewPaymentHistory,
     required this.onNoteFocusChanged,
   });
 
@@ -23,6 +24,7 @@ class SaleSummaryNoteCard extends StatelessWidget {
   final FocusNode noteFocusNode;
   final bool isSavingNote;
   final String? noteSaveError;
+  final VoidCallback? onViewPaymentHistory;
   final ValueChanged<bool> onNoteFocusChanged;
 
   @override
@@ -40,6 +42,7 @@ class SaleSummaryNoteCard extends StatelessWidget {
           sale: sale,
           canShowPrice: canShowPrice,
           currencySymbol: currencySymbol,
+          onViewPaymentHistory: onViewPaymentHistory,
         );
         if (constraints.maxWidth < 720) {
           return Column(children: [note, const SizedBox(height: 12), summary]);
@@ -163,11 +166,13 @@ class _SummaryCard extends StatelessWidget {
     required this.sale,
     required this.canShowPrice,
     required this.currencySymbol,
+    required this.onViewPaymentHistory,
   });
 
   final Sale sale;
   final bool canShowPrice;
   final String currencySymbol;
+  final VoidCallback? onViewPaymentHistory;
 
   String money(double value) =>
       canShowPrice ? formatCurrency(value, currencySymbol) : '••••';
@@ -197,7 +202,12 @@ class _SummaryCard extends StatelessWidget {
               label: 'ទឹកប្រាក់សរុប',
               value: money(sale.totalAmount),
             ),
-            _SummaryLine(label: 'បានទូទាត់', value: money(sale.totalPayment)),
+            _SummaryLine(
+              label: 'បានទូទាត់',
+              value: money(sale.totalPayment),
+              onTap: sale.totalPayment > 0 ? onViewPaymentHistory : null,
+              tooltip: 'មើលប្រវត្តិការទូទាត់',
+            ),
             if (sale.totalWriteOff != 0)
               _SummaryLine(label: 'កាត់ចោល', value: money(sale.totalWriteOff)),
             Padding(
@@ -221,11 +231,15 @@ class _SummaryLine extends StatelessWidget {
     required this.label,
     required this.value,
     this.emphasized = false,
+    this.onTap,
+    this.tooltip,
   });
 
   final String label;
   final String value;
   final bool emphasized;
+  final VoidCallback? onTap;
+  final String? tooltip;
 
   @override
   Widget build(BuildContext context) {
@@ -243,15 +257,44 @@ class _SummaryLine extends StatelessWidget {
               ),
             ),
           ),
-          Text(
-            value,
-            style: TextStyle(
-              color: emphasized ? colors.primary : colors.onSurface,
-              fontSize: emphasized ? 18 : null,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
+          _buildValue(colors),
         ],
+      ),
+    );
+  }
+
+  Widget _buildValue(ColorScheme colors) {
+    final valueWidget = Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          value,
+          style: TextStyle(
+            color: onTap != null || emphasized
+                ? colors.primary
+                : colors.onSurface,
+            fontSize: emphasized ? 18 : null,
+            fontWeight: FontWeight.w800,
+            decoration: onTap == null ? null : TextDecoration.underline,
+            decorationColor: colors.primary,
+          ),
+        ),
+        if (onTap != null) ...[
+          const SizedBox(width: 5),
+          Icon(Icons.open_in_new_rounded, size: 14, color: colors.primary),
+        ],
+      ],
+    );
+    if (onTap == null) return valueWidget;
+    return Tooltip(
+      message: tooltip ?? '',
+      child: InkWell(
+        borderRadius: BorderRadius.circular(7),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+          child: valueWidget,
+        ),
       ),
     );
   }

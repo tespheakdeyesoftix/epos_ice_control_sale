@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../features/sell/sale_product.dart';
+import '../../../shared/network_image.dart';
 import '../../../utils/helpers.dart';
 
 class SaleProductDetailCard extends StatelessWidget {
@@ -9,11 +10,13 @@ class SaleProductDetailCard extends StatelessWidget {
     required this.products,
     required this.canShowPrice,
     required this.currencySymbol,
+    required this.imageBaseUri,
   });
 
   final List<SaleProduct> products;
   final bool canShowPrice;
   final String currencySymbol;
+  final Uri? imageBaseUri;
 
   @override
   Widget build(BuildContext context) {
@@ -95,6 +98,7 @@ class SaleProductDetailCard extends StatelessWidget {
                           shaded: index.isOdd,
                           canShowPrice: canShowPrice,
                           currencySymbol: currencySymbol,
+                          imageBaseUri: imageBaseUri,
                         ),
                     ],
                   ),
@@ -142,6 +146,7 @@ class _ProductRow extends StatelessWidget {
     required this.shaded,
     required this.canShowPrice,
     required this.currencySymbol,
+    required this.imageBaseUri,
   });
 
   final int index;
@@ -149,6 +154,7 @@ class _ProductRow extends StatelessWidget {
   final bool shaded;
   final bool canShowPrice;
   final String currencySymbol;
+  final Uri? imageBaseUri;
 
   @override
   Widget build(BuildContext context) {
@@ -167,52 +173,64 @@ class _ProductRow extends StatelessWidget {
           ),
           Expanded(
             flex: 4,
-            child: Column(
+            child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  product.productName.isEmpty
-                      ? product.productCode
-                      : product.productName,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontWeight: FontWeight.w700),
+                _ProductAvatar(
+                  photo: product.photo,
+                  imageBaseUri: imageBaseUri,
                 ),
-                if (product.note.trim().isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 3),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Icon(
-                          Icons.notes_rounded,
-                          size: 14,
-                          color: colors.primary,
-                        ),
-                        const SizedBox(width: 4),
-                        Expanded(
-                          child: Text(
-                            product.note.trim(),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              color: colors.onSurfaceVariant,
-                              fontSize: 12,
-                              height: 1.35,
-                            ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        product.productName.isEmpty
+                            ? product.productCode
+                            : product.productName,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontWeight: FontWeight.w700),
+                      ),
+                      if (product.note.trim().isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 3),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Icon(
+                                Icons.notes_rounded,
+                                size: 14,
+                                color: colors.primary,
+                              ),
+                              const SizedBox(width: 4),
+                              Expanded(
+                                child: Text(
+                                  product.note.trim(),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    color: colors.onSurfaceVariant,
+                                    fontSize: 12,
+                                    height: 1.35,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                      ],
-                    ),
+                      if (product.productCode.isNotEmpty)
+                        Text(
+                          product.productCode,
+                          style: TextStyle(
+                            color: colors.onSurfaceVariant,
+                            fontSize: 12,
+                          ),
+                        ),
+                    ],
                   ),
-                if (product.productCode.isNotEmpty)
-                  Text(
-                    product.productCode,
-                    style: TextStyle(
-                      color: colors.onSurfaceVariant,
-                      fontSize: 12,
-                    ),
-                  ),
+                ),
               ],
             ),
           ),
@@ -271,6 +289,50 @@ class _ProductRow extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _ProductAvatar extends StatelessWidget {
+  const _ProductAvatar({required this.photo, required this.imageBaseUri});
+
+  final String photo;
+  final Uri? imageBaseUri;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final path = photo.trim();
+    final uri = Uri.tryParse(path);
+    final imageUrl = path.isEmpty
+        ? null
+        : uri != null && (uri.scheme == 'http' || uri.scheme == 'https')
+        ? uri.toString()
+        : imageBaseUri?.resolve(path).toString();
+    final fallback = ColoredBox(
+      color: colors.primaryContainer.withValues(alpha: .55),
+      child: Icon(Icons.inventory_2_outlined, size: 20, color: colors.primary),
+    );
+    return Container(
+      width: 42,
+      height: 42,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: colors.outlineVariant),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: imageUrl == null
+          ? fallback
+          : AppNetworkImage(
+              imageUrl: imageUrl,
+              width: 42,
+              height: 42,
+              fit: BoxFit.cover,
+              memCacheWidth: 84,
+              memCacheHeight: 84,
+              placeholder: ColoredBox(color: colors.surfaceContainerHighest),
+              errorWidget: fallback,
+            ),
     );
   }
 }
