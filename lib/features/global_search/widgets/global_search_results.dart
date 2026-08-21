@@ -11,6 +11,8 @@ class GlobalSearchResults extends StatelessWidget {
     required this.isShowingRecent,
     required this.onSelected,
     required this.onRetry,
+    this.onEdit,
+    this.editingSaleName,
     this.errorMessage,
   });
 
@@ -19,6 +21,8 @@ class GlobalSearchResults extends StatelessWidget {
   final bool isShowingRecent;
   final String? errorMessage;
   final ValueChanged<ClosedSale> onSelected;
+  final Future<void> Function(ClosedSale sale)? onEdit;
+  final String? editingSaleName;
   final VoidCallback onRetry;
 
   @override
@@ -54,23 +58,27 @@ class GlobalSearchResults extends StatelessWidget {
         final columns = constraints.maxWidth >= 700 ? 2 : 1;
         return Stack(
           children: [
-            GridView.builder(
+            SingleChildScrollView(
               key: const ValueKey('global-search-results'),
               padding: const EdgeInsets.only(bottom: 4),
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: columns,
-                mainAxisSpacing: 12,
-                crossAxisSpacing: 12,
-                mainAxisExtent: 176,
+              child: Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                children: [
+                  for (final sale in results)
+                    SizedBox(
+                      width: columns == 1
+                          ? constraints.maxWidth
+                          : (constraints.maxWidth - 12) / 2,
+                      child: SaleSearchResultCard(
+                        sale: sale,
+                        onTap: () => onSelected(sale),
+                        onEdit: onEdit == null ? null : () => onEdit!(sale),
+                        isEditing: editingSaleName == sale.name,
+                      ),
+                    ),
+                ],
               ),
-              itemCount: results.length,
-              itemBuilder: (context, index) {
-                final sale = results[index];
-                return SaleSearchResultCard(
-                  sale: sale,
-                  onTap: () => onSelected(sale),
-                );
-              },
             ),
             if (isLoading)
               const Positioned(

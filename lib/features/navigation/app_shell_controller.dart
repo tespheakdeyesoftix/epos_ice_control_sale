@@ -1,5 +1,6 @@
 import 'package:get/get.dart';
 
+import '../global_search/global_search_controller.dart';
 import '../sell/sell_controller.dart';
 import 'app_destination.dart';
 
@@ -11,6 +12,11 @@ class AppShellController extends GetxController {
   final visitedDestinations = <AppDestination>{AppDestination.sale}.obs;
   final isNavigating = false.obs;
   final isGlobalSearchOpen = false.obs;
+  late final GlobalSearchController globalSearchController =
+      GlobalSearchController(
+        saleService: sellController.saleService,
+        outletProvider: () => sellController.activeOutletName,
+      );
 
   Future<bool> navigateTo(
     AppDestination destination, {
@@ -33,5 +39,11 @@ class AppShellController extends GetxController {
     } finally {
       isNavigating.value = false;
     }
+  }
+
+  @override
+  void onClose() {
+    globalSearchController.dispose();
+    super.onClose();
   }
 }

@@ -350,6 +350,17 @@ void main() {
       'modified desc, name desc',
     );
     expect(sentRequest.url.queryParameters['limit_page_length'], '10');
+    final fields = jsonDecode(sentRequest.url.queryParameters['fields']!);
+    expect(
+      fields,
+      containsAll([
+        'customer',
+        'driver',
+        'driver_name',
+        'plate_number',
+        'reference_number',
+      ]),
+    );
     final filters = jsonDecode(sentRequest.url.queryParameters['filters']!);
     expect(filters, contains(equals(['sale_status', '=', 'Closed'])));
     expect(filters, contains(equals(['outlet', '=', 'OUTLET-1'])));
@@ -363,6 +374,12 @@ void main() {
     );
     expect(searchFilters, contains(equals(['customer', 'like', '%C457%'])));
     expect(searchFilters, contains(equals(['phone_number', 'like', '%C457%'])));
+    expect(searchFilters, contains(equals(['driver', 'like', '%C457%'])));
+    expect(searchFilters, contains(equals(['driver_name', 'like', '%C457%'])));
+    expect(
+      searchFilters,
+      contains(equals(['reference_number', 'like', '%C457%'])),
+    );
   });
 
   test('closed sale count uses the same filters as the record list', () async {

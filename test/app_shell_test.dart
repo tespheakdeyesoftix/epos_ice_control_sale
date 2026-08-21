@@ -44,13 +44,66 @@ void main() {
     expect(find.byKey(const ValueKey('global-search-dialog')), findsOneWidget);
     expect(find.byKey(const ValueKey('global-search-input')), findsOneWidget);
 
-    await tester.tap(find.byKey(const ValueKey('close-global-search')));
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
     await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('global-search-dialog')), findsNothing);
     await tester.tap(searchButton);
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('global-search-dialog')), findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('close-global-search')));
     await tester.pumpAndSettle();
+  });
+
+  testWidgets('global search keeps keyword and results until shell disposal', (
+    tester,
+  ) async {
+    await _pumpShell(tester);
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.f3);
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('global-search-input')),
+      'SO-CLOSED',
+    );
+    await tester.pump(const Duration(milliseconds: 1100));
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('global-search-sale-SO-CLOSED-0001')),
+      findsOneWidget,
+    );
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pumpAndSettle();
+    await tester.sendKeyEvent(LogicalKeyboardKey.f3);
+    await tester.pumpAndSettle();
+
+    final input = tester.widget<TextField>(
+      find.byKey(const ValueKey('global-search-input')),
+    );
+    expect(input.controller?.text, 'SO-CLOSED');
+    expect(
+      find.byKey(const ValueKey('global-search-sale-SO-CLOSED-0001')),
+      findsOneWidget,
+    );
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pumpAndSettle();
+  });
+
+  testWidgets('global search edit respects an unfinished sale', (tester) async {
+    final harness = await _pumpShell(tester);
+    expect(harness.sell.addProduct(harness.sell.products.single), isTrue);
+    await tester.pumpAndSettle();
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.f3);
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('edit-global-search-sale-SO-CLOSED-0001')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('global-search-dialog')), findsOneWidget);
+    expect(harness.shell.selectedDestination.value, AppDestination.sale);
+    expect(harness.sell.saleProducts, hasLength(1));
   });
 
   testWidgets('compact user profile remains visible on every destination', (

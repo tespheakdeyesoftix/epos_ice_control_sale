@@ -7,12 +7,14 @@ Global Search lets an authenticated user find closed sale invoices without leavi
 ## Version 1 behavior
 
 - Opening search focuses a single text input.
+- Pressing `Escape` closes the dialog, including while the search input has focus.
 - An empty input shows the 10 most recently modified closed sales for the active outlet, across all dates.
-- A query searches invoice number, customer name, customer code, and phone number.
-- Results are limited to 10 and displayed as cards, never as a table.
+- A query searches invoice number, customer name, customer code, phone number, driver code, driver name, and reference number.
+- The empty state is limited to 10 recent sales; keyword searches return up to 20 results. Results are displayed as cards, never as a table.
 - Selecting a card closes search and opens the existing sale-invoice detail dialog.
+- Each compact card includes an Edit button. It uses the existing closed-sale edit flow, including unfinished-sale, employee permission, payment-status, split-bill, and document editability checks; search stays open when editing is rejected.
 - Clearing the query restores recent sales.
-- Queries and results are not persisted after the dialog closes.
+- The current keyword and results remain available when the dialog is closed and reopened during the same authenticated session. They are cleared when the user logs out or changes outlet.
 - Loading keeps existing cards visible. Stale network responses are ignored.
 - Loading, no-results, empty-recent-sales, and retryable error states are displayed in the dialog.
 

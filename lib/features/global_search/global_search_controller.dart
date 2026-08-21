@@ -9,7 +9,7 @@ class GlobalSearchController extends ChangeNotifier {
   GlobalSearchController({
     required this.saleService,
     required this.outletProvider,
-    this.debounceDuration = const Duration(milliseconds: 300),
+    this.debounceDuration = const Duration(seconds: 1),
   });
 
   final SaleService saleService;
@@ -34,8 +34,21 @@ class GlobalSearchController extends ChangeNotifier {
   Timer? _debounce;
   int _requestId = 0;
   bool _disposed = false;
+  bool _hasLoaded = false;
+  String? _loadedOutlet;
 
   Future<void> loadInitial() => searchNow();
+
+  Future<void> ensureLoaded() {
+    final outlet = outletProvider().trim();
+    if (_hasLoaded && _loadedOutlet == outlet) return Future<void>.value();
+    if (_loadedOutlet != null && _loadedOutlet != outlet) {
+      searchController.clear();
+      _results = const [];
+      _errorMessage = null;
+    }
+    return searchNow();
+  }
 
   void handleQueryChanged(String value) {
     _debounce?.cancel();
@@ -59,21 +72,26 @@ class GlobalSearchController extends ChangeNotifier {
     _debounce?.cancel();
     final requestId = ++_requestId;
     final submittedQuery = query;
+    final submittedOutlet = outletProvider().trim();
     _isLoading = true;
     _errorMessage = null;
     _notify();
     try {
       final page = await saleService.getClosedSales(
-        outlet: outletProvider().trim(),
+        outlet: submittedOutlet,
         search: submittedQuery,
         sortField: 'modified',
         sortAscending: false,
-        limit: 10,
+        limit: submittedQuery.isEmpty ? 10 : 20,
       );
       if (!_isCurrent(requestId)) return;
       _results = page.items;
+      _loadedOutlet = submittedOutlet;
+      _hasLoaded = true;
     } on Exception {
       if (!_isCurrent(requestId)) return;
+      _loadedOutlet = submittedOutlet;
+      _hasLoaded = true;
       _errorMessage = submittedQuery.isEmpty
           ? 'មិនអាចទាញយកវិក្កយបត្រលក់ថ្មីៗបានទេ។'
           : 'មិនអាចស្វែងរកវិក្កយបត្រលក់បានទេ។';

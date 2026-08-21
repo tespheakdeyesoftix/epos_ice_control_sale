@@ -46,6 +46,7 @@ void main() {
 
     expect(service.calls, hasLength(1));
     expect(service.calls.single.search, 'SO-12');
+    expect(service.calls.single.limit, 20);
   });
 
   test('ignores a stale response that finishes after a newer search', () async {
@@ -76,10 +77,19 @@ void main() {
   ) async {
     final service = _FakeSaleService(
       handler: (_) async => _page(
-        _sale('SO-CLOSED-0001', customerName: 'Customer A', quantity: 12),
+        _sale(
+          'SO-CLOSED-0001',
+          customer: 'CUS-001',
+          customerName: 'Customer A',
+          driverName: 'Driver A',
+          plateNumber: '2AB-1234',
+          referenceNumber: 'REF-2026-001',
+          quantity: 12,
+        ),
       ),
     );
     ClosedSale? selected;
+    var editAttempts = 0;
 
     await tester.pumpWidget(
       MaterialApp(
@@ -92,6 +102,10 @@ void main() {
                     context,
                     saleService: service,
                     outletProvider: () => 'OUTLET-1',
+                    onEdit: (_) async {
+                      editAttempts++;
+                      return false;
+                    },
                   );
                 },
                 child: const Text('Open'),
@@ -110,6 +124,25 @@ void main() {
       findsOneWidget,
     );
     expect(find.textContaining('ចំនួន 12'), findsOneWidget);
+    expect(find.text('Customer A · CUS-001'), findsOneWidget);
+    expect(find.text('Driver A · 2AB-1234'), findsOneWidget);
+    expect(find.text('Ref: REF-2026-001'), findsOneWidget);
+    expect(
+      tester
+          .getSize(
+            find.byKey(const ValueKey('global-search-sale-SO-CLOSED-0001')),
+          )
+          .height,
+      lessThan(124),
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey('edit-global-search-sale-SO-CLOSED-0001')),
+    );
+    await tester.pumpAndSettle();
+    expect(editAttempts, 1);
+    expect(find.byKey(const ValueKey('global-search-dialog')), findsOneWidget);
+    expect(selected, isNull);
 
     await tester.tap(
       find.byKey(const ValueKey('global-search-sale-SO-CLOSED-0001')),
@@ -121,12 +154,20 @@ void main() {
 
 ClosedSale _sale(
   String name, {
+  String customer = '',
   String customerName = '',
+  String driverName = '',
+  String plateNumber = '',
+  String referenceNumber = '',
   double quantity = 1,
 }) => ClosedSale(
   name: name,
   postingDate: '2026-08-21',
+  customer: customer,
   customerName: customerName,
+  driverName: driverName,
+  plateNumber: plateNumber,
+  referenceNumber: referenceNumber,
   totalSaleQuantity: quantity,
   totalAmount: 25000,
   status: 'Paid',

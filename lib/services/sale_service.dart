@@ -233,8 +233,11 @@ class SaleService {
     'customer_name',
     'customer_photo',
     'phone_number',
+    'reference_number',
     'can_show_price',
+    'driver',
     'driver_name',
+    'plate_number',
     'total_sale_quantity',
     'outlet_unit',
     'total_amount',
@@ -907,6 +910,9 @@ List<List<dynamic>> _closedSaleSearchFilters(String search) {
       'customer_name',
       'customer',
       'phone_number',
+      'driver',
+      'driver_name',
+      'reference_number',
     ])
       [field, 'like', '%$trimmedSearch%'],
   ];

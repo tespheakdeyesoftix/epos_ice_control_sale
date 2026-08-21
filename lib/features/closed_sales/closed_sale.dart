@@ -8,7 +8,10 @@ class ClosedSale {
     this.customerName = '',
     this.customerPhoto = '',
     this.phoneNumber = '',
+    this.referenceNumber = '',
+    this.driver = '',
     this.driverName = '',
+    this.plateNumber = '',
     this.totalSplitBill = 0,
     this.totalSaleQuantity = 0,
     this.outletUnit = '',
@@ -29,7 +32,10 @@ class ClosedSale {
       customerName: textValue(json['customer_name']),
       customerPhoto: textValue(json['customer_photo']),
       phoneNumber: textValue(json['phone_number']),
+      referenceNumber: textValue(json['reference_number']),
+      driver: textValue(json['driver']),
       driverName: textValue(json['driver_name']),
+      plateNumber: textValue(json['plate_number']),
       totalSplitBill: toDoubleValue(json['total_split_bill']).toInt(),
       totalSaleQuantity: toDoubleValue(json['total_sale_quantity']),
       outletUnit: textValue(json['outlet_unit']),
@@ -49,7 +55,10 @@ class ClosedSale {
   final String customerName;
   final String customerPhoto;
   final String phoneNumber;
+  final String referenceNumber;
+  final String driver;
   final String driverName;
+  final String plateNumber;
   final int totalSplitBill;
   final double totalSaleQuantity;
   final String outletUnit;

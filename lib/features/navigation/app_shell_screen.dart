@@ -41,6 +41,8 @@ class AppShellScreen extends GetView<AppShellController> {
         context,
         saleService: controller.sellController.saleService,
         outletProvider: () => controller.sellController.activeOutletName,
+        onEdit: (sale) => Get.find<ClosedSaleController>().editOrder(sale.name),
+        controller: controller.globalSearchController,
       );
       if (sale == null || !context.mounted) return;
       await showSaleDetail(context, sale: sale);

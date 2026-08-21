@@ -24,7 +24,7 @@ class GlobalSearchInput extends StatelessWidget {
       onChanged: onChanged,
       textInputAction: TextInputAction.search,
       decoration: InputDecoration(
-        hintText: 'ស្វែងរកលេខវិក្កយបត្រ អតិថិជន ឬលេខទូរស័ព្ទ',
+        hintText: 'ស្វែងរកវិក្កយបត្រ អតិថិជន អ្នកបើកបរ ឬលេខយោង',
         prefixIcon: const Icon(Icons.search_rounded),
         suffixIcon: ListenableBuilder(
           listenable: controller,
