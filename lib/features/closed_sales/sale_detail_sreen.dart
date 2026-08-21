@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/widget_previews.dart';
 import 'package:get/get.dart';
-import 'package:printing/printing.dart';
 
 import '../../app/app_setting_controller.dart';
 import '../../app/app_theme.dart';
@@ -12,7 +11,7 @@ import '../../features/sell/sale.dart';
 import '../../features/sell/sell_controller.dart';
 import '../../services/receipt_print_service.dart';
 import '../../shared/note_dialog_widget.dart';
-import '../../shared/receipts/receipt_template.dart';
+import '../../shared/receipts/print_preview_receipt.dart';
 import '../../shared/text_input_dialog_widget.dart';
 import 'closed_sale.dart';
 import 'closed_sale_controller.dart';
@@ -98,103 +97,14 @@ Future<void> showClosedSalePrintPreview(
     await controller.load();
     await controller.loadPrintTemplates();
     if (!context.mounted) return;
-    var selectedTemplate = controller.selectedPrintTemplate.value;
-    await showDialog<void>(
-      context: context,
-      builder: (dialogContext) {
-        final windowSize = MediaQuery.sizeOf(dialogContext);
-        return StatefulBuilder(
-          builder: (context, setDialogState) => Dialog(
-            insetPadding: const EdgeInsets.all(18),
-            clipBehavior: Clip.antiAlias,
-            child: SizedBox(
-              width: windowSize.width >= 960 ? 860 : windowSize.width * .92,
-              height: windowSize.height * .90,
-              child: Column(
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(18, 10, 8, 8),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.preview_rounded),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Text(
-                            'Print Preview Invoice — ${sale.name}',
-                            style: Theme.of(context).textTheme.titleMedium
-                                ?.copyWith(fontWeight: FontWeight.w800),
-                          ),
-                        ),
-                        if (controller.printTemplates.length > 1)
-                          SizedBox(
-                            width: 250,
-                            child: DropdownButtonFormField<ReceiptTemplate>(
-                              initialValue: selectedTemplate,
-                              isDense: true,
-                              decoration: const InputDecoration(
-                                labelText: 'Receipt template',
-                                border: OutlineInputBorder(),
-                                contentPadding: EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 10,
-                                ),
-                              ),
-                              items: [
-                                for (final template
-                                    in controller.printTemplates)
-                                  DropdownMenuItem(
-                                    value: template,
-                                    child: Text(
-                                      template.templateName.isEmpty
-                                          ? template.name
-                                          : template.templateName,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                              ],
-                              onChanged: (template) {
-                                if (template == null) return;
-                                setDialogState(() {
-                                  selectedTemplate = template;
-                                  controller.selectedPrintTemplate.value =
-                                      template;
-                                });
-                              },
-                            ),
-                          ),
-                        const SizedBox(width: 8),
-                        IconButton(
-                          tooltip: 'Close',
-                          onPressed: () => Navigator.pop(dialogContext),
-                          icon: const Icon(Icons.close_rounded),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const Divider(height: 1),
-                  Expanded(
-                    child: PdfPreview(
-                      key: ValueKey(selectedTemplate.name),
-                      build: (_) => controller.buildPrintPreview(
-                        template: selectedTemplate,
-                      ),
-                      initialPageFormat: selectedTemplate.pageFormat,
-                      canChangeOrientation: false,
-                      canChangePageFormat: false,
-                      canDebug: false,
-                      allowPrinting: true,
-                      allowSharing: true,
-                      useActions: true,
-                      shouldRepaint: true,
-                      pdfFileName: '${sale.name}.pdf',
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
+    await showPrintPreviewReceipt(
+      context,
+      saleName: sale.name,
+      templates: controller.printTemplates,
+      selectedTemplate: controller.selectedPrintTemplate.value,
+      buildPdf: (template) => controller.buildPrintPreview(template: template),
+      onTemplateChanged: (template) =>
+          controller.selectedPrintTemplate.value = template,
     );
   } finally {
     controller.onClose();
@@ -407,265 +317,15 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
   Future<void> _showPrintPreview() async {
     await controller.loadPrintTemplates();
     if (!mounted) return;
-    final zoomController = TransformationController();
-    var zoom = 1.0;
-    var selectedTemplate = controller.selectedPrintTemplate.value;
-    await showDialog<void>(
-      context: context,
-      builder: (dialogContext) {
-        final windowSize = MediaQuery.sizeOf(dialogContext);
-        var isPrinting = false;
-        var isExporting = false;
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            void updateZoom(double value) {
-              zoom = value.clamp(.6, 2.4);
-              zoomController.value = Matrix4.diagonal3Values(zoom, zoom, 1);
-              setDialogState(() {});
-            }
-
-            return Dialog(
-              insetPadding: const EdgeInsets.all(18),
-              clipBehavior: Clip.antiAlias,
-              child: SizedBox(
-                width: windowSize.width >= 960 ? 860 : windowSize.width * .92,
-                height: windowSize.height * .90,
-                child: Column(
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(18, 10, 8, 8),
-                      child: Column(
-                        children: [
-                          Row(
-                            children: [
-                              const Icon(Icons.preview_rounded),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: Text(
-                                  'មើលមុនពេលបោះពុម្ព — ${widget.sale.name}',
-                                  style: Theme.of(context).textTheme.titleMedium
-                                      ?.copyWith(fontWeight: FontWeight.w800),
-                                ),
-                              ),
-                              FilledButton.icon(
-                                key: const ValueKey('preview-print-button'),
-                                onPressed: isPrinting || isExporting
-                                    ? null
-                                    : () async {
-                                        setDialogState(() => isPrinting = true);
-                                        try {
-                                          await Printing.layoutPdf(
-                                            name: '${widget.sale.name}.pdf',
-                                            format: selectedTemplate.pageFormat,
-                                            dynamicLayout: false,
-                                            onLayout: (_) =>
-                                                controller.buildPrintPreview(
-                                                  template: selectedTemplate,
-                                                ),
-                                          );
-                                        } finally {
-                                          if (dialogContext.mounted) {
-                                            setDialogState(
-                                              () => isPrinting = false,
-                                            );
-                                          }
-                                        }
-                                      },
-                                icon: isPrinting
-                                    ? const SizedBox.square(
-                                        dimension: 17,
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2,
-                                        ),
-                                      )
-                                    : const Icon(
-                                        Icons.print_outlined,
-                                        size: 19,
-                                      ),
-                                label: const Text('បោះពុម្ព'),
-                              ),
-                              const SizedBox(width: 10),
-                              OutlinedButton.icon(
-                                key: const ValueKey('preview-export-button'),
-                                onPressed: isPrinting || isExporting
-                                    ? null
-                                    : () async {
-                                        setDialogState(
-                                          () => isExporting = true,
-                                        );
-                                        try {
-                                          final bytes = await controller
-                                              .buildPrintPreview(
-                                                template: selectedTemplate,
-                                              );
-                                          await Printing.sharePdf(
-                                            bytes: bytes,
-                                            filename: '${widget.sale.name}.pdf',
-                                          );
-                                        } finally {
-                                          if (dialogContext.mounted) {
-                                            setDialogState(
-                                              () => isExporting = false,
-                                            );
-                                          }
-                                        }
-                                      },
-                                icon: isExporting
-                                    ? const SizedBox.square(
-                                        dimension: 17,
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2,
-                                        ),
-                                      )
-                                    : const Icon(
-                                        Icons.ios_share_rounded,
-                                        size: 19,
-                                      ),
-                                label: const Text('ចែករំលែក / នាំចេញ'),
-                              ),
-                              const SizedBox(width: 8),
-                              IconButton(
-                                tooltip: 'បិទ',
-                                onPressed: isPrinting || isExporting
-                                    ? null
-                                    : () => Navigator.pop(dialogContext),
-                                icon: const Icon(Icons.close_rounded),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          Row(
-                            children: [
-                              if (controller.printTemplates.length > 1) ...[
-                                const Icon(
-                                  Icons.description_outlined,
-                                  size: 19,
-                                ),
-                                const SizedBox(width: 8),
-                                SizedBox(
-                                  width: 250,
-                                  child:
-                                      DropdownButtonFormField<ReceiptTemplate>(
-                                        initialValue: selectedTemplate,
-                                        isDense: true,
-                                        decoration: const InputDecoration(
-                                          labelText: 'គំរូបង្កាន់ដៃ',
-                                          border: OutlineInputBorder(),
-                                          contentPadding: EdgeInsets.symmetric(
-                                            horizontal: 12,
-                                            vertical: 10,
-                                          ),
-                                        ),
-                                        items: [
-                                          for (final template
-                                              in controller.printTemplates)
-                                            DropdownMenuItem(
-                                              value: template,
-                                              child: Text(
-                                                template.templateName.isEmpty
-                                                    ? template.name
-                                                    : template.templateName,
-                                                overflow: TextOverflow.ellipsis,
-                                              ),
-                                            ),
-                                        ],
-                                        onChanged: isPrinting || isExporting
-                                            ? null
-                                            : (template) {
-                                                if (template == null) return;
-                                                setDialogState(() {
-                                                  selectedTemplate = template;
-                                                  controller
-                                                          .selectedPrintTemplate
-                                                          .value =
-                                                      template;
-                                                });
-                                              },
-                                      ),
-                                ),
-                              ],
-                              const Spacer(),
-                              IconButton.outlined(
-                                tooltip: 'បង្រួម',
-                                onPressed: zoom <= .6
-                                    ? null
-                                    : () => updateZoom(zoom - .2),
-                                icon: const Icon(Icons.zoom_out_rounded),
-                              ),
-                              Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                ),
-                                child: SizedBox(
-                                  width: 54,
-                                  child: Text(
-                                    '${(zoom * 100).round()}%',
-                                    textAlign: TextAlign.center,
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              IconButton.outlined(
-                                tooltip: 'ពង្រីក',
-                                onPressed: zoom >= 2.4
-                                    ? null
-                                    : () => updateZoom(zoom + .2),
-                                icon: const Icon(Icons.zoom_in_rounded),
-                              ),
-                              const SizedBox(width: 6),
-                              TextButton(
-                                onPressed: zoom == 1
-                                    ? null
-                                    : () => updateZoom(1),
-                                child: const Text('កំណត់ឡើងវិញ'),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                    const Divider(height: 1),
-                    Expanded(
-                      child: InteractiveViewer(
-                        transformationController: zoomController,
-                        minScale: .6,
-                        maxScale: 2.4,
-                        scaleEnabled: false,
-                        onInteractionUpdate: (_) {
-                          final nextZoom = zoomController.value
-                              .getMaxScaleOnAxis();
-                          if ((nextZoom - zoom).abs() >= .01) {
-                            setDialogState(() => zoom = nextZoom);
-                          }
-                        },
-                        child: PdfPreview(
-                          key: ValueKey(selectedTemplate.name),
-                          build: (_) => controller.buildPrintPreview(
-                            template: selectedTemplate,
-                          ),
-                          initialPageFormat: selectedTemplate.pageFormat,
-                          canChangeOrientation: false,
-                          canChangePageFormat: false,
-                          canDebug: false,
-                          allowPrinting: false,
-                          allowSharing: false,
-                          useActions: false,
-                          shouldRepaint: true,
-                          pdfFileName: '${widget.sale.name}.pdf',
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
-        );
-      },
+    await showPrintPreviewReceipt(
+      context,
+      saleName: widget.sale.name,
+      templates: controller.printTemplates,
+      selectedTemplate: controller.selectedPrintTemplate.value,
+      buildPdf: (template) => controller.buildPrintPreview(template: template),
+      onTemplateChanged: (template) =>
+          controller.selectedPrintTemplate.value = template,
     );
-    zoomController.dispose();
   }
 
   @override
