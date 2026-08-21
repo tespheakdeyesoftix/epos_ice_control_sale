@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+const _filterWidth = 160.0;
+const _filterHeight = 42.0;
+
 class ClosedSaleQuickSearchWidget extends StatelessWidget {
   const ClosedSaleQuickSearchWidget({
     super.key,
@@ -32,8 +35,8 @@ class ClosedSaleQuickSearchWidget extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         SizedBox(
-          width: 190,
-          height: 42,
+          width: _filterWidth,
+          height: _filterHeight,
           child: TextField(
             key: const ValueKey('closed-sale-search-input'),
             controller: searchController,
@@ -108,59 +111,49 @@ class _DateFilter extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     return SizedBox(
-      width: 135,
-      height: 42,
-      child: Material(
-        color: colors.surfaceContainerLow,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-          side: BorderSide(color: colors.outlineVariant),
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: InkWell(
-          key: filterKey,
-          onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.only(left: 9, right: 2),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.calendar_month_outlined,
-                  size: 17,
-                  color: colors.primary,
-                ),
-                const SizedBox(width: 5),
-                Expanded(
-                  child: Text(
-                    date == null ? placeholder : _displayDate(date!),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: date == null
-                          ? colors.onSurfaceVariant
-                          : colors.onSurface,
-                      fontSize: 11,
-                      fontWeight: date == null
-                          ? FontWeight.w400
-                          : FontWeight.w700,
-                    ),
-                  ),
-                ),
-                if (date != null)
-                  IconButton(
+      width: _filterWidth,
+      height: _filterHeight,
+      child: InkWell(
+        key: filterKey,
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: InputDecorator(
+          decoration: InputDecoration(
+            isDense: true,
+            prefixIcon: Icon(
+              Icons.calendar_month_outlined,
+              size: 17,
+              color: colors.primary,
+            ),
+            prefixIconConstraints: const BoxConstraints(
+              minWidth: 38,
+              minHeight: 38,
+            ),
+            suffixIcon: date == null
+                ? null
+                : IconButton(
                     key: clearKey,
                     tooltip: 'លុបកាលបរិច្ឆេទ',
                     onPressed: onClear,
                     color: colors.error,
                     padding: EdgeInsets.zero,
                     visualDensity: VisualDensity.compact,
-                    constraints: const BoxConstraints(
-                      minWidth: 26,
-                      minHeight: 26,
-                    ),
                     icon: const Icon(Icons.close_rounded, size: 15),
                   ),
-              ],
+            suffixIconConstraints: const BoxConstraints(
+              minWidth: 36,
+              minHeight: 36,
+            ),
+            contentPadding: const EdgeInsets.symmetric(vertical: 10),
+          ),
+          child: Text(
+            date == null ? placeholder : _displayDate(date!),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: date == null ? colors.onSurfaceVariant : colors.onSurface,
+              fontSize: 11,
+              fontWeight: date == null ? FontWeight.w400 : FontWeight.w700,
             ),
           ),
         ),

@@ -101,7 +101,9 @@ class _AdvanceSearchDialogWidgetState extends State<AdvanceSearchDialogWidget> {
       final statusOptions = _text(statusField?['options'])
           .split('\n')
           .map((value) => value.trim())
-          .where((value) => value.isNotEmpty)
+          .where(
+            (value) => value.isNotEmpty && value.toLowerCase() != 'deleted',
+          )
           .toList(growable: false);
       if (statusOptions.isNotEmpty) _statusOptions = statusOptions;
 

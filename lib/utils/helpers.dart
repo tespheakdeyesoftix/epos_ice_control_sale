@@ -38,6 +38,16 @@ String formatQuantity(num value) {
   return '${isNegative ? '-' : ''}$groupedInteger$fraction';
 }
 
+String formatDate(Object? value) {
+  final source = textValue(value);
+  if (source.isEmpty) return '-';
+  final date = value is DateTime ? value : DateTime.tryParse(source);
+  if (date == null) return source;
+  final local = date.isUtc ? date.toLocal() : date;
+  String twoDigits(int number) => number.toString().padLeft(2, '0');
+  return '${twoDigits(local.day)}/${twoDigits(local.month)}/${local.year}';
+}
+
 String formatTimeAgo(DateTime? value, {DateTime? now}) {
   if (value == null) return '-';
   final current = now ?? DateTime.now();

@@ -44,5 +44,8 @@ void main() {
       formatExactDateTime(DateTime(2026, 8, 18, 14, 5, 9)),
       '18/08/2026 14:05:09',
     );
+    expect(formatDate('2026-08-18'), '18/08/2026');
+    expect(formatDate(DateTime(2026, 8, 18)), '18/08/2026');
+    expect(formatDate(''), '-');
   });
 }

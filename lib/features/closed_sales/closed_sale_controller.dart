@@ -49,6 +49,7 @@ class ClosedSaleController extends GetxController {
   final SharedPreferences? _preferences;
 
   final scrollController = ScrollController();
+  final pinnedColumnScrollController = ScrollController();
   final horizontalScrollController = ScrollController();
   final searchController = TextEditingController();
   final searchText = ''.obs;
@@ -79,9 +80,17 @@ class ClosedSaleController extends GetxController {
       splitBillOnly.value ||
       productCodeFilter.value.isNotEmpty;
 
+  int get advancedFilterCount =>
+      (customerFilter.value.isNotEmpty ? 1 : 0) +
+      (driverFilter.value.isNotEmpty ? 1 : 0) +
+      (statusFilter.value.isNotEmpty ? 1 : 0) +
+      (splitBillOnly.value ? 1 : 0) +
+      (productCodeFilter.value.isNotEmpty ? 1 : 0);
+
   Timer? _searchDebounce;
   Worker? _closedSaleWorker;
   bool _hasMore = true;
+  bool _syncingVerticalScroll = false;
   int _totalCountRequestId = 0;
 
   DateTime get startDatePickerInitial =>
@@ -94,6 +103,7 @@ class ClosedSaleController extends GetxController {
   void onInit() {
     super.onInit();
     scrollController.addListener(_handleScroll);
+    pinnedColumnScrollController.addListener(_handlePinnedColumnScroll);
     _closedSaleWorker = ever<int>(
       sellController.closedSaleRevision,
       (_) => refreshAll(),
@@ -109,12 +119,33 @@ class ClosedSaleController extends GetxController {
     _closedSaleWorker?.dispose();
     searchController.dispose();
     scrollController.dispose();
+    pinnedColumnScrollController.dispose();
     horizontalScrollController.dispose();
     super.onClose();
   }
 
   void _handleScroll() {
+    _syncVerticalScroll(scrollController, pinnedColumnScrollController);
     if (scrollController.position.extentAfter < 220) loadMore();
+  }
+
+  void _handlePinnedColumnScroll() {
+    _syncVerticalScroll(pinnedColumnScrollController, scrollController);
+    if (pinnedColumnScrollController.position.extentAfter < 220) loadMore();
+  }
+
+  void _syncVerticalScroll(ScrollController source, ScrollController target) {
+    if (_syncingVerticalScroll || !source.hasClients || !target.hasClients) {
+      return;
+    }
+    final offset = source.offset.clamp(0.0, target.position.maxScrollExtent);
+    if ((target.offset - offset).abs() <= 0.5) return;
+    _syncingVerticalScroll = true;
+    try {
+      target.jumpTo(offset);
+    } finally {
+      _syncingVerticalScroll = false;
+    }
   }
 
   Future<void> loadMore() async {
@@ -149,6 +180,10 @@ class ClosedSaleController extends GetxController {
   }
 
   Future<void> refreshList() async {
+    if (scrollController.hasClients) scrollController.jumpTo(0);
+    if (pinnedColumnScrollController.hasClients) {
+      pinnedColumnScrollController.jumpTo(0);
+    }
     sales.clear();
     _hasMore = true;
     errorMessage.value = null;
@@ -272,6 +307,40 @@ class ClosedSaleController extends GetxController {
     sortField.value = selectedSortField;
     sortAscending.value = ascending;
     await _saveSorting();
+    await refreshList();
+  }
+
+  Future<void> clearCustomerFilter() async {
+    customerFilter.value = '';
+    await refreshList();
+  }
+
+  Future<void> clearDriverFilter() async {
+    driverFilter.value = '';
+    await refreshList();
+  }
+
+  Future<void> clearStatusFilter() async {
+    statusFilter.value = '';
+    await refreshList();
+  }
+
+  Future<void> clearSplitBillFilter() async {
+    splitBillOnly.value = false;
+    await refreshList();
+  }
+
+  Future<void> clearProductCodeFilter() async {
+    productCodeFilter.value = '';
+    await refreshList();
+  }
+
+  Future<void> clearAdvancedFilters() async {
+    customerFilter.value = '';
+    driverFilter.value = '';
+    statusFilter.value = '';
+    splitBillOnly.value = false;
+    productCodeFilter.value = '';
     await refreshList();
   }
 
