@@ -96,7 +96,13 @@ extension SellControllerMethods on SellController {
           referenceNumber.value.trim().isNotEmpty ||
           saleNote.value.trim().isNotEmpty ||
           postingDate.value != _dateOnly(DateTime.now()));
-  bool get _isSaleDirty => !_isNewSale || _isNewSaleDirty;
+  bool get _isSaleDirty {
+    final originalSale = openedSale.value;
+    if (originalSale == null) return _isNewSaleDirty;
+    return jsonEncode(_editableSaleState(_currentSale)) !=
+        jsonEncode(_editableSaleState(originalSale));
+  }
+
   bool get _canSearchBillForEdit => _isNewSale && !_isNewSaleDirty;
   bool get _canChangeCustomer =>
       _isNewSale ||
@@ -116,6 +122,20 @@ extension SellControllerMethods on SellController {
   bool get _canUsePosPayment => canUsePosPaymentProvider?.call() ?? true;
   bool get _canEditBill => canEditBillProvider?.call() ?? true;
   bool get _canDeleteBill => canDeleteBillProvider?.call() ?? true;
+
+  Map<String, dynamic> _editableSaleState(Sale sale) => {
+    'posting_date': _dateOnly(
+      sale.postingDate ?? DateTime.now(),
+    ).toIso8601String(),
+    'reference_number': sale.referenceNumber.trim(),
+    'note': sale.note.trim(),
+    'customer': sale.customer.trim(),
+    'driver': sale.driver.trim(),
+    'plate_number': sale.plateNumber.trim(),
+    'sale_products': sale.saleProducts
+        .map((product) => product.toJson())
+        .toList(growable: false),
+  };
 
   Uri? _productImage(Product product) => _resolveImage(product.photo);
 

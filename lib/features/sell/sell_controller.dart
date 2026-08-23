@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:get/get.dart';
 
 import '../../app/app_setting_controller.dart';
@@ -70,6 +72,9 @@ class SellController extends GetxController {
   final isSearchingBill = false.obs;
   final pendingOrderCount = 0.obs;
   final closedSaleRevision = 0.obs;
+
+  /// Changes after persisted Sale data makes cached summaries stale.
+  final saleDataRevision = 0.obs;
   final isLoadingPendingOrders = false.obs;
   int _customerSelectionRequest = 0;
 
@@ -493,11 +498,13 @@ class SellController extends GetxController {
     if (saleProducts.isEmpty || !hasSelectedCustomer || isSaving.value) {
       throw const SaleValidationException();
     }
+    final hadDirtyChanges = isSaleDirty;
     isSaving.value = true;
     try {
       final savedOrder = await saleService.saveOrder(currentSale);
       await loadPendingOrderCount();
       closedSaleRevision.value++;
+      if (hadDirtyChanges) saleDataRevision.value++;
       return savedOrder;
     } finally {
       isSaving.value = false;
@@ -508,6 +515,7 @@ class SellController extends GetxController {
     if (saleProducts.isEmpty || isSaving.value) {
       throw const SaleValidationException();
     }
+    final hadDirtyChanges = isSaleDirty;
     isSaving.value = true;
     try {
       final savedOrder = await saleService.saveOrder(
@@ -515,6 +523,7 @@ class SellController extends GetxController {
         saleStatus: 'Draft',
       );
       await loadPendingOrderCount();
+      if (hadDirtyChanges) saleDataRevision.value++;
       return savedOrder;
     } finally {
       isSaving.value = false;
@@ -544,6 +553,7 @@ class SellController extends GetxController {
       } else {
         closedSaleRevision.value++;
       }
+      saleDataRevision.value++;
     } finally {
       isDeletingSale.value = false;
     }

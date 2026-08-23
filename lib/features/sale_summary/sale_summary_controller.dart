@@ -3,15 +3,22 @@ import 'package:get/get.dart';
 import '../../app/session_outlet_controller.dart';
 import '../../services/sale_service.dart';
 import '../closed_sales/closed_sale.dart';
+import '../navigation/app_destination.dart';
+import '../navigation/app_shell_controller.dart';
+import '../sell/sell_controller.dart';
 
 class SaleSummaryController extends GetxController {
   SaleSummaryController({
     required this.saleService,
     required this.outletController,
+    required this.sellController,
+    required this.appShellController,
   });
 
   final SaleService saleService;
   final SessionOutletController outletController;
+  final SellController sellController;
+  final AppShellController appShellController;
   final summary = Rxn<DailySaleSummary>();
   final isLoading = false.obs;
   final errorMessage = RxnString();
@@ -19,16 +26,50 @@ class SaleSummaryController extends GetxController {
   final isLoadingRecentSales = false.obs;
   final recentSalesErrorMessage = RxnString();
   Worker? _outletWorker;
+  Worker? _destinationWorker;
+  bool _isLoadingAll = false;
+  bool _reloadRequested = false;
+  int _lastLoadedSaleDataRevision = -1;
 
   @override
   void onInit() {
     super.onInit();
     _outletWorker = ever<String>(outletController.currentOutlet, (_) => load());
+    _destinationWorker = ever<AppDestination>(
+      appShellController.selectedDestination,
+      (destination) {
+        if (destination == AppDestination.saleSummary) refreshIfStale();
+      },
+    );
     load();
   }
 
+  Future<void> refreshIfStale() async {
+    if (_lastLoadedSaleDataRevision == sellController.saleDataRevision.value) {
+      return;
+    }
+    await load();
+  }
+
   Future<void> load() async {
-    await Future.wait([loadSummary(), loadRecentClosedSales()]);
+    if (_isLoadingAll) {
+      _reloadRequested = true;
+      return;
+    }
+    _isLoadingAll = true;
+    try {
+      do {
+        _reloadRequested = false;
+        final revisionAtStart = sellController.saleDataRevision.value;
+        await Future.wait([loadSummary(), loadRecentClosedSales()]);
+        if (errorMessage.value == null &&
+            recentSalesErrorMessage.value == null) {
+          _lastLoadedSaleDataRevision = revisionAtStart;
+        }
+      } while (_reloadRequested);
+    } finally {
+      _isLoadingAll = false;
+    }
   }
 
   Future<void> loadSummary() async {
@@ -66,6 +107,7 @@ class SaleSummaryController extends GetxController {
   @override
   void onClose() {
     _outletWorker?.dispose();
+    _destinationWorker?.dispose();
     super.onClose();
   }
 }

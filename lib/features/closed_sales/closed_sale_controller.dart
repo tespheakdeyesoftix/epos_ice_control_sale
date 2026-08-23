@@ -88,10 +88,13 @@ class ClosedSaleController extends GetxController {
       (productCodeFilter.value.isNotEmpty ? 1 : 0);
 
   Timer? _searchDebounce;
-  Worker? _closedSaleWorker;
+  Worker? _destinationWorker;
+  Worker? _closedSaleBadgeWorker;
   bool _hasMore = true;
   bool _syncingVerticalScroll = false;
   int _totalCountRequestId = 0;
+  int _lastLoadedClosedSaleRevision = -1;
+  int _lastLoadedTodayCountRevision = -1;
 
   DateTime get startDatePickerInitial =>
       startDate.value ?? endDate.value ?? DateTime.now();
@@ -104,9 +107,17 @@ class ClosedSaleController extends GetxController {
     super.onInit();
     scrollController.addListener(_handleScroll);
     pinnedColumnScrollController.addListener(_handlePinnedColumnScroll);
-    _closedSaleWorker = ever<int>(
+    _lastLoadedClosedSaleRevision = sellController.closedSaleRevision.value;
+    _lastLoadedTodayCountRevision = sellController.closedSaleRevision.value;
+    _destinationWorker = ever<AppDestination>(
+      appShellController.selectedDestination,
+      (destination) {
+        if (destination == AppDestination.closedSales) refreshIfStale();
+      },
+    );
+    _closedSaleBadgeWorker = ever<int>(
       sellController.closedSaleRevision,
-      (_) => refreshAll(),
+      (_) => _refreshTodayCountIfStale(),
     );
     loadMore();
     loadTotalRecords();
@@ -116,7 +127,8 @@ class ClosedSaleController extends GetxController {
   @override
   void onClose() {
     _searchDebounce?.cancel();
-    _closedSaleWorker?.dispose();
+    _destinationWorker?.dispose();
+    _closedSaleBadgeWorker?.dispose();
     searchController.dispose();
     scrollController.dispose();
     pinnedColumnScrollController.dispose();
@@ -190,20 +202,50 @@ class ClosedSaleController extends GetxController {
     await Future.wait([loadMore(), loadTotalRecords()]);
   }
 
-  Future<void> refreshAll() async {
-    await Future.wait([refreshList(), loadTodayClosedSaleCount()]);
+  Future<void> refreshIfStale() async {
+    if (_lastLoadedClosedSaleRevision ==
+        sellController.closedSaleRevision.value) {
+      return;
+    }
+    final revisionAtStart = sellController.closedSaleRevision.value;
+    await Future.wait([refreshList(), _refreshTodayCountIfStale()]);
+    _lastLoadedClosedSaleRevision = revisionAtStart;
   }
 
-  Future<void> loadTodayClosedSaleCount() async {
-    if (isLoadingTodayCount.value) return;
+  Future<void> refreshAll() async {
+    final revisionAtStart = sellController.closedSaleRevision.value;
+    await Future.wait([refreshList(), loadTodayClosedSaleCount()]);
+    _lastLoadedClosedSaleRevision = revisionAtStart;
+    _lastLoadedTodayCountRevision = revisionAtStart;
+  }
+
+  Future<void> _refreshTodayCountIfStale() async {
+    if (_lastLoadedTodayCountRevision ==
+        sellController.closedSaleRevision.value) {
+      return;
+    }
+    final revisionAtStart = sellController.closedSaleRevision.value;
+    final previousRevision = _lastLoadedTodayCountRevision;
+    _lastLoadedTodayCountRevision = revisionAtStart;
+    final loaded = await loadTodayClosedSaleCount();
+    if (!loaded && _lastLoadedTodayCountRevision == revisionAtStart) {
+      _lastLoadedTodayCountRevision = previousRevision;
+    }
+  }
+
+  Future<bool> loadTodayClosedSaleCount() async {
+    if (isLoadingTodayCount.value) return false;
     isLoadingTodayCount.value = true;
     try {
       todayClosedSaleCount.value = await sellController.saleService
           .getTodayClosedSaleCount(sellController.activeOutletName);
+      return true;
     } on FrappeServerMessageException {
       // The shared API client already displayed the server message.
+      return false;
     } on Exception {
       // Keep the last successful count when the badge refresh fails.
+      return false;
     } finally {
       isLoadingTodayCount.value = false;
     }

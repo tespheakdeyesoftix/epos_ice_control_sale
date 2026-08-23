@@ -29,7 +29,7 @@ class AppShellController extends GetxController {
     isNavigating.value = true;
     try {
       if (selectedDestination.value == AppDestination.sale &&
-          sellController.saleProducts.isNotEmpty) {
+          sellController.isSaleDirty) {
         final canLeave = await resolveUnfinishedSale();
         if (!canLeave) return false;
       }

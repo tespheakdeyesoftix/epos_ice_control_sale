@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:ice_control_sale/features/navigation/app_destination.dart';
+import 'package:ice_control_sale/features/navigation/app_shell_controller.dart';
 import 'package:ice_control_sale/features/sell/sell_controller.dart';
 import 'package:ice_control_sale/features/sell/sale.dart';
 import 'package:ice_control_sale/services/customer_service.dart';
@@ -59,6 +61,41 @@ void main() {
     await controller.openClosedOrder('ALLOWED');
     expect(controller.openedSale.value?.name, 'ALLOWED');
     expect(controller.currentSale.totalSplitBill, 0);
+    expect(controller.isSaleDirty, isFalse);
+
+    final shell = AppShellController(sellController: controller);
+    var unfinishedSalePromptCount = 0;
+    expect(
+      await shell.navigateTo(
+        AppDestination.saleSummary,
+        resolveUnfinishedSale: () async {
+          unfinishedSalePromptCount++;
+          return false;
+        },
+      ),
+      isTrue,
+    );
+    expect(unfinishedSalePromptCount, 0);
+    await shell.navigateTo(
+      AppDestination.sale,
+      resolveUnfinishedSale: () async => true,
+    );
+
+    controller.updateReferenceNumber('UPDATED-REFERENCE');
+    expect(controller.isSaleDirty, isTrue);
+    expect(
+      await shell.navigateTo(
+        AppDestination.saleSummary,
+        resolveUnfinishedSale: () async {
+          unfinishedSalePromptCount++;
+          return false;
+        },
+      ),
+      isFalse,
+    );
+    expect(unfinishedSalePromptCount, 1);
+    controller.updateReferenceNumber('');
+    expect(controller.isSaleDirty, isFalse);
 
     final restrictedController = SellController(
       productService: ProductService(baseUri, client: client),
