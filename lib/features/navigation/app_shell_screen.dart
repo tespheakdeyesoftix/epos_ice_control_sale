@@ -6,6 +6,7 @@ import '../../app/app_setting.dart';
 import '../../app/app_setting_controller.dart';
 import '../../app/theme_controller.dart';
 import '../../services/frappe_response_handler.dart';
+import '../../services/note_service.dart';
 import '../../services/receipt_print_service.dart';
 import '../../shared/network_image.dart';
 import '../../shared/receipts/close_and_print_flow.dart';
@@ -17,6 +18,9 @@ import '../closed_sales/closed_sale_controller.dart';
 import '../closed_sales/sale_detail_sreen.dart';
 import '../global_search/global_search_dialog.dart';
 import '../login/login_controller.dart';
+import '../notes/note_app_screen.dart';
+import '../notes/note_controller.dart';
+import '../notes/note_reminder_launcher.dart';
 import '../pending_sales/pending_sale_list_screen.dart';
 import '../report/report_screen.dart';
 import '../setting/setting_screen.dart';
@@ -295,6 +299,9 @@ class AppShellScreen extends GetView<AppShellController> {
     final loginController = Get.find<LoginController>();
     final themeController = Get.find<ThemeController>();
     final closedSaleController = Get.find<ClosedSaleController>();
+    final noteController = Get.isRegistered<NoteController>()
+        ? Get.find<NoteController>()
+        : null;
     return CallbackShortcuts(
       bindings: {
         const SingleActivator(LogicalKeyboardKey.f3): () =>
@@ -354,6 +361,28 @@ class AppShellScreen extends GetView<AppShellController> {
                             child: Column(
                               mainAxisSize: MainAxisSize.min,
                               children: [
+                                if (noteController == null)
+                                  _RailNoteButton(
+                                    count: 0,
+                                    onPressed: () => Navigator.of(context).push(
+                                      MaterialPageRoute<void>(
+                                        builder: (_) => const NoteAppScreen(),
+                                      ),
+                                    ),
+                                  )
+                                else
+                                  Obx(
+                                    () => _RailNoteButton(
+                                      count: noteController.dueTodayCount.value,
+                                      onPressed: () =>
+                                          Navigator.of(context).push(
+                                            MaterialPageRoute<void>(
+                                              builder: (_) =>
+                                                  const NoteAppScreen(),
+                                            ),
+                                          ),
+                                    ),
+                                  ),
                                 IconButton(
                                   key: const ValueKey('rail-settings-button'),
                                   tooltip: 'ការកំណត់',
@@ -448,6 +477,17 @@ class AppShellScreen extends GetView<AppShellController> {
                   outlet: controller.sellController.activeOutletName,
                   onEdit: (name) => _editPendingOrder(context, name),
                 ),
+              if (loginController.currentSession.value != null &&
+                  Get.isRegistered<NoteService>())
+                NoteReminderLauncher(
+                  service: Get.find<NoteService>(),
+                  outlet:
+                      loginController
+                          .sessionOutletController
+                          ?.currentOutlet
+                          .value ??
+                      controller.sellController.activeOutletName,
+                ),
             ],
           ),
         ),
@@ -514,6 +554,55 @@ class _RailDestinationIcon extends StatelessWidget {
               ),
             ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RailNoteButton extends StatelessWidget {
+  const _RailNoteButton({required this.count, required this.onPressed});
+
+  final int count;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return IconButton(
+      key: const ValueKey('rail-notes-button'),
+      tooltip: 'កំណត់ចំណាំ',
+      onPressed: onPressed,
+      icon: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          const Icon(Icons.sticky_note_2_outlined),
+          if (count > 0)
+            Positioned(
+              top: -7,
+              right: -9,
+              child: Container(
+                key: const ValueKey('rail-note-reminder-badge'),
+                constraints: const BoxConstraints(minWidth: 17, minHeight: 17),
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                decoration: BoxDecoration(
+                  color: colors.error,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: colors.surface, width: 1.5),
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  count > 99 ? '99+' : '$count',
+                  key: const ValueKey('rail-note-reminder-count'),
+                  style: TextStyle(
+                    color: colors.onError,
+                    fontSize: 9,
+                    height: 1,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ),
         ],
       ),
     );

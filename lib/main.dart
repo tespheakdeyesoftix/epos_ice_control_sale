@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_quill/flutter_quill.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -14,6 +16,7 @@ import 'app/session_outlet_controller.dart';
 import 'features/closed_sales/closed_sale_controller.dart';
 import 'features/login/login_controller.dart';
 import 'features/login/login_screen.dart';
+import 'features/notes/note_controller.dart';
 import 'features/navigation/app_shell_controller.dart';
 import 'features/navigation/app_shell_screen.dart';
 import 'features/report/report_controller.dart';
@@ -24,6 +27,7 @@ import 'features/setting/setting_controller.dart';
 import 'services/frappe_auth_service.dart';
 import 'services/frappe_session_client.dart';
 import 'services/note_preset_repository.dart';
+import 'services/note_service.dart';
 import 'services/customer_service.dart';
 import 'services/sale_service.dart';
 import 'services/setting_service.dart';
@@ -130,6 +134,12 @@ class IceSaleApp extends StatelessWidget {
     return GetMaterialApp(
       title: 'ប្រព័ន្ធគ្រប់គ្រងការលក់ទឹកកក',
       debugShowCheckedModeBanner: false,
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        FlutterQuillLocalizations.delegate,
+      ],
       initialBinding: BindingsBuilder(() {
         Get.put<ThemeController>(appThemeController, permanent: true);
         Get.put<AppSettingController>(globalSettingController, permanent: true);
@@ -223,6 +233,16 @@ class IceSaleApp extends StatelessWidget {
               Get.lazyPut<AppShellController>(
                 () => AppShellController(
                   sellController: Get.find<SellController>(),
+                ),
+              );
+              Get.lazyPut<NoteService>(
+                () => NoteService(appConfig.baseUri, client: sessionClient),
+                fenix: true,
+              );
+              Get.put<NoteController>(
+                NoteController(
+                  service: Get.find<NoteService>(),
+                  outletController: sessionOutletController,
                 ),
               );
               Get.lazyPut<SaleSummaryController>(

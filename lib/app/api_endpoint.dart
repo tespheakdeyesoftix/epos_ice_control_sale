@@ -150,6 +150,18 @@ abstract final class ApiEndpoint {
   static String resource(String doctype) =>
       'api/resource/${Uri.encodeComponent(doctype)}';
 
+  /// Lists and creates Note documents through Frappe's resource API.
+  static const notes = 'api/resource/Note';
+
+  /// Builds the resource URL for one Note document.
+  static String note(String name) => '$notes/${Uri.encodeComponent(name)}';
+
+  /// Adds a native Frappe tag to a document.
+  static const addTag = 'api/method/frappe.desk.doctype.tag.tag.add_tag';
+
+  /// Removes a native Frappe tag from a document.
+  static const removeTag = 'api/method/frappe.desk.doctype.tag.tag.remove_tag';
+
   /// Loads global/company and point-of-sale settings for the active location.
   ///
   /// Method: `GET`
