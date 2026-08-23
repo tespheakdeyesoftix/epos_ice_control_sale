@@ -33,6 +33,11 @@ abstract final class ApiEndpoint {
   /// Returns: `{ "data": [Customer, ...] }`.
   static const customers = 'api/resource/Customer';
 
+  /// Builds the resource URL for one complete Customer document, including
+  /// child tables such as `free_products`.
+  static String customer(String name) =>
+      '$customers/${Uri.encodeComponent(name)}';
+
   /// Loads negotiated product prices for a selected customer.
   ///
   /// Method: `GET`

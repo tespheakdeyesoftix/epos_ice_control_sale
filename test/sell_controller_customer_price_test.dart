@@ -39,9 +39,9 @@ void main() {
     final caseProduct = product.forUnit(product.productUnits.first);
     final blockProduct = product.forUnit(product.productUnits.last);
 
-    expect(controller.addProduct(caseProduct), isTrue);
-    expect(controller.addProduct(blockProduct), isTrue);
-    expect(controller.addProduct(caseProduct), isFalse);
+    expect(controller.addProduct(caseProduct).added, isTrue);
+    expect(controller.addProduct(blockProduct).added, isTrue);
+    expect(controller.addProduct(caseProduct).added, isFalse);
     expect(controller.saleProducts, hasLength(2));
 
     final caseLine = controller.saleProducts.first;
@@ -120,7 +120,7 @@ void main() {
     );
     const customer = Customer(name: 'C457', customerName: 'Customer 457');
 
-    expect(controller.addProduct(product, quantity: 2), isTrue);
+    expect(controller.addProduct(product, quantity: 2).added, isTrue);
     expect(controller.saleProducts.single.price, 15000);
 
     await controller.selectCustomer(customer);
@@ -130,16 +130,16 @@ void main() {
     expect(controller.saleProducts.single.productPrice, 15000);
 
     controller.clearCart();
-    expect(controller.addProduct(borrowProduct), isTrue);
+    expect(controller.addProduct(borrowProduct).added, isTrue);
     expect(controller.saleProducts.single.price, 0);
     expect(controller.saleProducts.single.productPrice, 15000);
 
     controller.clearCart();
-    expect(controller.addProduct(product), isTrue);
+    expect(controller.addProduct(product).added, isTrue);
     expect(controller.saleProducts.single.price, 12500);
     expect(controller.saleProducts.single.productPrice, 15000);
 
-    expect(controller.addProduct(unmatchedUnit), isTrue);
+    expect(controller.addProduct(unmatchedUnit).added, isTrue);
     expect(controller.saleProducts.last.price, 3000);
     expect(controller.saleProducts.last.productPrice, 3000);
 
@@ -291,7 +291,7 @@ void main() {
       photo: '',
     );
 
-    expect(controller.addProduct(product), isTrue);
+    expect(controller.addProduct(product).added, isTrue);
     controller.remove(controller.saleProducts.single);
     expect(controller.saleProducts, isEmpty);
     controller.openedSale.value = const Sale(
@@ -301,7 +301,7 @@ void main() {
       saleProducts: [],
     );
 
-    expect(controller.addProduct(product), isTrue);
+    expect(controller.addProduct(product).added, isTrue);
     controller.remove(controller.saleProducts.single);
     expect(controller.saleProducts, isEmpty);
 
@@ -362,7 +362,7 @@ void main() {
       color: '#1677FF',
       photo: '',
     );
-    expect(controller.addProduct(product), isTrue);
+    expect(controller.addProduct(product).added, isTrue);
 
     expect(
       () => controller.updateSaleProduct(

@@ -91,7 +91,7 @@ void main() {
 
   testWidgets('global search edit respects an unfinished sale', (tester) async {
     final harness = await _pumpShell(tester);
-    expect(harness.sell.addProduct(harness.sell.products.single), isTrue);
+    expect(harness.sell.addProduct(harness.sell.products.single).added, isTrue);
     await tester.pumpAndSettle();
 
     await tester.sendKeyEvent(LogicalKeyboardKey.f3);
@@ -394,7 +394,7 @@ void main() {
     );
 
     await _tapDestination(tester, AppDestination.sale);
-    expect(harness.sell.addProduct(harness.sell.products.single), isTrue);
+    expect(harness.sell.addProduct(harness.sell.products.single).added, isTrue);
     await tester.pumpAndSettle();
 
     await _tapDestination(tester, AppDestination.saleSummary);
@@ -440,7 +440,7 @@ void main() {
 
   testWidgets('Hold saves Draft before navigating', (tester) async {
     final harness = await _pumpShell(tester);
-    expect(harness.sell.addProduct(harness.sell.products.single), isTrue);
+    expect(harness.sell.addProduct(harness.sell.products.single).added, isTrue);
     await tester.pumpAndSettle();
 
     await _tapDestination(tester, AppDestination.pendingSales);
@@ -466,7 +466,7 @@ void main() {
 
   testWidgets('Close requests a customer then saves Closed', (tester) async {
     final harness = await _pumpShell(tester);
-    expect(harness.sell.addProduct(harness.sell.products.single), isTrue);
+    expect(harness.sell.addProduct(harness.sell.products.single).added, isTrue);
     await tester.pumpAndSettle();
 
     await _tapDestination(tester, AppDestination.closedSales);
@@ -492,7 +492,7 @@ void main() {
 
   testWidgets('server failure keeps unfinished Sale open', (tester) async {
     final harness = await _pumpShell(tester, failSave: true);
-    expect(harness.sell.addProduct(harness.sell.products.single), isTrue);
+    expect(harness.sell.addProduct(harness.sell.products.single).added, isTrue);
     await tester.pumpAndSettle();
 
     await _tapDestination(tester, AppDestination.report);

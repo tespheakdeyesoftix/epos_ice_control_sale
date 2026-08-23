@@ -157,6 +157,7 @@ extension SellControllerMethods on SellController {
   }
 
   void _applyOpenedSale(Sale sale) {
+    _customerSelectionRequest++;
     openedSale.value = sale;
     postingDate.value = sale.postingDate ?? _dateOnly(DateTime.now());
     referenceNumber.value = sale.referenceNumber;
@@ -185,6 +186,7 @@ extension SellControllerMethods on SellController {
           );
     plateNumber.value = sale.plateNumber;
     customerProductPrices.clear();
+    customerFreeProducts.clear();
   }
 
   void _validateSaleForEdit(Sale sale) {

@@ -10,6 +10,7 @@ import '../../services/note_service.dart';
 import '../../services/receipt_print_service.dart';
 import '../../shared/network_image.dart';
 import '../../shared/receipts/close_and_print_flow.dart';
+import '../sell/widgets/customer_free_product_info_dialog.dart';
 import '../../shared/select_customer_dialog_widget.dart';
 import '../../shared/user_profile_widget.dart';
 import '../../shared/warning_pending_order_widget.dart';
@@ -232,7 +233,12 @@ class AppShellScreen extends GetView<AppShellController> {
           selectionType: CustomerSelectionType.customer,
         );
         if (customer == null) return false;
-        await sell.selectCustomer(customer);
+        final result = await sell.selectCustomer(customer);
+        if (!context.mounted) return false;
+        await showCustomerFreeProductInfoDialog(
+          context,
+          evaluations: result.freeProductEvaluations,
+        );
       }
       if (!context.mounted) return false;
 

@@ -24,6 +24,7 @@ import 'widgets/order_product_list_widget.dart';
 import 'widgets/pending_order_badge_widget.dart';
 import 'widgets/pending_order_list_dialog_widget.dart';
 import 'widgets/edit_sale_order_widget.dart';
+import 'widgets/customer_free_product_info_dialog.dart';
 import 'widgets/product_card_widget.dart';
 import 'widgets/select_customer_widget.dart';
 import 'widgets/select_driver_widget.dart';
@@ -919,10 +920,17 @@ class _ProductPanel extends StatelessWidget {
                       }
                       final quantity = await showInputNumberDialog(context);
                       if (quantity != null) {
-                        controller.addProduct(
+                        final result = controller.addProduct(
                           selectedProduct,
                           quantity: quantity,
                         );
+                        final evaluation = result.freeProductEvaluation;
+                        if (evaluation != null && context.mounted) {
+                          await showCustomerFreeProductInfoDialog(
+                            context,
+                            evaluations: [evaluation],
+                          );
+                        }
                       }
                     },
                   );
@@ -1067,7 +1075,13 @@ class _CheckoutPanel extends StatelessWidget {
       );
       if (selected != null) {
         try {
-          await controller.selectCustomer(selected);
+          final result = await controller.selectCustomer(selected);
+          if (context.mounted) {
+            await showCustomerFreeProductInfoDialog(
+              context,
+              evaluations: result.freeProductEvaluations,
+            );
+          }
         } on CustomerChangePermissionException {
           _showCustomerChangePermissionDenied();
         }
@@ -1194,7 +1208,13 @@ class _CheckoutPanel extends StatelessWidget {
               );
               if (selected != null) {
                 try {
-                  await controller.selectCustomer(selected);
+                  final result = await controller.selectCustomer(selected);
+                  if (context.mounted) {
+                    await showCustomerFreeProductInfoDialog(
+                      context,
+                      evaluations: result.freeProductEvaluations,
+                    );
+                  }
                 } on CustomerChangePermissionException {
                   _showCustomerChangePermissionDenied();
                 }

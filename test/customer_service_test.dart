@@ -142,4 +142,58 @@ void main() {
     expect(prices.first.unit, 'ដើម');
     expect(prices.first.price, 15500);
   });
+
+  test('loads valid free products from the full Customer document', () async {
+    late http.Request sentRequest;
+    final client = MockClient((request) async {
+      sentRequest = request;
+      return http.Response(
+        jsonEncode({
+          'data': {
+            'name': 'Customer / One',
+            'free_products': [
+              {
+                'product_code': '01',
+                'product_name': 'ទឹកកកដើមធំ',
+                'unit': 'ដើម',
+                'quantity': 2,
+                'multiplier': 1,
+              },
+              {
+                'product_code': '',
+                'product_name': 'Invalid',
+                'unit': 'ដើម',
+                'quantity': 1,
+              },
+              {
+                'product_code': '02',
+                'product_name': 'Invalid quantity',
+                'unit': 'ដើម',
+                'quantity': 0,
+              },
+            ],
+          },
+        }),
+        200,
+        headers: {'content-type': 'application/json; charset=utf-8'},
+      );
+    });
+    final service = CustomerService(
+      Uri.parse('http://127.0.0.1:8888/'),
+      client: client,
+    );
+
+    final freeProducts = await service.getCustomerFreeProducts(
+      'Customer / One',
+    );
+
+    expect(sentRequest.method, 'GET');
+    expect(sentRequest.url.pathSegments.last, 'Customer / One');
+    expect(freeProducts, hasLength(1));
+    expect(freeProducts.single.productCode, '01');
+    expect(freeProducts.single.productName, 'ទឹកកកដើមធំ');
+    expect(freeProducts.single.unit, 'ដើម');
+    expect(freeProducts.single.quantity, 2);
+    expect(freeProducts.single.multiplier, 1);
+  });
 }

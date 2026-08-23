@@ -10,6 +10,7 @@ import '../../features/sell/widgets/save_order_success_widget.dart';
 import '../../services/frappe_response_handler.dart';
 import '../../services/receipt_print_service.dart';
 import '../select_customer_dialog_widget.dart';
+import '../../features/sell/widgets/customer_free_product_info_dialog.dart';
 
 Future<bool> showCloseAndPrintFlow(
   BuildContext context, {
@@ -26,7 +27,12 @@ Future<bool> showCloseAndPrintFlow(
     if (!sellController.hasSelectedCustomer) {
       final selected = await _selectRequiredCustomer(context, sellController);
       if (selected == null || !context.mounted) return false;
-      await sellController.selectCustomer(selected);
+      final result = await sellController.selectCustomer(selected);
+      if (!context.mounted) return false;
+      await showCustomerFreeProductInfoDialog(
+        context,
+        evaluations: result.freeProductEvaluations,
+      );
     }
 
     if (!context.mounted) return false;

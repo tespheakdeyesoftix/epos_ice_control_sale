@@ -7,6 +7,7 @@ import '../../services/frappe_response_handler.dart';
 import '../../services/product_service.dart';
 import '../../services/sale_service.dart';
 import 'customer.dart';
+import 'customer_free_product.dart';
 import 'customer_product_price.dart';
 import 'product.dart';
 import 'sale.dart';
@@ -55,6 +56,7 @@ class SellController extends GetxController {
   final selectedProductCategory = ''.obs;
   final selectedCustomer = Rxn<Customer>();
   final customerProductPrices = <CustomerProductPrice>[].obs;
+  final customerFreeProducts = <CustomerFreeProduct>[].obs;
   final isLoadingCustomerProductPrices = false.obs;
   final selectedDriver = Rxn<Customer>();
   final openedSale = Rxn<Sale>();
@@ -69,6 +71,7 @@ class SellController extends GetxController {
   final pendingOrderCount = 0.obs;
   final closedSaleRevision = 0.obs;
   final isLoadingPendingOrders = false.obs;
+  int _customerSelectionRequest = 0;
 
   List<Product> get filteredProducts => _filteredProducts;
   List<String> get productCategories => _productCategories;
@@ -179,25 +182,50 @@ class SellController extends GetxController {
     }
   }
 
-  Future<void> selectCustomer(Customer customer) async {
+  Future<CustomerSelectionResult> selectCustomer(Customer customer) async {
     if (!canChangeCustomer) {
       throw const CustomerChangePermissionException();
     }
+    final request = ++_customerSelectionRequest;
     selectedCustomer.value = customer;
     customerProductPrices.clear();
+    customerFreeProducts.clear();
+    _clearSaleProductFreeQuantities();
     _applyCustomerPrices();
     isLoadingCustomerProductPrices.value = true;
+
+    final pricesRequest = customerService
+        .getCustomerProductPrices(customer.name)
+        .then<List<CustomerProductPrice>>(
+          (items) => items,
+          onError: (_) => const <CustomerProductPrice>[],
+        );
+    final freeProductsRequest = customerService
+        .getCustomerFreeProducts(customer.name)
+        .then<List<CustomerFreeProduct>>(
+          (items) => items,
+          onError: (_) => const <CustomerFreeProduct>[],
+        );
+
     try {
-      final prices = await customerService.getCustomerProductPrices(
-        customer.name,
-      );
-      if (selectedCustomer.value?.name != customer.name) return;
+      final prices = await pricesRequest;
+      final freeProducts = await freeProductsRequest;
+
+      if (request != _customerSelectionRequest ||
+          selectedCustomer.value?.name != customer.name) {
+        return const CustomerSelectionResult();
+      }
       customerProductPrices.assignAll(prices);
+      customerFreeProducts.assignAll(freeProducts);
       _applyCustomerPrices();
+      return CustomerSelectionResult(
+        freeProductEvaluations: _applyCustomerFreeProducts(),
+      );
     } on Exception {
-      // Keep original product prices when customer pricing is unavailable.
+      return const CustomerSelectionResult();
     } finally {
-      if (selectedCustomer.value?.name == customer.name) {
+      if (request == _customerSelectionRequest &&
+          selectedCustomer.value?.name == customer.name) {
         isLoadingCustomerProductPrices.value = false;
       }
     }
@@ -207,9 +235,12 @@ class SellController extends GetxController {
     if (!canChangeCustomer) {
       throw const CustomerChangePermissionException();
     }
+    _customerSelectionRequest++;
     selectedCustomer.value = null;
     customerProductPrices.clear();
+    customerFreeProducts.clear();
     isLoadingCustomerProductPrices.value = false;
+    _clearSaleProductFreeQuantities();
     _applyCustomerPrices();
   }
 
@@ -262,8 +293,10 @@ class SellController extends GetxController {
         item.unit.trim() == product.unit.trim(),
   );
 
-  bool addProduct(Product product, {double quantity = 1}) {
-    if (quantity <= 0 || hasProduct(product)) return false;
+  AddProductResult addProduct(Product product, {double quantity = 1}) {
+    if (quantity <= 0 || hasProduct(product)) {
+      return const AddProductResult(added: false);
+    }
     final saleProduct = SaleProduct.fromProduct(
       product,
       outlet: activeOutletName,
@@ -273,12 +306,73 @@ class SellController extends GetxController {
       productCode: saleProduct.productCode,
       unit: saleProduct.unit,
     );
-    saleProducts.add(
-      saleProduct.isBorrow || customerPrice == null
-          ? saleProduct
-          : saleProduct.copyWith(price: customerPrice.price),
+    var nextProduct = saleProduct.isBorrow || customerPrice == null
+        ? saleProduct
+        : saleProduct.copyWith(price: customerPrice.price);
+    final evaluation = _evaluateCustomerFreeProduct(nextProduct);
+    if (evaluation?.wasApplied ?? false) {
+      nextProduct = nextProduct.copyWith(
+        freeQuantity: evaluation!.configuredFreeQuantity,
+      );
+    }
+    saleProducts.add(nextProduct);
+    return AddProductResult(added: true, freeProductEvaluation: evaluation);
+  }
+
+  CustomerFreeProduct? _customerFreeProductFor({
+    required String productCode,
+    required String unit,
+  }) {
+    for (final item in customerFreeProducts) {
+      if (item.matches(productCode: productCode, unit: unit)) return item;
+    }
+    return null;
+  }
+
+  FreeProductEvaluation? _evaluateCustomerFreeProduct(SaleProduct product) {
+    final rule = _customerFreeProductFor(
+      productCode: product.productCode,
+      unit: product.unit,
     );
-    return true;
+    if (rule == null) return null;
+    return FreeProductEvaluation(
+      productCode: product.productCode,
+      productName: product.productName.trim().isEmpty
+          ? rule.productName
+          : product.productName,
+      unit: product.unit.trim(),
+      configuredFreeQuantity: rule.quantity,
+      orderQuantity: product.quantity,
+      status: product.quantity >= rule.quantity
+          ? FreeProductEvaluationStatus.applied
+          : FreeProductEvaluationStatus.insufficientQuantity,
+    );
+  }
+
+  List<FreeProductEvaluation> _applyCustomerFreeProducts() {
+    final evaluations = <FreeProductEvaluation>[];
+    final updatedProducts = saleProducts
+        .map((product) {
+          final evaluation = _evaluateCustomerFreeProduct(product);
+          if (evaluation == null) return product.copyWith(freeQuantity: 0);
+          evaluations.add(evaluation);
+          return product.copyWith(
+            freeQuantity: evaluation.wasApplied
+                ? evaluation.configuredFreeQuantity
+                : 0,
+          );
+        })
+        .toList(growable: false);
+    saleProducts.assignAll(updatedProducts);
+    return List.unmodifiable(evaluations);
+  }
+
+  void _clearSaleProductFreeQuantities() {
+    saleProducts.assignAll(
+      saleProducts
+          .map((product) => product.copyWith(freeQuantity: 0))
+          .toList(growable: false),
+    );
   }
 
   void remove(SaleProduct item) {
@@ -456,10 +550,12 @@ class SellController extends GetxController {
   }
 
   void startNewSale() {
+    _customerSelectionRequest++;
     openedSale.value = null;
     saleProducts.clear();
     selectedCustomer.value = null;
     customerProductPrices.clear();
+    customerFreeProducts.clear();
     isLoadingCustomerProductPrices.value = false;
     selectedDriver.value = null;
     plateNumber.value = '';

@@ -642,7 +642,10 @@ void main() {
     expect(find.text('បញ្ជូលចំណាំ'), findsNothing);
     expect(sellController.currentSale.note, 'ដឹកជញ្ជូនមុនម៉ោង ១០ ព្រឹក');
 
-    expect(sellController.addProduct(sellController.products.first), isTrue);
+    expect(
+      sellController.addProduct(sellController.products.first).added,
+      isTrue,
+    );
     await tester.pumpAndSettle();
     await tester.tap(find.text('បិទការលក់'));
     await tester.pumpAndSettle();

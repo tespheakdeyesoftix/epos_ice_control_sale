@@ -96,7 +96,7 @@ void main() {
     expect(controller.products.single.name, 'ទំនិញ កន្លែងលក់ទី២');
     expect(controller.currentSale.outlet, 'កន្លែងលក់ទី២');
     expect(controller.currentSale.stockLocation, 'ឃ្លាំងថ្មី');
-    expect(controller.addProduct(controller.products.single), isTrue);
+    expect(controller.addProduct(controller.products.single).added, isTrue);
     expect(controller.saleProducts.single.outlet, 'កន្លែងលក់ទី២');
 
     controller.startNewSale();

@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 
 import '../app/api_endpoint.dart';
 import '../features/sell/customer.dart';
+import '../features/sell/customer_free_product.dart';
 import '../features/sell/customer_product_price.dart';
 
 class CustomerPage {
@@ -129,6 +130,37 @@ class CustomerService {
               CustomerProductPrice.fromJson(Map<String, dynamic>.from(row)),
         )
         .where((item) => item.productCode.isNotEmpty && item.unit.isNotEmpty)
+        .toList(growable: false);
+  }
+
+  Future<List<CustomerFreeProduct>> getCustomerFreeProducts(
+    String customer,
+  ) async {
+    final endpoint = baseUri.resolve(ApiEndpoint.customer(customer.trim()));
+    final response = await _client
+        .get(endpoint, headers: const {'Accept': 'application/json'})
+        .timeout(const Duration(seconds: 20));
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw CustomerServiceException(response.statusCode);
+    }
+
+    dynamic payload = jsonDecode(response.body);
+    if (payload is Map && payload['data'] is Map) payload = payload['data'];
+    final rows = payload is Map && payload['free_products'] is List
+        ? payload['free_products'] as List
+        : const <dynamic>[];
+    return rows
+        .whereType<Map>()
+        .map(
+          (row) => CustomerFreeProduct.fromJson(Map<String, dynamic>.from(row)),
+        )
+        .where(
+          (item) =>
+              item.productCode.isNotEmpty &&
+              item.unit.isNotEmpty &&
+              item.quantity > 0,
+        )
         .toList(growable: false);
   }
 
