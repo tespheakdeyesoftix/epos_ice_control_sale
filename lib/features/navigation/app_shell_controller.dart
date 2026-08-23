@@ -1,5 +1,6 @@
 import 'package:get/get.dart';
 
+import '../closed_sales/closed_sale.dart';
 import '../global_search/global_search_controller.dart';
 import '../sell/sell_controller.dart';
 import 'app_destination.dart';
@@ -12,11 +13,31 @@ class AppShellController extends GetxController {
   final visitedDestinations = <AppDestination>{AppDestination.sale}.obs;
   final isNavigating = false.obs;
   final isGlobalSearchOpen = false.obs;
+  final isBarcodeBillSearchOpen = false.obs;
+  final isBarcodeBillSearchLoading = false.obs;
   late final GlobalSearchController globalSearchController =
       GlobalSearchController(
         saleService: sellController.saleService,
         outletProvider: () => sellController.activeOutletName,
       );
+
+  Future<ClosedSale?> findScannedBill(String documentName) async {
+    if (isBarcodeBillSearchOpen.value) return null;
+    isBarcodeBillSearchOpen.value = true;
+    isBarcodeBillSearchLoading.value = true;
+    try {
+      return await sellController.saleService.findSaleByDocumentName(
+        outlet: sellController.activeOutletName,
+        documentName: documentName,
+      );
+    } finally {
+      isBarcodeBillSearchLoading.value = false;
+    }
+  }
+
+  void finishScannedBillSearch() {
+    isBarcodeBillSearchOpen.value = false;
+  }
 
   Future<bool> navigateTo(
     AppDestination destination, {

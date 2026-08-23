@@ -26,6 +26,46 @@ import 'package:ice_control_sale/services/sale_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
+  testWidgets('scanner input opens a bill without a focused text field', (
+    tester,
+  ) async {
+    await _pumpShell(tester);
+    FocusManager.instance.primaryFocus?.unfocus();
+    await tester.pump();
+
+    for (final key in const [
+      LogicalKeyboardKey.digit1,
+      LogicalKeyboardKey.digit2,
+      LogicalKeyboardKey.digit3,
+      LogicalKeyboardKey.enter,
+    ]) {
+      await tester.sendKeyEvent(key);
+    }
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('sale-detail-screen')), findsOneWidget);
+  });
+
+  testWidgets('scanner input is ignored globally when Sell search has focus', (
+    tester,
+  ) async {
+    await _pumpShell(tester);
+    final input = find.byKey(const ValueKey('sale-bill-search-input'));
+    await tester.tap(input);
+
+    for (final key in const [
+      LogicalKeyboardKey.digit1,
+      LogicalKeyboardKey.digit2,
+      LogicalKeyboardKey.digit3,
+      LogicalKeyboardKey.enter,
+    ]) {
+      await tester.sendKeyEvent(key);
+    }
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('sale-detail-screen')), findsNothing);
+  });
+
   testWidgets('F3 and the rail icon open global search', (tester) async {
     await _pumpShell(tester);
 

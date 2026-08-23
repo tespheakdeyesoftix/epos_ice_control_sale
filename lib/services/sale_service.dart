@@ -574,6 +574,44 @@ class SaleService {
     return ClosedSalePage(items: sales, hasMore: rows.length == limit);
   }
 
+  Future<ClosedSale?> findSaleByDocumentName({
+    required String outlet,
+    required String documentName,
+  }) async {
+    final response = await _client
+        .get(
+          baseUri
+              .resolve(ApiEndpoint.sales)
+              .replace(
+                queryParameters: {
+                  'fields': jsonEncode(_closedSaleFields),
+                  'filters': jsonEncode([
+                    ['outlet', '=', outlet.trim()],
+                    ['name', '=', documentName.trim()],
+                  ]),
+                  'limit_start': '0',
+                  'limit_page_length': '1',
+                },
+              ),
+          headers: const {'Accept': 'application/json'},
+        )
+        .timeout(const Duration(seconds: 30));
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw SaleServiceException(response.statusCode);
+    }
+
+    final payload = jsonDecode(response.body);
+    final rows = payload is Map && payload['data'] is List
+        ? payload['data'] as List<dynamic>
+        : const <dynamic>[];
+    for (final row in rows.whereType<Map>()) {
+      final sale = ClosedSale.fromJson(Map<String, dynamic>.from(row));
+      if (sale.name.isNotEmpty) return sale;
+    }
+    return null;
+  }
+
   Future<List<ClosedSale>> getSplitBills({
     required String parentBillNumber,
   }) async {
@@ -643,7 +681,7 @@ class SaleService {
 
   Future<List<ClosedSale>> getRecentClosedSales({
     required String outlet,
-    int limit = 10,
+    int limit = 5,
     DateTime? postingDate,
   }) async {
     final selectedDate = postingDate ?? DateTime.now();

@@ -70,6 +70,7 @@ class SellController extends GetxController {
   final isPrinting = false.obs;
   final isDeletingSale = false.obs;
   final isSearchingBill = false.obs;
+  bool isBillSearchInputFocused = false;
   final pendingOrderCount = 0.obs;
   final closedSaleRevision = 0.obs;
 

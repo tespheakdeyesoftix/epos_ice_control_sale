@@ -18,6 +18,7 @@ import '../closed_sales/closed_sale_list_screen.dart';
 import '../closed_sales/closed_sale_controller.dart';
 import '../closed_sales/sale_detail_sreen.dart';
 import '../global_search/global_search_dialog.dart';
+import '../global_search/global_barcode_listener.dart';
 import '../login/login_controller.dart';
 import '../notes/note_app_screen.dart';
 import '../notes/note_controller.dart';
@@ -53,6 +54,35 @@ class AppShellScreen extends GetView<AppShellController> {
       await showSaleDetail(context, sale: sale);
     } finally {
       controller.isGlobalSearchOpen.value = false;
+    }
+  }
+
+  Future<void> _openScannedBill(
+    BuildContext context,
+    String documentName,
+  ) async {
+    if (controller.isBarcodeBillSearchOpen.value) return;
+    try {
+      final sale = await controller.findScannedBill(documentName);
+      if (!context.mounted) return;
+      if (sale == null) {
+        Get.rawSnackbar(
+          message: 'រកមិនឃើញវិក្កយបត្រ $documentName នៅកន្លែងលក់បច្ចុប្បន្នទេ។',
+          snackPosition: SnackPosition.TOP,
+          duration: const Duration(seconds: 4),
+        );
+        return;
+      }
+      await showSaleDetail(context, sale: sale);
+    } on Exception {
+      if (!context.mounted) return;
+      Get.rawSnackbar(
+        message: 'មិនអាចស្វែងរកវិក្កយបត្រ $documentName បានទេ។',
+        snackPosition: SnackPosition.TOP,
+        duration: const Duration(seconds: 4),
+      );
+    } finally {
+      controller.finishScannedBillSearch();
     }
   }
 
@@ -318,6 +348,15 @@ class AppShellScreen extends GetView<AppShellController> {
         child: Scaffold(
           body: Stack(
             children: [
+              GlobalBarcodeListener(
+                onScan: (documentName) =>
+                    _openScannedBill(context, documentName),
+                ignoreWhen: () =>
+                    controller.selectedDestination.value ==
+                        AppDestination.sale &&
+                    controller.sellController.isBillSearchInputFocused,
+                child: const SizedBox.shrink(),
+              ),
               SafeArea(
                 child: Obx(() {
                   final selected = controller.selectedDestination.value;
@@ -494,6 +533,19 @@ class AppShellScreen extends GetView<AppShellController> {
                           .value ??
                       controller.sellController.activeOutletName,
                 ),
+              Obx(
+                () => controller.isBarcodeBillSearchLoading.value
+                    ? const Positioned(
+                        left: 0,
+                        right: 0,
+                        top: 0,
+                        child: LinearProgressIndicator(
+                          key: ValueKey('barcode-bill-search-progress'),
+                          minHeight: 3,
+                        ),
+                      )
+                    : const SizedBox.shrink(),
+              ),
             ],
           ),
         ),

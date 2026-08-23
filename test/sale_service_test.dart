@@ -644,4 +644,43 @@ void main() {
     expect(sale.name, 'SO-SEARCH-0001');
     expect(sale.saleStatus, 'Closed');
   });
+
+  test('finds one Sale by exact outlet and scanned document name', () async {
+    late http.Request sentRequest;
+    final client = MockClient((request) async {
+      sentRequest = request;
+      return http.Response(
+        jsonEncode({
+          'data': [
+            {
+              'name': 'SO-SCAN-0001',
+              'posting_date': '2026-08-23',
+              'outlet': 'OUTLET-1',
+              'sale_status': 'Closed',
+            },
+          ],
+        }),
+        200,
+        headers: {'content-type': 'application/json'},
+      );
+    });
+    final service = SaleService(
+      Uri.parse('http://127.0.0.1:8888/'),
+      client: client,
+    );
+
+    final sale = await service.findSaleByDocumentName(
+      outlet: ' OUTLET-1 ',
+      documentName: ' SO-SCAN-0001 ',
+    );
+
+    final filters = jsonDecode(sentRequest.url.queryParameters['filters']!);
+    expect(sentRequest.url.path, '/api/resource/Sale');
+    expect(filters, [
+      ['outlet', '=', 'OUTLET-1'],
+      ['name', '=', 'SO-SCAN-0001'],
+    ]);
+    expect(sentRequest.url.queryParameters['limit_page_length'], '1');
+    expect(sale?.name, 'SO-SCAN-0001');
+  });
 }

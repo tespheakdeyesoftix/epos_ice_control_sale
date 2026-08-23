@@ -281,6 +281,7 @@ class _TopBarState extends State<_TopBar> with WindowListener {
   @override
   void initState() {
     super.initState();
+    _searchFocusNode.addListener(_handleSearchFocusChanged);
     if (_supportsDesktopFullscreen) {
       windowManager.addListener(this);
       _syncFullScreenState();
@@ -315,9 +316,15 @@ class _TopBarState extends State<_TopBar> with WindowListener {
 
   SellController get controller => widget.controller;
 
+  void _handleSearchFocusChanged() {
+    controller.isBillSearchInputFocused = _searchFocusNode.hasFocus;
+  }
+
   @override
   void dispose() {
     if (_supportsDesktopFullscreen) windowManager.removeListener(this);
+    _searchFocusNode.removeListener(_handleSearchFocusChanged);
+    controller.isBillSearchInputFocused = false;
     _searchController.dispose();
     _searchFocusNode.dispose();
     super.dispose();

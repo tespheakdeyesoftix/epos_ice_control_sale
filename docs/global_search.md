@@ -20,6 +20,17 @@ Global Search lets an authenticated user find closed sale invoices without leavi
 
 Draft sales remain in Pending Sales and are not included in Global Search.
 
+## Barcode bill lookup
+
+The authenticated application shell also listens for scanner-speed keyboard
+input on every screen; no search text field needs focus. A scan is recognized
+when at least three rapidly emitted characters are followed by Enter. The app
+queries the Sale resource for one exact match using both the active session
+outlet and the scanned document name, then opens the existing invoice detail
+dialog. A slower keyboard sequence is ignored by the barcode listener.
+When the Sell screen's bill-search input has focus, global barcode handling is
+disabled so the scan is handled only by that search field.
+
 ## Integration
 
 The authenticated application shell owns the `F3` shortcut and rail launcher. Both call the same guarded dialog entry point, preventing duplicate dialogs and avoiding the unfinished-sale navigation flow.
