@@ -274,6 +274,8 @@ class IceSaleApp extends StatelessWidget {
                     appConfig.baseUri,
                     client: sessionClient,
                   ),
+                  usernameProvider: () =>
+                      controller.currentSession.value?.fullName ?? '',
                 ),
               );
             }

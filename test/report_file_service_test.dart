@@ -35,6 +35,7 @@ void main() {
 
     final request = await service.createLaunchRequest(
       reportPath: '/Sales Report/test report',
+      username: 'Test User',
       outlet: 'កន្លែងលក់ ដើម',
       config: config,
     );
@@ -42,6 +43,7 @@ void main() {
     expect(request.viewerUri.scheme, 'file');
     final context = Uri.splitQueryString(request.viewerUri.fragment);
     expect(context['report_path'], '/Sales Report/test report');
+    expect(context['username'], 'Test User');
     expect(context['outlet'], 'កន្លែងលក់ ដើម');
     expect(context['start_date'], '2026-08-24');
     expect(context['end_date'], '2026-08-24');
@@ -58,6 +60,7 @@ void main() {
       () => service.createLaunchRequest(
         reportPath: '/Sales Report/test report',
         outlet: 'Main',
+        username: 'Test User',
         config: config,
       ),
       throwsA(
@@ -83,6 +86,7 @@ void main() {
       () => service.createLaunchRequest(
         reportPath: '/Sales Report/test report',
         outlet: 'Main',
+        username: 'Test User',
         config: config,
       ),
       throwsA(

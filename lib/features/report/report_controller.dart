@@ -12,12 +12,14 @@ class ReportController extends GetxController {
     required this.fileService,
     required this.configService,
     required this.listService,
+    required this.usernameProvider,
   });
 
   final SessionOutletController outletController;
   final ReportFileService fileService;
   final ReportConfigService configService;
   final ReportListService listService;
+  final String Function() usernameProvider;
 
   final reports = <ReportDefinition>[].obs;
   final loadingReportKeys = <String>{}.obs;
@@ -70,6 +72,7 @@ class ReportController extends GetxController {
       return await fileService.createLaunchRequest(
         reportPath: definition.reportPath,
         outlet: outletController.currentOutlet.value,
+        username: usernameProvider(),
         config: config,
       );
     } on ReportFileException catch (error) {

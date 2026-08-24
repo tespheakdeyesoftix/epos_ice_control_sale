@@ -759,6 +759,7 @@ Future<_ShellHarness> _pumpShell(
       fileService: ReportFileService(),
       configService: ReportConfigService(baseUri, client: sessionClient),
       listService: ReportListService(baseUri, client: sessionClient),
+      usernameProvider: () => login.currentSession.value?.fullName ?? '',
     ),
   );
   Get.lazyPut<ClosedSaleController>(

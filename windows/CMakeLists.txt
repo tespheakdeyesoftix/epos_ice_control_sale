@@ -10,11 +10,6 @@ set(BINARY_NAME "ice_control_sale")
 # versions of CMake.
 cmake_policy(VERSION 3.14...3.25)
 
-# flutter_inappwebview_windows 0.7.0-beta.3 uses DEPENDS with the TARGET form
-# of add_custom_command. Keep the legacy behavior when configuring that
-# dependency so CMake 3.31+ does not emit the CMP0175 developer warning.
-set(CMAKE_POLICY_DEFAULT_CMP0175 OLD)
-
 # Define build configuration option.
 get_property(IS_MULTICONFIG GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
 if(IS_MULTICONFIG)
@@ -37,35 +32,6 @@ set(CMAKE_CXX_FLAGS_PROFILE "${CMAKE_CXX_FLAGS_RELEASE}")
 # Use Unicode for all projects.
 add_definitions(-DUNICODE -D_UNICODE)
 
-# flutter_inappwebview_windows requires NuGet while configuring WebView2.
-# Keep a pinned, checksum-verified project-local copy for reproducible builds.
-set(NUGET_VERSION "6.11.1")
-set(NUGET_SHA256
-  "C0DDC9CB0633C4607DA7E8028EB4F91248C8B74E45A68B0C79FCFA7D78C2A481")
-set(NUGET "${CMAKE_BINARY_DIR}/tools/nuget/nuget.exe")
-if(NOT EXISTS "${NUGET}")
-  file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/tools/nuget")
-  file(DOWNLOAD
-    "https://dist.nuget.org/win-x86-commandline/v${NUGET_VERSION}/nuget.exe"
-    "${NUGET}"
-    EXPECTED_HASH "SHA256=${NUGET_SHA256}"
-    STATUS NUGET_DOWNLOAD_STATUS
-    TLS_VERIFY ON
-  )
-  list(GET NUGET_DOWNLOAD_STATUS 0 NUGET_DOWNLOAD_CODE)
-  list(GET NUGET_DOWNLOAD_STATUS 1 NUGET_DOWNLOAD_MESSAGE)
-  if(NOT NUGET_DOWNLOAD_CODE EQUAL 0)
-    message(FATAL_ERROR "Unable to download NuGet: ${NUGET_DOWNLOAD_MESSAGE}")
-  endif()
-endif()
-set(NUGET "${NUGET}" CACHE FILEPATH "Project-local NuGet executable" FORCE)
-
-# Serialize writes to compiler program database files. Some plugins compile
-# many C++ sources concurrently into one PDB and otherwise fail with C1041.
-if(MSVC)
-  add_compile_options(/FS)
-endif()
-
 # Compilation settings that should be applied to most targets.
 #
 # Be cautious about adding new options here, as plugins use this function by
@@ -81,10 +47,6 @@ endfunction()
 
 # Flutter library and tool build rules.
 set(FLUTTER_MANAGED_DIR "${CMAKE_CURRENT_SOURCE_DIR}/flutter")
-# flutter_inappwebview_windows requires nuget.exe to download its native
-# dependencies. Keep the executable project-local so Windows builds do not
-# depend on a machine-wide NuGet installation.
-list(PREPEND CMAKE_PROGRAM_PATH "${CMAKE_CURRENT_SOURCE_DIR}/tools")
 add_subdirectory(${FLUTTER_MANAGED_DIR})
 
 # Application build; see runner/CMakeLists.txt.

@@ -75,6 +75,7 @@
             var defaultReportPath = "/Sales Report/test report";
             var reportPath = query.get("report_path") || defaultReportPath;
             var outlet = query.get("outlet") || "";
+            var username = query.get("username") || "";
             var startDate = query.get("start_date") || "";
             var endDate = query.get("end_date") || "";
             var reportServerUrl = query.get("report_server_url") || "";
@@ -88,6 +89,7 @@
             function buildReportParameters() {
                 var valuesByParameterName = {
                     outlet: outlet,
+                    username: username,
                     start_date: startDate,
                     end_date: endDate
                 };
@@ -108,6 +110,7 @@
             window.reportViewerContext = Object.freeze({
                 reportPath: reportPath,
                 outlet: outlet,
+                username: username,
                 start_date: startDate,
                 end_date: endDate
             });
@@ -135,174 +138,6 @@
                 console.error("[report-viewer] Unhandled promise rejection:", event.reason);
             });
 
-            var activeDateInput = null;
-
-            function isDateInput(input) {
-                return input && input.matches && input.matches(
-                    "input.e-datepicker, input.e-datetimepicker, " +
-                    ".e-datepicker input, .e-datetimepicker input, " +
-                    "input[id*='date' i]"
-                );
-            }
-
-            function rememberDateInput(event) {
-                var target = event.target;
-                if (isDateInput(target)) {
-                    activeDateInput = target;
-                    return;
-                }
-
-                var wrapper = target && target.closest
-                    ? target.closest(".e-date-wrapper, .e-datetime-wrapper, .e-input-group")
-                    : null;
-                var input = wrapper ? wrapper.querySelector("input") : null;
-                if (isDateInput(input)) {
-                    activeDateInput = input;
-                }
-            }
-
-            function resolveDateInput(calendar) {
-                var popup = calendar.closest("[id$='_popup']");
-                if (popup) {
-                    var inputId = popup.id.substring(0, popup.id.length - 6);
-                    var popupInput = document.getElementById(inputId);
-                    if (isDateInput(popupInput)) {
-                        return popupInput;
-                    }
-                }
-
-                if (isDateInput(activeDateInput)) {
-                    return activeDateInput;
-                }
-
-                return document.querySelector(
-                    "input.e-datepicker[aria-expanded='true'], " +
-                    "input.e-datetimepicker[aria-expanded='true'], " +
-                    ".e-date-wrapper input[aria-expanded='true'], " +
-                    ".e-datetime-wrapper input[aria-expanded='true']"
-                );
-            }
-
-            function selectedCalendarDate(cell, calendar) {
-                var rawValue = cell.getAttribute("data-value");
-                if (rawValue && /^\d+$/.test(rawValue)) {
-                    var timestampDate = new Date(Number(rawValue));
-                    if (!isNaN(timestampDate.getTime())) {
-                        return timestampDate;
-                    }
-                }
-
-                var label = cell.getAttribute("aria-label") || cell.getAttribute("title");
-                if (label) {
-                    var labelledDate = new Date(label);
-                    if (!isNaN(labelledDate.getTime())) {
-                        return labelledDate;
-                    }
-                }
-
-                var day = Number(cell.textContent.trim());
-                var title = calendar.querySelector(".e-title");
-                var match = title && title.textContent.trim().match(/^([A-Za-z]+)\s+(\d{4})$/);
-                if (!Number.isInteger(day) || day < 1 || day > 31 || !match) {
-                    return null;
-                }
-
-                var month = [
-                    "january", "february", "march", "april", "may", "june",
-                    "july", "august", "september", "october", "november", "december"
-                ].indexOf(match[1].toLowerCase());
-                if (month < 0) {
-                    return null;
-                }
-
-                if (cell.classList.contains("e-other-month")) {
-                    month += day > 15 ? -1 : 1;
-                }
-                return new Date(Number(match[2]), month, day);
-            }
-
-            function formatParameterDate(date) {
-                function pad(value) {
-                    return String(value).padStart(2, "0");
-                }
-                return date.getFullYear() + "-" + pad(date.getMonth() + 1) + "-" + pad(date.getDate());
-            }
-
-            function repairDateSelection(input, date, originalEvent) {
-                var expectedValue = formatParameterDate(date);
-                if (input.value === expectedValue) {
-                    return;
-                }
-
-                var ej2Instance = input.ej2_instances && input.ej2_instances[0];
-                if (ej2Instance) {
-                    ej2Instance.value = date;
-                    if (typeof ej2Instance.dataBind === "function") {
-                        ej2Instance.dataBind();
-                    }
-                    if (typeof ej2Instance.trigger === "function") {
-                        ej2Instance.trigger("change", {
-                            value: date,
-                            event: originalEvent,
-                            element: input,
-                            isInteracted: true
-                        });
-                    }
-                    if (typeof ej2Instance.hide === "function") {
-                        ej2Instance.hide(originalEvent);
-                    }
-                }
-
-                var jqInput = window.jQuery ? window.jQuery(input) : null;
-                var ej1Instance = jqInput && (
-                    jqInput.data("ejDateTimePicker") || jqInput.data("ejDatePicker")
-                );
-                if (ej1Instance) {
-                    if (typeof ej1Instance.setValue === "function") {
-                        ej1Instance.setValue(date);
-                    }
-                    if (typeof ej1Instance._trigger === "function") {
-                        ej1Instance._trigger("change", { value: date });
-                    }
-                    if (typeof ej1Instance.hide === "function") {
-                        ej1Instance.hide();
-                    }
-                }
-
-                // Bold also observes the input's native change event when it
-                // copies the parameter values before running the report.
-                input.value = expectedValue;
-                input.dispatchEvent(new Event("input", { bubbles: true }));
-                input.dispatchEvent(new Event("change", { bubbles: true }));
-                console.info("[report-datepicker] repaired selection", {
-                    id: input.id,
-                    value: input.value
-                });
-            }
-
-            document.addEventListener("focusin", rememberDateInput, true);
-            document.addEventListener("pointerdown", rememberDateInput, true);
-
-            // WebView2 can deliver the calendar click without Bold's embedded
-            // date widget committing it to the parameter input. Let Bold run
-            // first, then repair only a selection it left unchanged.
-            document.addEventListener("click", function (event) {
-                var target = event.target && event.target.closest
-                    ? event.target.closest(".e-calendar td, .e-calendar .e-cell")
-                    : null;
-                if (!target) {
-                    return;
-                }
-                window.setTimeout(function () {
-                    var calendar = target.closest(".e-calendar");
-                    var input = calendar ? resolveDateInput(calendar) : null;
-                    var date = calendar ? selectedCalendarDate(target, calendar) : null;
-                    if (input && date) {
-                        repairDateSelection(input, date, event);
-                    }
-                }, 0);
-            }, true);
-
             $(function () {
                 if (!reportServerUrl || !reportServiceUrl || !reportToken) {
                     showError("The report configuration is missing. Close this viewer and open the report again.");
@@ -327,16 +162,12 @@
                         serviceAuthorizationToken: reportToken,
                         reportPath: reportPath,
                         isResponsive: true,
-                        // The app sends date parameters as yyyy-MM-dd. An
-                        // explicit matching format lets Bold's DatePicker
-                        // parse the initial value and write selected dates
-                        // back into its input reliably in WebView2.
+                        zoomFactor: 1.25,
+                        // Match the yyyy-MM-dd dates supplied by Flutter.
                         parameterSettings: {
                             dateTimeFormat: "yyyy-MM-dd"
                         },
-                        // Printing needs its own WebView window on Flutter
-                        // desktop so the printable page can open WebView2's
-                        // native print preview without replacing the viewer.
+                        // Keep the report visible while printing in a new tab.
                         printOption: ej.ReportViewer.PrintOptions.NewTab,
                         reportLoaded: hideStatus
                     };

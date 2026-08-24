@@ -32,6 +32,7 @@ class ReportFileService {
   Future<ReportLaunchRequest> createLaunchRequest({
     required String reportPath,
     required String outlet,
+    required String username,
     required BoldReportConfig config,
   }) async {
     final normalizedPath = reportPath.trim();
@@ -53,6 +54,7 @@ class ReportFileService {
     final query = <String, String>{
       'report_path': normalizedPath,
       if (outlet.trim().isNotEmpty) 'outlet': outlet.trim(),
+      if (username.trim().isNotEmpty) 'username': username.trim(),
       'start_date': currentDate,
       'end_date': currentDate,
       'report_server_url': config.reportServerUrl,

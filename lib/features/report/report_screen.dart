@@ -8,20 +8,12 @@ import '../../services/report_file_service.dart';
 import 'report_controller.dart';
 import 'report_definition.dart';
 
-typedef ReportDialogBuilder =
-    Widget Function(
-      BuildContext context,
-      ReportDefinition definition,
-      ReportLaunchRequest request,
-      Future<ReportLaunchRequest?> Function() reload,
-    );
 typedef ReportExternalLauncher =
     Future<void> Function(ReportLaunchRequest request);
 
 class ReportScreen extends StatefulWidget {
-  const ReportScreen({super.key, this.dialogBuilder, this.externalLauncher});
+  const ReportScreen({super.key, this.externalLauncher});
 
-  final ReportDialogBuilder? dialogBuilder;
   final ReportExternalLauncher? externalLauncher;
 
   @override
@@ -37,28 +29,9 @@ class _ReportScreenState extends State<ReportScreen> {
     unawaited(controller.loadScreen());
   }
 
-  Future<void> _openReport(
-    BuildContext context,
-    ReportDefinition definition,
-  ) async {
+  Future<void> _openReport(ReportDefinition definition) async {
     final request = await controller.createLaunchRequest(definition);
-    if (request == null || !context.mounted) return;
-
-    final customBuilder = widget.dialogBuilder;
-    if (customBuilder != null) {
-      await showDialog<void>(
-        context: context,
-        barrierDismissible: false,
-        useSafeArea: false,
-        builder: (dialogContext) => customBuilder(
-          dialogContext,
-          definition,
-          request,
-          () => controller.createLaunchRequest(definition),
-        ),
-      );
-      return;
-    }
+    if (request == null) return;
 
     try {
       final launcher = widget.externalLauncher ?? EdgeReportLauncher().open;
@@ -180,7 +153,7 @@ class _ReportScreenState extends State<ReportScreen> {
                                 width: cardWidth,
                                 definition: report,
                                 isLoading: controller.isLoading(report.key),
-                                onTap: () => _openReport(context, report),
+                                onTap: () => _openReport(report),
                               ),
                           ],
                         );
