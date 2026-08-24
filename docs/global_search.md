@@ -14,7 +14,7 @@ Global Search lets an authenticated user find closed sale invoices without leavi
 - Selecting a card closes search and opens the existing sale-invoice detail dialog.
 - Each compact card includes an Edit button. It uses the existing closed-sale edit flow, including unfinished-sale, employee permission, payment-status, split-bill, and document editability checks; search stays open when editing is rejected.
 - Clearing the query restores recent sales.
-- The current keyword and results remain available when the dialog is closed and reopened during the same authenticated session. They are cleared when the user logs out or changes outlet.
+- A keyword is preserved when it has results, so closing and reopening the dialog restores both during the same authenticated session. A keyword with no results is discarded on close. Preserved state is cleared when the user logs out or changes outlet.
 - Loading keeps existing cards visible. Stale network responses are ignored.
 - Loading, no-results, empty-recent-sales, and retryable error states are displayed in the dialog.
 

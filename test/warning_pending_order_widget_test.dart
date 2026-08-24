@@ -163,6 +163,61 @@ void main() {
     );
   });
 
+  testWidgets('closed order list hides pending warning and shows Edit Order', (
+    tester,
+  ) async {
+    String? editedOrder;
+    final client = MockClient(
+      (_) async => http.Response(
+        jsonEncode({
+          'data': [
+            {
+              'name': 'SO-CLOSED-001',
+              'posting_date': '2026-08-20',
+              'sale_status': 'Closed',
+              'status': 'Unpaid',
+              'total_sale_quantity': 1,
+              'total_amount': 15000,
+            },
+          ],
+        }),
+        200,
+        headers: {'content-type': 'application/json'},
+      ),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light,
+        home: Scaffold(
+          body: PendingOrderListDialogWidget(
+            saleService: SaleService(
+              Uri.parse('http://127.0.0.1:8888/'),
+              client: client,
+            ),
+            outlet: 'Main Outlet',
+            embedded: true,
+            saleStatus: 'Closed',
+            onEdit: (name) => editedOrder = name,
+            editActionLabel: 'Edit Order',
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('pending-order-list-warning')),
+      findsNothing,
+    );
+    expect(find.text('Edit Order'), findsOneWidget);
+
+    await tester.tap(
+      find.byKey(const ValueKey('edit-pending-order-SO-CLOSED-001')),
+    );
+    expect(editedOrder, 'SO-CLOSED-001');
+  });
+
   testWidgets('pending list uses explicit detail and edit actions', (
     tester,
   ) async {

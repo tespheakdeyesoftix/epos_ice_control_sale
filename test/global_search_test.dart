@@ -72,6 +72,22 @@ void main() {
     expect(controller.results.single.name, 'SO-NEW');
   });
 
+  test('discards a keyword without results when search closes', () async {
+    final service = _FakeSaleService();
+    final controller = GlobalSearchController(
+      saleService: service,
+      outletProvider: () => 'OUTLET-1',
+    );
+    addTearDown(controller.dispose);
+    controller.searchController.text = 'NOT-FOUND';
+    await controller.searchNow();
+
+    controller.discardSearchWithoutResults();
+
+    expect(controller.query, isEmpty);
+    expect(controller.results, isEmpty);
+  });
+
   testWidgets('shows recent sale cards and returns the selected invoice', (
     tester,
   ) async {

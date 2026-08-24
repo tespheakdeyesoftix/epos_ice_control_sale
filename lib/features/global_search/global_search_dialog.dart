@@ -15,8 +15,8 @@ Future<ClosedSale?> showGlobalSearchDialog(
   required String Function() outletProvider,
   Future<bool> Function(ClosedSale sale)? onEdit,
   GlobalSearchController? controller,
-}) {
-  return showDialog<ClosedSale>(
+}) async {
+  final selectedSale = await showDialog<ClosedSale>(
     context: context,
     useSafeArea: true,
     builder: (_) => GlobalSearchDialog(
@@ -26,6 +26,8 @@ Future<ClosedSale?> showGlobalSearchDialog(
       controller: controller,
     ),
   );
+  controller?.discardSearchWithoutResults();
+  return selectedSale;
 }
 
 class GlobalSearchDialog extends StatefulWidget {

@@ -44,6 +44,7 @@ class PendingOrderListDialogWidget extends StatefulWidget {
     this.emptyMessage = 'មិនមានការលក់រង់ចាំទេ។',
     this.titleIcon = Icons.pending_actions_rounded,
     this.keyPrefix = 'pending-order',
+    this.editActionLabel = 'កែបុង',
   });
 
   final SaleService saleService;
@@ -58,6 +59,7 @@ class PendingOrderListDialogWidget extends StatefulWidget {
   final String emptyMessage;
   final IconData titleIcon;
   final String keyPrefix;
+  final String editActionLabel;
 
   @override
   State<PendingOrderListDialogWidget> createState() =>
@@ -242,7 +244,8 @@ class _PendingOrderListDialogWidgetState
             ],
           ),
         ),
-        const _PendingOrderWarningNotice(),
+        if (widget.saleStatus.trim().toLowerCase() != 'closed')
+          const _PendingOrderWarningNotice(),
         _TableHeader(
           colors: colors,
           showActions: widget.onView != null || widget.onEdit != null,
@@ -301,6 +304,7 @@ class _PendingOrderListDialogWidgetState
               alternate: index.isOdd,
               onView: widget.onView,
               onEdit: widget.onEdit,
+              editActionLabel: widget.editActionLabel,
             ),
         ],
         if (_isLoading)
@@ -539,7 +543,7 @@ class _TableHeader extends StatelessWidget {
           _HeaderCell('ចំនួនសរុប', flex: 12, textAlign: TextAlign.right),
           _HeaderCell('ទឹកប្រាក់សរុប', flex: 17, textAlign: TextAlign.right),
           if (showActions)
-            _HeaderCell('សកម្មភាព', flex: 32, textAlign: TextAlign.center),
+            _HeaderCell('សកម្មភាព', flex: 40, textAlign: TextAlign.center),
         ],
       ),
     );
@@ -612,12 +616,14 @@ class _PendingOrderRow extends StatelessWidget {
     required this.alternate,
     required this.onView,
     required this.onEdit,
+    required this.editActionLabel,
   });
 
   final PendingOrder order;
   final bool alternate;
   final ValueChanged<String>? onView;
   final ValueChanged<String>? onEdit;
+  final String editActionLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -652,33 +658,32 @@ class _PendingOrderRow extends StatelessWidget {
           ),
           if (onView != null || onEdit != null)
             Expanded(
-              flex: 32,
+              flex: 40,
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  OutlinedButton(
-                    key: ValueKey('view-pending-order-${order.name}'),
-                    onPressed: onView == null
-                        ? null
-                        : () => onView!(order.name),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
-                      visualDensity: VisualDensity.compact,
+                  if (onView != null)
+                    OutlinedButton(
+                      key: ValueKey('view-pending-order-${order.name}'),
+                      onPressed: () => onView!(order.name),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        visualDensity: VisualDensity.compact,
+                      ),
+                      child: const Text('លម្អិត'),
                     ),
-                    child: const Text('លម្អិត'),
-                  ),
-                  const SizedBox(width: 7),
-                  FilledButton.tonal(
-                    key: ValueKey('edit-pending-order-${order.name}'),
-                    onPressed: onEdit == null
-                        ? null
-                        : () => onEdit!(order.name),
-                    style: FilledButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
-                      visualDensity: VisualDensity.compact,
+                  if (onView != null && onEdit != null)
+                    const SizedBox(width: 7),
+                  if (onEdit != null)
+                    FilledButton.tonal(
+                      key: ValueKey('edit-pending-order-${order.name}'),
+                      onPressed: () => onEdit!(order.name),
+                      style: FilledButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        visualDensity: VisualDensity.compact,
+                      ),
+                      child: Text(editActionLabel),
                     ),
-                    child: const Text('កែបុង'),
-                  ),
                 ],
               ),
             ),

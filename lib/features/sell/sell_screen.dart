@@ -10,7 +10,7 @@ import '../../services/receipt_print_service.dart';
 import '../../shared/input_number_dialog_widget.dart';
 import '../../shared/note_dialog_widget.dart';
 import '../../shared/select_customer_dialog_widget.dart';
-import '../../shared/select_closed_order_dialog_widget.dart';
+import '../global_search/global_search_dialog.dart';
 import '../../shared/select_date_dialog_widget.dart';
 import '../../shared/select_outlet_dialog_widget.dart';
 import '../../shared/text_input_dialog_widget.dart';
@@ -353,7 +353,7 @@ class _TopBarState extends State<_TopBar> with WindowListener {
   }
 
   Future<void> _changeOutlet() async {
-    if (controller.isSaleDirty) {
+    if (!controller.isSaleEmpty) {
       const error = OutletChangeBlockedException();
       FrappeResponseHandler.show(
         FrappeServerMessage(message: error.message, indicator: 'orange'),
@@ -440,19 +440,21 @@ class _TopBarState extends State<_TopBar> with WindowListener {
   }
 
   Future<void> _selectClosedOrder() async {
-    final name = await showSelectClosedOrderDialog(
+    final sale = await showGlobalSearchDialog(
       context,
       saleService: controller.saleService,
-      outlet: controller.activeOutletName,
+      outletProvider: () => controller.activeOutletName,
+      onEdit: (sale) => _editClosedOrder(sale.name),
     );
-    if (name == null || !mounted) {
-      _focusSearchField();
-      return;
-    }
+    if (sale != null && mounted) await _editClosedOrder(sale.name);
+    if (mounted) _focusSearchField();
+  }
+
+  Future<bool> _editClosedOrder(String name) async {
     try {
       await controller.openClosedOrder(name);
       _searchController.clear();
-      _focusSearchField();
+      return true;
     } on ClosedSaleOpenValidationException {
       FrappeResponseHandler.show(
         const FrappeServerMessage(
@@ -461,12 +463,10 @@ class _TopBarState extends State<_TopBar> with WindowListener {
           indicator: 'orange',
         ),
       );
-      _focusSearchField();
     } on SaleEditBlockedException catch (error) {
       FrappeResponseHandler.show(
         FrappeServerMessage(message: error.message, indicator: 'orange'),
       );
-      _focusSearchField();
     } on SaleOrderNotClosedException {
       FrappeResponseHandler.show(
         const FrappeServerMessage(
@@ -474,10 +474,8 @@ class _TopBarState extends State<_TopBar> with WindowListener {
           indicator: 'orange',
         ),
       );
-      _focusSearchField();
     } on FrappeServerMessageException {
       // The shared API client already displayed the server message.
-      _focusSearchField();
     } on Exception {
       FrappeResponseHandler.show(
         const FrappeServerMessage(
@@ -485,8 +483,8 @@ class _TopBarState extends State<_TopBar> with WindowListener {
           indicator: 'red',
         ),
       );
-      _focusSearchField();
     }
+    return false;
   }
 
   Future<void> _openPendingOrder(String name) async {

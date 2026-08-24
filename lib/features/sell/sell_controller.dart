@@ -92,6 +92,7 @@ class SellController extends GetxController {
   bool get canOpenPendingOrder => _canOpenPendingOrder;
   bool get isNewSaleDirty => _isNewSaleDirty;
   bool get isSaleDirty => _isSaleDirty;
+  bool get isSaleEmpty => _isNewSale && !_isNewSaleDirty;
   bool get canSearchBillForEdit => _canSearchBillForEdit;
   bool get canChangeCustomer => _canChangeCustomer;
   bool get canChangeSaleDate => _canChangeSaleDate;
@@ -163,7 +164,7 @@ class SellController extends GetxController {
   Future<void> changeOutlet(String outlet) async {
     final normalized = outlet.trim();
     if (normalized.isEmpty || normalized == activeOutletName) return;
-    if (isSaleDirty) throw const OutletChangeBlockedException();
+    if (!isSaleEmpty) throw const OutletChangeBlockedException();
     if (!availableOutlets.contains(normalized)) {
       throw const OutletChangeValidationException();
     }

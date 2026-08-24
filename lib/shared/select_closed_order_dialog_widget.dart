@@ -10,8 +10,11 @@ Future<String?> showSelectClosedOrderDialog(
 }) {
   return showDialog<String>(
     context: context,
-    builder: (_) =>
-        SelectClosedOrderDialogWidget(saleService: saleService, outlet: outlet),
+    builder: (dialogContext) => SelectClosedOrderDialogWidget(
+      saleService: saleService,
+      outlet: outlet,
+      onEdit: (name) => Navigator.of(dialogContext).pop(name),
+    ),
   );
 }
 
@@ -20,10 +23,12 @@ class SelectClosedOrderDialogWidget extends StatelessWidget {
     super.key,
     required this.saleService,
     required this.outlet,
+    required this.onEdit,
   });
 
   final SaleService saleService;
   final String outlet;
+  final ValueChanged<String> onEdit;
 
   @override
   Widget build(BuildContext context) {
@@ -32,6 +37,8 @@ class SelectClosedOrderDialogWidget extends StatelessWidget {
       outlet: outlet,
       saleStatus: 'Closed',
       status: 'Unpaid',
+      onEdit: onEdit,
+      editActionLabel: 'Edit Order',
       title: 'ជ្រើសរើសបុងដែលបានបិទ',
       emptyMessage: 'មិនមានបុងដែលបានបិទ និងមិនទាន់ទូទាត់ទេ។',
       titleIcon: Icons.receipt_long_rounded,

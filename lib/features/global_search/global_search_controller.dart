@@ -68,6 +68,18 @@ class GlobalSearchController extends ChangeNotifier {
 
   Future<void> retry() => searchNow();
 
+  void discardSearchWithoutResults() {
+    if (query.isEmpty || _results.isNotEmpty) return;
+    _debounce?.cancel();
+    _requestId++;
+    searchController.clear();
+    _results = const [];
+    _errorMessage = null;
+    _isLoading = false;
+    _hasLoaded = false;
+    _notify();
+  }
+
   Future<void> searchNow() async {
     _debounce?.cancel();
     final requestId = ++_requestId;
