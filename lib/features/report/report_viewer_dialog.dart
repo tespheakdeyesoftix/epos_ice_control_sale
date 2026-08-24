@@ -167,6 +167,11 @@ class _ReportViewerDialogState extends State<ReportViewerDialog> {
           });
         }
       },
+      onConsoleMessage: (_, message) {
+        debugPrint(
+          '[Bold Report WebView][${message.messageLevel}] ${message.message}',
+        );
+      },
       onReceivedError: (_, request, error) {
         if (request.isForMainFrame != true || !mounted) return;
         if (_hasCompletedInitialLoad &&
@@ -233,6 +238,12 @@ class _ReportPopupDialogState extends State<_ReportPopupDialog> {
                 initialSettings: _reportWebViewSettings(),
                 onProgressChanged: (_, progress) {
                   if (mounted) setState(() => _progress = progress);
+                },
+                onConsoleMessage: (_, message) {
+                  debugPrint(
+                    '[Bold Report Popup][${message.messageLevel}] '
+                    '${message.message}',
+                  );
                 },
                 onReceivedError: (_, request, error) {
                   if (request.isForMainFrame != true || !mounted) return;
@@ -322,8 +333,17 @@ InAppWebViewSettings _reportWebViewSettings({
   return InAppWebViewSettings(
     javaScriptEnabled: true,
     javaScriptCanOpenWindowsAutomatically: true,
+    javaScriptBridgeEnabled: true,
     supportMultipleWindows: true,
     supportZoom: true,
+    cacheEnabled: true,
+    databaseEnabled: true,
+    domStorageEnabled: true,
+    thirdPartyCookiesEnabled: true,
+    loadsImagesAutomatically: true,
+    blockNetworkLoads: false,
+    mediaPlaybackRequiresUserGesture: false,
+    disableContextMenu: false,
     transparentBackground: false,
     allowFileAccessFromFileURLs: allowLocalFileAccess,
     allowUniversalAccessFromFileURLs: allowLocalFileAccess,

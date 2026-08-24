@@ -3,10 +3,10 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../services/report_browser_service.dart';
 import '../../services/report_file_service.dart';
 import 'report_controller.dart';
 import 'report_definition.dart';
-import 'report_viewer_dialog.dart';
 
 typedef ReportDialogBuilder =
     Widget Function(
@@ -15,11 +15,14 @@ typedef ReportDialogBuilder =
       ReportLaunchRequest request,
       Future<ReportLaunchRequest?> Function() reload,
     );
+typedef ReportExternalLauncher =
+    Future<void> Function(ReportLaunchRequest request);
 
 class ReportScreen extends StatefulWidget {
-  const ReportScreen({super.key, this.dialogBuilder});
+  const ReportScreen({super.key, this.dialogBuilder, this.externalLauncher});
 
   final ReportDialogBuilder? dialogBuilder;
+  final ReportExternalLauncher? externalLauncher;
 
   @override
   State<ReportScreen> createState() => _ReportScreenState();
@@ -42,23 +45,30 @@ class _ReportScreenState extends State<ReportScreen> {
     if (request == null || !context.mounted) return;
 
     final customBuilder = widget.dialogBuilder;
-    await showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      useSafeArea: false,
-      builder: (dialogContext) => customBuilder != null
-          ? customBuilder(
-              dialogContext,
-              definition,
-              request,
-              () => controller.createLaunchRequest(definition),
-            )
-          : ReportViewerDialog(
-              definition: definition,
-              initialRequest: request,
-              loadRequest: () => controller.createLaunchRequest(definition),
-            ),
-    );
+    if (customBuilder != null) {
+      await showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        useSafeArea: false,
+        builder: (dialogContext) => customBuilder(
+          dialogContext,
+          definition,
+          request,
+          () => controller.createLaunchRequest(definition),
+        ),
+      );
+      return;
+    }
+
+    try {
+      final launcher = widget.externalLauncher ?? EdgeReportLauncher().open;
+      await launcher(request);
+    } on ReportBrowserLaunchException catch (error) {
+      controller.errorMessage.value = error.message;
+    } on Exception {
+      controller.errorMessage.value =
+          'Unable to open the report in Microsoft Edge.';
+    }
   }
 
   @override
@@ -78,16 +88,41 @@ class _ReportScreenState extends State<ReportScreen> {
               color: colors.surface,
               border: Border(bottom: BorderSide(color: colors.outlineVariant)),
             ),
-            child: const Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
+            child: Row(
               children: [
-                Text(
-                  'Reports',
-                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700),
+                const Expanded(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Reports',
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      SizedBox(height: 2),
+                      Text('View and export Bold Reports in a browser window'),
+                    ],
+                  ),
                 ),
-                SizedBox(height: 2),
-                Text('View and export Bold Reports inside the application'),
+                const SizedBox(width: 16),
+                Obx(
+                  () => IconButton.filledTonal(
+                    key: const ValueKey('refresh-report-list'),
+                    tooltip: 'Refresh report list',
+                    onPressed: controller.isLoadingScreen.value
+                        ? null
+                        : () => unawaited(controller.loadScreen()),
+                    icon: controller.isLoadingScreen.value
+                        ? const SizedBox.square(
+                            dimension: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2.2),
+                          )
+                        : const Icon(Icons.refresh_rounded),
+                  ),
+                ),
               ],
             ),
           ),
@@ -104,16 +139,19 @@ class _ReportScreenState extends State<ReportScreen> {
                       _ErrorBanner(message: error),
                       const SizedBox(height: 16),
                     ],
-                    if (isLoading)
-                      const Center(
-                        child: Padding(
-                          padding: EdgeInsets.all(40),
-                          child: CircularProgressIndicator(
-                            key: ValueKey('report-screen-loading'),
-                          ),
+                    if (isLoading) ...[
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(999),
+                        child: const LinearProgressIndicator(
+                          key: ValueKey('report-screen-loading'),
+                          minHeight: 5,
                         ),
-                      )
-                    else if (controller.reports.isEmpty && error == null)
+                      ),
+                      const SizedBox(height: 20),
+                    ],
+                    if (!isLoading &&
+                        controller.reports.isEmpty &&
+                        error == null)
                       const Center(
                         child: Padding(
                           padding: EdgeInsets.all(40),
@@ -230,7 +268,7 @@ class _ReportCard extends StatelessWidget {
                     child: CircularProgressIndicator(strokeWidth: 2.5),
                   )
                 else
-                  Icon(Icons.open_in_full_rounded, color: colors.primary),
+                  Icon(Icons.open_in_new_rounded, color: colors.primary),
               ],
             ),
           ),

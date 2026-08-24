@@ -10,6 +10,11 @@ set(BINARY_NAME "ice_control_sale")
 # versions of CMake.
 cmake_policy(VERSION 3.14...3.25)
 
+# flutter_inappwebview_windows 0.7.0-beta.3 uses DEPENDS with the TARGET form
+# of add_custom_command. Keep the legacy behavior when configuring that
+# dependency so CMake 3.31+ does not emit the CMP0175 developer warning.
+set(CMAKE_POLICY_DEFAULT_CMP0175 OLD)
+
 # Define build configuration option.
 get_property(IS_MULTICONFIG GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
 if(IS_MULTICONFIG)
