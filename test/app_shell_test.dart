@@ -22,6 +22,8 @@ import 'package:ice_control_sale/services/frappe_response_handler.dart';
 import 'package:ice_control_sale/services/frappe_session_client.dart';
 import 'package:ice_control_sale/services/product_service.dart';
 import 'package:ice_control_sale/services/report_file_service.dart';
+import 'package:ice_control_sale/services/report_config_service.dart';
+import 'package:ice_control_sale/services/report_list_service.dart';
 import 'package:ice_control_sale/services/sale_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -755,6 +757,8 @@ Future<_ShellHarness> _pumpShell(
     () => ReportController(
       outletController: outletController,
       fileService: ReportFileService(),
+      configService: ReportConfigService(baseUri, client: sessionClient),
+      listService: ReportListService(baseUri, client: sessionClient),
     ),
   );
   Get.lazyPut<ClosedSaleController>(

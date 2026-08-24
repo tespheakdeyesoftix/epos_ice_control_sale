@@ -65,7 +65,6 @@
         (function () {
             "use strict";
 
-            var reportServiceUrl = "https://report-server-dev.aagj7.com/reporting/reportservice/api/Viewer";
             // A fragment keeps the Windows file URL identical to opening the
             // HTML directly. Fall back to the query string for compatibility
             // with older deployments.
@@ -76,26 +75,28 @@
             var defaultReportPath = "/Sales Report/test report";
             var reportPath = query.get("report_path") || defaultReportPath;
             var outlet = query.get("outlet") || "";
-
-            // Configure only reports that actually define an outlet parameter.
-            // Example:
-            // "/Sales Report/Daily Sales": { outlet: "Outlet" }
-            var reportParameterMappings = {
-            };
+            var startDate = query.get("start_date") || "";
+            var endDate = query.get("end_date") || "";
+            var reportServerUrl = query.get("report_server_url") || "";
+            var reportServiceUrl = query.get("report_service_url") || "";
+            var reportToken = query.get("report_token") || "";
 
             var status = document.getElementById("status");
             var statusMessage = document.getElementById("status-message");
             var hasError = false;
 
             function buildReportParameters() {
-                var mapping = reportParameterMappings[reportPath] || {};
-                var valuesByQueryName = { outlet: outlet };
+                var valuesByParameterName = {
+                    outlet: outlet,
+                    start_date: startDate,
+                    end_date: endDate
+                };
 
-                return Object.keys(mapping).reduce(function (parameters, queryName) {
-                    var value = valuesByQueryName[queryName];
+                return Object.keys(valuesByParameterName).reduce(function (parameters, parameterName) {
+                    var value = valuesByParameterName[parameterName];
                     if (value) {
                         parameters.push({
-                            name: mapping[queryName],
+                            name: parameterName,
                             labels: [value],
                             values: [value]
                         });
@@ -107,7 +108,9 @@
             // Custom production JavaScript can read this context directly.
             window.reportViewerContext = Object.freeze({
                 reportPath: reportPath,
-                outlet: outlet
+                outlet: outlet,
+                start_date: startDate,
+                end_date: endDate
             });
 
             function hideStatus() {
@@ -130,6 +133,11 @@
             }, true);
 
             $(function () {
+                if (!reportServerUrl || !reportServiceUrl || !reportToken) {
+                    showError("The report configuration is missing. Close this viewer and open the report again.");
+                    return;
+                }
+
                 if (typeof $.fn.boldReportViewer !== "function") {
                     showError("Bold Report Viewer could not be initialized because its scripts did not load.");
                     return;
@@ -143,9 +151,9 @@
 
                 try {
                     var viewerOptions = {
-                        reportServerUrl: "https://report-server-dev.aagj7.com/reporting/api/site/ice-dev-report",
+                        reportServerUrl: reportServerUrl,
                         reportServiceUrl: reportServiceUrl,
-                        serviceAuthorizationToken: "bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InBoZWFrZGV5Lm1pY3JvbmV0QGdtYWlsLmNvbSIsIm5hbWVpZCI6IjEiLCJ1bmlxdWVfbmFtZSI6ImM2YjY5MzNiLTg5MTItNGFmNC1hOGY3LTBiYWRhN2Q5MTMyOSIsIklQIjoiMTc1LjEwMC4zMS41NyIsImlzc3VlZF9kYXRlIjoiMTc4NzIwMjc4OCIsIm5iZiI6MTc4NzIwMjc4OCwiZXhwIjoxNzg3ODUwMDAwLCJpYXQiOjE3ODcyMDI3ODgsImlzcyI6Imh0dHBzOi8vcmVwb3J0LXNlcnZlci1kZXYuYWFnajcuY29tL3JlcG9ydGluZy9zaXRlL2ljZS1kZXYtcmVwb3J0IiwiYXVkIjoiaHR0cHM6Ly9yZXBvcnQtc2VydmVyLWRldi5hYWdqNy5jb20vcmVwb3J0aW5nL3NpdGUvaWNlLWRldi1yZXBvcnQifQ.Nlh46Mdx42MBO3gNV2O3Lb8i_FCL7MuZWPtuWCrTUOk",
+                        serviceAuthorizationToken: reportToken,
                         reportPath: reportPath,
                         isResponsive: true,
                         // Printing needs its own WebView window on Flutter

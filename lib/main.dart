@@ -36,6 +36,8 @@ import 'services/print_preference_store.dart';
 import 'services/receipt_print_service.dart';
 import 'services/receipt_template_service.dart';
 import 'services/report_file_service.dart';
+import 'services/report_config_service.dart';
+import 'services/report_list_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -264,6 +266,14 @@ class IceSaleApp extends StatelessWidget {
                 () => ReportController(
                   outletController: sessionOutletController,
                   fileService: ReportFileService(),
+                  configService: ReportConfigService(
+                    appConfig.baseUri,
+                    client: sessionClient,
+                  ),
+                  listService: ReportListService(
+                    appConfig.baseUri,
+                    client: sessionClient,
+                  ),
                 ),
               );
             }

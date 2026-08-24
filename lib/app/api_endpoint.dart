@@ -175,6 +175,14 @@ abstract final class ApiEndpoint {
   /// company details, logo, stock location, currency, and payment types.
   static const setting = 'api/method/ice_control.api.v1.utils.get_setting';
 
+  /// Loads the Bold Reports server URLs and short-lived viewer token.
+  ///
+  /// Method: `POST`.
+  /// Returns: `report_server_url`, `report_service_url`, and `report_token`,
+  /// optionally wrapped in Frappe's `message` field.
+  static const boldReportConfig =
+      'api/method/ice_control.api.v1.utils.get_bold_report_config';
+
   /// Lists and saves configurable receipt layouts.
   static const printTemplates = 'api/resource/POS Print Template';
 

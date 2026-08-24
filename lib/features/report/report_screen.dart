@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -14,10 +16,23 @@ typedef ReportDialogBuilder =
       Future<ReportLaunchRequest?> Function() reload,
     );
 
-class ReportScreen extends GetView<ReportController> {
+class ReportScreen extends StatefulWidget {
   const ReportScreen({super.key, this.dialogBuilder});
 
   final ReportDialogBuilder? dialogBuilder;
+
+  @override
+  State<ReportScreen> createState() => _ReportScreenState();
+}
+
+class _ReportScreenState extends State<ReportScreen> {
+  ReportController get controller => Get.find<ReportController>();
+
+  @override
+  void initState() {
+    super.initState();
+    unawaited(controller.loadScreen());
+  }
 
   Future<void> _openReport(
     BuildContext context,
@@ -26,7 +41,7 @@ class ReportScreen extends GetView<ReportController> {
     final request = await controller.createLaunchRequest(definition);
     if (request == null || !context.mounted) return;
 
-    final customBuilder = dialogBuilder;
+    final customBuilder = widget.dialogBuilder;
     await showDialog<void>(
       context: context,
       barrierDismissible: false,
@@ -79,6 +94,7 @@ class ReportScreen extends GetView<ReportController> {
           Expanded(
             child: Obx(() {
               final error = controller.errorMessage.value;
+              final isLoading = controller.isLoadingScreen.value;
               return SingleChildScrollView(
                 padding: const EdgeInsets.all(24),
                 child: Column(
@@ -88,17 +104,49 @@ class ReportScreen extends GetView<ReportController> {
                       _ErrorBanner(message: error),
                       const SizedBox(height: 16),
                     ],
-                    Wrap(
-                      spacing: 18,
-                      runSpacing: 18,
-                      children: [
-                        for (final report in controller.reports)
-                          _ReportCard(
-                            definition: report,
-                            isLoading: controller.isLoading(report.key),
-                            onTap: () => _openReport(context, report),
+                    if (isLoading)
+                      const Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(40),
+                          child: CircularProgressIndicator(
+                            key: ValueKey('report-screen-loading'),
                           ),
-                      ],
+                        ),
+                      )
+                    else if (controller.reports.isEmpty && error == null)
+                      const Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(40),
+                          child: Text('No reports are available.'),
+                        ),
+                      ),
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        const spacing = 20.0;
+                        const minimumCardWidth = 380.0;
+                        final availableWidth = constraints.maxWidth;
+                        final columns =
+                            ((availableWidth + spacing) /
+                                    (minimumCardWidth + spacing))
+                                .floor()
+                                .clamp(1, 4);
+                        final cardWidth =
+                            (availableWidth - spacing * (columns - 1)) /
+                            columns;
+                        return Wrap(
+                          spacing: spacing,
+                          runSpacing: spacing,
+                          children: [
+                            for (final report in controller.reports)
+                              _ReportCard(
+                                width: cardWidth,
+                                definition: report,
+                                isLoading: controller.isLoading(report.key),
+                                onTap: () => _openReport(context, report),
+                              ),
+                          ],
+                        );
+                      },
                     ),
                   ],
                 ),
@@ -113,11 +161,13 @@ class ReportScreen extends GetView<ReportController> {
 
 class _ReportCard extends StatelessWidget {
   const _ReportCard({
+    required this.width,
     required this.definition,
     required this.isLoading,
     required this.onTap,
   });
 
+  final double width;
   final ReportDefinition definition;
   final bool isLoading;
   final VoidCallback onTap;
@@ -126,30 +176,31 @@ class _ReportCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     return SizedBox(
-      width: 340,
+      width: width,
+      height: 132,
       child: Card(
         clipBehavior: Clip.antiAlias,
         child: InkWell(
           key: ValueKey('report-card-${definition.key}'),
           onTap: isLoading ? null : onTap,
           child: Padding(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(24),
             child: Row(
               children: [
                 Container(
-                  width: 54,
-                  height: 54,
+                  width: 64,
+                  height: 64,
                   decoration: BoxDecoration(
                     color: colors.primaryContainer,
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(18),
                   ),
                   child: Icon(
                     definition.icon,
                     color: colors.onPrimaryContainer,
-                    size: 28,
+                    size: 32,
                   ),
                 ),
-                const SizedBox(width: 16),
+                const SizedBox(width: 20),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -157,16 +208,16 @@ class _ReportCard extends StatelessWidget {
                       Text(
                         definition.title,
                         style: const TextStyle(
-                          fontSize: 17,
+                          fontSize: 19,
                           fontWeight: FontWeight.w700,
                         ),
                       ),
-                      const SizedBox(height: 5),
+                      const SizedBox(height: 7),
                       Text(
                         definition.description,
                         style: TextStyle(
                           color: colors.onSurfaceVariant,
-                          fontSize: 12,
+                          fontSize: 13,
                         ),
                       ),
                     ],

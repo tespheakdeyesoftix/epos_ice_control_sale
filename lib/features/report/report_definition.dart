@@ -14,16 +14,16 @@ class ReportDefinition {
   final String description;
   final IconData icon;
   final String reportPath;
-}
 
-abstract final class ReportRegistry {
-  static const testReport = ReportDefinition(
-    key: 'test_report',
-    title: 'Test Report',
-    description: 'Open this Bold report inside the application',
-    icon: Icons.description_outlined,
-    reportPath: '/Sales Report/test report',
-  );
-
-  static const reports = <ReportDefinition>[testReport];
+  factory ReportDefinition.fromJson(Map<String, dynamic> json) {
+    final reportPath = json['report_url']?.toString().trim() ?? '';
+    final pathName = reportPath.split('/').last.trim().toLowerCase();
+    return ReportDefinition(
+      key: pathName.replaceAll(RegExp(r'[^a-z0-9]+'), '_'),
+      title: json['report_title']?.toString().trim() ?? '',
+      description: json['description']?.toString().trim() ?? '',
+      icon: Icons.description_outlined,
+      reportPath: reportPath,
+    );
+  }
 }

@@ -2,6 +2,14 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ice_control_sale/services/report_file_service.dart';
+import 'package:ice_control_sale/services/report_config_service.dart';
+
+const config = BoldReportConfig(
+  reportServerUrl: 'https://reports.example.com/reporting/api/site/ice',
+  reportServiceUrl:
+      'https://reports.example.com/reporting/reportservice/api/Viewer',
+  reportToken: 'bearer test-token',
+);
 
 void main() {
   late Directory directory;
@@ -20,17 +28,26 @@ void main() {
     ).writeAsString(
       '<script src="https://cdn.example.com/viewer.js"></script>',
     );
-    final service = ReportFileService(executableDirectory: directory);
+    final service = ReportFileService(
+      executableDirectory: directory,
+      dateProvider: () => DateTime(2026, 8, 24),
+    );
 
     final request = await service.createLaunchRequest(
       reportPath: '/Sales Report/test report',
       outlet: 'កន្លែងលក់ ដើម',
+      config: config,
     );
 
     expect(request.viewerUri.scheme, 'file');
     final context = Uri.splitQueryString(request.viewerUri.fragment);
     expect(context['report_path'], '/Sales Report/test report');
     expect(context['outlet'], 'កន្លែងលក់ ដើម');
+    expect(context['start_date'], '2026-08-24');
+    expect(context['end_date'], '2026-08-24');
+    expect(context['report_server_url'], config.reportServerUrl);
+    expect(context['report_service_url'], config.reportServiceUrl);
+    expect(context['report_token'], config.reportToken);
     expect(request.viewerUri.toString(), contains('report_viewer.html#'));
   });
 
@@ -41,6 +58,7 @@ void main() {
       () => service.createLaunchRequest(
         reportPath: '/Sales Report/test report',
         outlet: 'Main',
+        config: config,
       ),
       throwsA(
         isA<ReportFileException>().having(
@@ -65,6 +83,7 @@ void main() {
       () => service.createLaunchRequest(
         reportPath: '/Sales Report/test report',
         outlet: 'Main',
+        config: config,
       ),
       throwsA(
         isA<ReportFileException>().having(
