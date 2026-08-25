@@ -14,6 +14,16 @@ class CustomerPage {
   final bool hasMore;
 }
 
+class CustomerBrowseState {
+  final items = <Customer>[];
+  String search = '';
+  String loadedSearch = '';
+  bool hasMore = true;
+  bool initialized = false;
+  double scrollOffset = 0;
+  int generation = 0;
+}
+
 class CustomerService {
   CustomerService(this.baseUri, {required http.Client client})
     : _client = client;
@@ -42,6 +52,11 @@ class CustomerService {
 
   final Uri baseUri;
   final http.Client _client;
+  final Map<CustomerSelectionType, CustomerBrowseState> _browseStates = {};
+
+  CustomerBrowseState browseState(CustomerSelectionType selectionType) {
+    return _browseStates.putIfAbsent(selectionType, CustomerBrowseState.new);
+  }
 
   Future<CustomerPage> getCustomers({
     String search = '',

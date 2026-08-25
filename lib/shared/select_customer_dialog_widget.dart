@@ -75,26 +75,47 @@ class _SelectCustomerDialogWidgetState
     'អ',
   ];
 
-  final _searchController = TextEditingController();
+  late final CustomerBrowseState _browseState;
+  late final TextEditingController _searchController;
   final _scrollController = ScrollController();
-  final _customers = <Customer>[];
+  late final List<Customer> _customers;
   Timer? _debounce;
   bool _isLoading = false;
-  bool _hasMore = true;
   String? _error;
-  int _generation = 0;
+  bool _restoringScroll = false;
 
   @override
   void initState() {
     super.initState();
+    _browseState = widget.customerService.browseState(widget.selectionType);
+    _customers = _browseState.items;
+    _searchController = TextEditingController(text: _browseState.search);
     _searchController.addListener(_scheduleSearch);
     _scrollController.addListener(_handleScroll);
-    _load(reset: true);
+    if (!_browseState.initialized ||
+        _browseState.loadedSearch != _browseState.search) {
+      _load(reset: true);
+    } else if (_browseState.scrollOffset > 0) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || !_scrollController.hasClients) return;
+        _restoringScroll = true;
+        _scrollController.jumpTo(
+          _browseState.scrollOffset.clamp(
+            0,
+            _scrollController.position.maxScrollExtent,
+          ),
+        );
+        _restoringScroll = false;
+      });
+    }
   }
 
   @override
   void dispose() {
     _debounce?.cancel();
+    if (_scrollController.hasClients) {
+      _browseState.scrollOffset = _scrollController.offset;
+    }
     _searchController
       ..removeListener(_scheduleSearch)
       ..dispose();
@@ -105,6 +126,7 @@ class _SelectCustomerDialogWidgetState
   }
 
   void _scheduleSearch() {
+    _browseState.search = _searchController.text;
     _debounce?.cancel();
     _debounce = Timer(
       const Duration(milliseconds: 350),
@@ -118,17 +140,25 @@ class _SelectCustomerDialogWidgetState
   }
 
   void _handleScroll() {
+    if (_restoringScroll) return;
+    _browseState.scrollOffset = _scrollController.offset;
     if (_scrollController.position.extentAfter < 240) _load();
   }
 
   Future<void> _load({bool reset = false}) async {
-    if (!reset && (_isLoading || !_hasMore)) return;
-    final generation = reset ? ++_generation : _generation;
+    if (!reset && (_isLoading || !_browseState.hasMore)) return;
+    final generation = reset
+        ? ++_browseState.generation
+        : _browseState.generation;
     final offset = reset ? 0 : _customers.length;
+    final search = _searchController.text;
     if (reset) {
       setState(() {
         _customers.clear();
-        _hasMore = true;
+        _browseState
+          ..search = search
+          ..hasMore = true
+          ..scrollOffset = 0;
         _error = null;
         _isLoading = true;
       });
@@ -141,21 +171,25 @@ class _SelectCustomerDialogWidgetState
 
     try {
       final page = await widget.customerService.getCustomers(
-        search: _searchController.text,
+        search: search,
         offset: offset,
         selectionType: widget.selectionType,
       );
-      if (!mounted || generation != _generation) return;
+      if (generation != _browseState.generation) return;
+      _customers.addAll(page.items);
+      _browseState
+        ..loadedSearch = search
+        ..hasMore = page.hasMore
+        ..initialized = true;
+      if (!mounted) return;
       setState(() {
-        _customers.addAll(page.items);
-        _hasMore = page.hasMore;
         _isLoading = false;
       });
     } on FrappeServerMessageException {
-      if (!mounted || generation != _generation) return;
+      if (!mounted || generation != _browseState.generation) return;
       setState(() => _isLoading = false);
     } on Exception {
-      if (!mounted || generation != _generation) return;
+      if (!mounted || generation != _browseState.generation) return;
       setState(() {
         _error = 'មិនអាចទាញយកបញ្ជីអតិថិជនបានទេ។';
         _isLoading = false;
