@@ -8,6 +8,7 @@ enum AppDestination {
     label: 'បញ្ជីការលក់រង់ចាំ',
     icon: Icons.pending_actions_outlined,
   ),
+  booking(label: 'ការកក់', icon: Icons.event_note_outlined),
   report(label: 'របាយការណ៍', icon: Icons.bar_chart_rounded);
 
   const AppDestination({required this.label, required this.icon});

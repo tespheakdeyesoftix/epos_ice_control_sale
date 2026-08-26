@@ -14,6 +14,7 @@ import 'app/app_theme.dart';
 import 'app/theme_controller.dart';
 import 'app/session_outlet_controller.dart';
 import 'features/closed_sales/closed_sale_controller.dart';
+import 'features/booking/booking_controller.dart';
 import 'features/login/login_controller.dart';
 import 'features/login/login_screen.dart';
 import 'features/notes/note_controller.dart';
@@ -25,6 +26,7 @@ import 'features/sell/sell_controller.dart';
 import 'features/setting/receipt_template_controller.dart';
 import 'features/setting/setting_controller.dart';
 import 'services/frappe_auth_service.dart';
+import 'services/booking_service.dart';
 import 'services/frappe_session_client.dart';
 import 'services/note_preset_repository.dart';
 import 'services/note_service.dart';
@@ -226,8 +228,6 @@ class IceSaleApp extends StatelessWidget {
                   canUsePosPaymentProvider: () =>
                       controller.currentSession.value?.canUsePosPayment ??
                       false,
-                  canEditBillProvider: () =>
-                      controller.currentSession.value?.canEditBill ?? false,
                   canDeleteBillProvider: () =>
                       controller.currentSession.value?.canDeleteBill ?? false,
                 ),
@@ -260,6 +260,14 @@ class IceSaleApp extends StatelessWidget {
                   sellController: Get.find<SellController>(),
                   appShellController: Get.find<AppShellController>(),
                   preferences: preferences,
+                ),
+              );
+              Get.lazyPut<BookingController>(
+                () => BookingController(
+                  service: BookingService(
+                    appConfig.baseUri,
+                    client: sessionClient,
+                  ),
                 ),
               );
               Get.lazyPut<ReportController>(

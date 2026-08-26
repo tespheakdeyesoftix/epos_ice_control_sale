@@ -17,6 +17,7 @@ import '../../shared/warning_pending_order_widget.dart';
 import '../closed_sales/closed_sale_list_screen.dart';
 import '../closed_sales/closed_sale_controller.dart';
 import '../closed_sales/sale_detail_sreen.dart';
+import '../booking/booking_list.dart';
 import '../global_search/global_search_dialog.dart';
 import '../global_search/global_barcode_listener.dart';
 import '../login/login_controller.dart';
@@ -109,17 +110,6 @@ class AppShellScreen extends GetView<AppShellController> {
       FrappeResponseHandler.show(
         const FrappeServerMessage(
           message: 'សូមរក្សាទុកការលក់បច្ចុប្បន្នជាមុនសិន មុននឹងកែបុងរង់ចាំ។',
-          indicator: 'orange',
-        ),
-      );
-    } on SaleEditBlockedException catch (error) {
-      FrappeResponseHandler.show(
-        FrappeServerMessage(message: error.message, indicator: 'orange'),
-      );
-    } on PendingOrderNotDraftException {
-      FrappeResponseHandler.show(
-        const FrappeServerMessage(
-          message: 'បុងនេះមិនមែនជាបុងរង់ចាំទៀតទេ។',
           indicator: 'orange',
         ),
       );
@@ -322,6 +312,7 @@ class AppShellScreen extends GetView<AppShellController> {
       AppDestination.saleSummary => const SaleSummaryScreen(),
       AppDestination.closedSales => const ClosedSaleListScreen(),
       AppDestination.pendingSales => const PendingSaleListScreen(),
+      AppDestination.booking => const BookingListScreen(),
       AppDestination.report => const ReportScreen(),
     };
   }

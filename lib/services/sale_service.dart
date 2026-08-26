@@ -411,18 +411,18 @@ class SaleService {
     }
   }
 
-  Future<Sale> searchBillForEdit({
-    required String keyword,
-    required String outlet,
+  Future<Sale> getSaleForEdit({
+    required String name,
+    required String stationName,
   }) async {
     final response = await _client
         .get(
           baseUri
-              .resolve(ApiEndpoint.searchBillForEdit)
+              .resolve(ApiEndpoint.getSaleForEdit)
               .replace(
                 queryParameters: {
-                  'keyword': keyword.trim(),
-                  'outlet': outlet.trim(),
+                  'name': name.trim(),
+                  'station_name': stationName.trim(),
                 },
               ),
           headers: const {'Accept': 'application/json'},

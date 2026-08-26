@@ -101,14 +101,14 @@ abstract final class ApiEndpoint {
   static const salePaymentHistory =
       'api/method/ice_control.api.v1.sale.get_sale_payment_history';
 
-  /// Finds a Sale document that the cashier wants to open for editing.
+  /// Loads a Sale document after the server validates that it can be edited.
   ///
   /// Method: `GET`
-  /// Query parameters: scanned or typed `keyword` and the current `outlet`.
+  /// Query parameters: Sale `name` and the current `station_name`.
   /// Returns: one complete Sale document, optionally wrapped in `message`,
   /// `doc`, or `data`.
-  static const searchBillForEdit =
-      'api/method/ice_control.api.v1.sale.search_bill_for_edit';
+  static const getSaleForEdit =
+      'api/method/ice_control.selling.doctype.sale.sale.get_sale_for_edit';
 
   /// Gets the number of pending Draft orders for an outlet.
   ///
@@ -154,6 +154,13 @@ abstract final class ApiEndpoint {
   /// Builds a Frappe resource-list endpoint for any DocType.
   static String resource(String doctype) =>
       'api/resource/${Uri.encodeComponent(doctype)}';
+
+  /// Lists Booking documents through Frappe's resource API.
+  static const bookings = 'api/resource/Booking';
+
+  /// Builds the resource URL for one complete Booking document.
+  static String booking(String name) =>
+      '$bookings/${Uri.encodeComponent(name)}';
 
   /// Lists and creates Note documents through Frappe's resource API.
   static const notes = 'api/resource/Note';

@@ -420,11 +420,6 @@ class _TopBarState extends State<_TopBar> with WindowListener {
           indicator: 'orange',
         ),
       );
-    } on SaleEditBlockedException catch (error) {
-      _selectSearchKeyword();
-      FrappeResponseHandler.show(
-        FrappeServerMessage(message: error.message, indicator: 'orange'),
-      );
     } on FrappeServerMessageException {
       // The shared API client already displayed the server message.
       _selectSearchKeyword();
@@ -460,17 +455,6 @@ class _TopBarState extends State<_TopBar> with WindowListener {
         const FrappeServerMessage(
           message:
               'សូមរក្សាទុក ឬបោះបង់ការលក់បច្ចុប្បន្នជាមុនសិន មុននឹងជ្រើសរើសបុងដែលបានបិទ។',
-          indicator: 'orange',
-        ),
-      );
-    } on SaleEditBlockedException catch (error) {
-      FrappeResponseHandler.show(
-        FrappeServerMessage(message: error.message, indicator: 'orange'),
-      );
-    } on SaleOrderNotClosedException {
-      FrappeResponseHandler.show(
-        const FrappeServerMessage(
-          message: 'បុងនេះមិនមែនជាបុងដែលបានបិទទៀតទេ។',
           indicator: 'orange',
         ),
       );
@@ -511,10 +495,6 @@ class _TopBarState extends State<_TopBar> with WindowListener {
         borderRadius: 12,
         backgroundColor: context.colors.inverseSurface,
         duration: const Duration(seconds: 4),
-      );
-    } on SaleEditBlockedException catch (error) {
-      FrappeResponseHandler.show(
-        FrappeServerMessage(message: error.message, indicator: 'orange'),
       );
     } on FrappeServerMessageException {
       // The shared API client already displayed the server message.

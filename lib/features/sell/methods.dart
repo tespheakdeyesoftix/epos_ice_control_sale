@@ -120,7 +120,6 @@ extension SellControllerMethods on SellController {
   bool get _canChangeProductPrice =>
       canChangeProductPriceProvider?.call() ?? true;
   bool get _canUsePosPayment => canUsePosPaymentProvider?.call() ?? true;
-  bool get _canEditBill => canEditBillProvider?.call() ?? true;
   bool get _canDeleteBill => canDeleteBillProvider?.call() ?? true;
 
   Map<String, dynamic> _editableSaleState(Sale sale) => {
@@ -208,52 +207,6 @@ extension SellControllerMethods on SellController {
     customerProductPrices.clear();
     customerFreeProducts.clear();
   }
-
-  void _validateSaleForEdit(Sale sale) {
-    final saleStatus = sale.saleStatus.trim().toLowerCase();
-    if (saleStatus == 'deleted') {
-      throw const SaleEditBlockedException(SaleEditBlockedReason.deleted);
-    }
-    if (saleStatus != 'draft' && !_canEditBill) {
-      throw const SaleEditBlockedException(
-        SaleEditBlockedReason.employeePermission,
-      );
-    }
-    if (sale.status.trim().toLowerCase() != 'unpaid') {
-      throw const SaleEditBlockedException(SaleEditBlockedReason.notUnpaid);
-    }
-    if (sale.totalSplitBill > 0) {
-      throw const SaleEditBlockedException(SaleEditBlockedReason.splitBill);
-    }
-    if (!sale.canEditBill) {
-      throw const SaleEditBlockedException(SaleEditBlockedReason.notAllowed);
-    }
-  }
-}
-
-enum SaleEditBlockedReason {
-  notUnpaid,
-  splitBill,
-  notAllowed,
-  deleted,
-  employeePermission,
-}
-
-class SaleEditBlockedException implements Exception {
-  const SaleEditBlockedException(this.reason);
-
-  final SaleEditBlockedReason reason;
-
-  String get message => switch (reason) {
-    SaleEditBlockedReason.notUnpaid =>
-      'មិនអាចកែប្រែបុងនេះបានទេ ព្រោះបុងបានទូទាត់រួចហើយ។',
-    SaleEditBlockedReason.splitBill =>
-      'មិនអាចកែប្រែបុងនេះបានទេ ព្រោះបុងនេះបានបំបែករួចហើយ។',
-    SaleEditBlockedReason.notAllowed => 'អតិថិជននេះមិនអនុញ្ញាតឱ្យកែប្រែបុងទេ។',
-    SaleEditBlockedReason.deleted => 'មិនអាចកែប្រែបុងដែលបានលុបបានទេ។',
-    SaleEditBlockedReason.employeePermission =>
-      'អ្នកមិនមានសិទ្ធិកែប្រែបុងលក់ទេ។',
-  };
 }
 
 class SaleValidationException implements Exception {
@@ -319,16 +272,8 @@ class PendingOrderOpenValidationException implements Exception {
   const PendingOrderOpenValidationException();
 }
 
-class PendingOrderNotDraftException implements Exception {
-  const PendingOrderNotDraftException();
-}
-
 class ClosedSaleOpenValidationException implements Exception {
   const ClosedSaleOpenValidationException();
-}
-
-class SaleOrderNotClosedException implements Exception {
-  const SaleOrderNotClosedException();
 }
 
 class SaleDeleteValidationException implements Exception {

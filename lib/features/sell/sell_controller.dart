@@ -31,7 +31,6 @@ class SellController extends GetxController {
     this.canRemoveSaleProductProvider,
     this.canChangeProductPriceProvider,
     this.canUsePosPaymentProvider,
-    this.canEditBillProvider,
     this.canDeleteBillProvider,
   });
 
@@ -47,7 +46,6 @@ class SellController extends GetxController {
   final bool Function()? canRemoveSaleProductProvider;
   final bool Function()? canChangeProductPriceProvider;
   final bool Function()? canUsePosPaymentProvider;
-  final bool Function()? canEditBillProvider;
   final bool Function()? canDeleteBillProvider;
   final products = <Product>[].obs;
   final saleProducts = <SaleProduct>[].obs;
@@ -444,15 +442,13 @@ class SellController extends GetxController {
     if (!canOpenPendingOrder) {
       throw const PendingOrderOpenValidationException();
     }
-    final sale = await saleService.getSale(name);
+    final sale = await saleService.getSaleForEdit(
+      name: name,
+      stationName: stationName,
+    );
     if (!canOpenPendingOrder) {
       throw const PendingOrderOpenValidationException();
     }
-    _validateSaleForEdit(sale);
-    if (sale.saleStatus != 'Draft') {
-      throw const PendingOrderNotDraftException();
-    }
-
     _applyOpenedSale(sale);
   }
 
@@ -460,15 +456,13 @@ class SellController extends GetxController {
     if (!canSearchBillForEdit) {
       throw const ClosedSaleOpenValidationException();
     }
-    final sale = await saleService.getSale(name);
+    final sale = await saleService.getSaleForEdit(
+      name: name,
+      stationName: stationName,
+    );
     if (!canSearchBillForEdit) {
       throw const ClosedSaleOpenValidationException();
     }
-    _validateSaleForEdit(sale);
-    if (sale.saleStatus != 'Closed') {
-      throw const SaleOrderNotClosedException();
-    }
-
     _applyOpenedSale(sale);
   }
 
@@ -482,14 +476,13 @@ class SellController extends GetxController {
     }
     isSearchingBill.value = true;
     try {
-      final sale = await saleService.searchBillForEdit(
-        keyword: normalizedKeyword,
-        outlet: activeOutletName,
+      final sale = await saleService.getSaleForEdit(
+        name: normalizedKeyword,
+        stationName: stationName,
       );
       if (!canSearchBillForEdit) {
         throw const BillSearchValidationException();
       }
-      _validateSaleForEdit(sale);
       _applyOpenedSale(sale);
     } finally {
       isSearchingBill.value = false;

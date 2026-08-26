@@ -12,7 +12,7 @@ Global Search lets an authenticated user find closed sale invoices without leavi
 - A query searches invoice number, customer name, customer code, phone number, driver code, driver name, and reference number.
 - The empty state is limited to 10 recent sales; keyword searches return up to 20 results. Results are displayed as cards, never as a table.
 - Selecting a card closes search and opens the existing sale-invoice detail dialog.
-- Each compact card includes an Edit button. It uses the existing closed-sale edit flow, including unfinished-sale, employee permission, payment-status, split-bill, and document editability checks; search stays open when editing is rejected.
+- Each compact card includes an Edit button. Flutter only guards against replacing an unfinished local sale. The selected document is loaded through the server's `get_sale_for_edit` method, which owns employee permission, payment-status, split-bill, and document-editability validation; search stays open when the server rejects editing.
 - Clearing the query restores recent sales.
 - A keyword is preserved when it has results, so closing and reopening the dialog restores both during the same authenticated session. A keyword with no results is discarded on close. Preserved state is cleared when the user logs out or changes outlet.
 - Loading keeps existing cards visible. Stale network responses are ignored.

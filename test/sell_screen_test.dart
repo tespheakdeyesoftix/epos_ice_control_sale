@@ -79,7 +79,13 @@ void main() {
           headers: {'content-type': 'application/json; charset=utf-8'},
         );
       }
-      if (request.url.path == '/api/resource/Sale/SO-DRAFT-0001') {
+      if (request.url.path == '/api/resource/Sale/SO-DRAFT-0001' ||
+          (request.url.path ==
+                  '/api/method/ice_control.selling.doctype.sale.sale.get_sale_for_edit' &&
+              request.url.queryParameters['name'] == 'SO-DRAFT-0001')) {
+        if (request.url.path.startsWith('/api/method/')) {
+          expect(request.url.queryParameters['station_name'], 'Cashier 01');
+        }
         return http.Response(
           jsonEncode({
             'data': {
@@ -122,9 +128,9 @@ void main() {
         );
       }
       if (request.url.path ==
-          '/api/method/ice_control.api.v1.sale.search_bill_for_edit') {
-        searchedBillKeyword = request.url.queryParameters['keyword'];
-        expect(request.url.queryParameters['outlet'], 'ទឹកកកដើម');
+          '/api/method/ice_control.selling.doctype.sale.sale.get_sale_for_edit') {
+        searchedBillKeyword = request.url.queryParameters['name'];
+        expect(request.url.queryParameters['station_name'], 'Cashier 01');
         return http.Response(
           jsonEncode({
             'message': {

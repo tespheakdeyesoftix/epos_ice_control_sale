@@ -192,8 +192,6 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
   }
 
   Future<void> _editOrder() async {
-    final canEdit = await controller.validateNoPaymentHistory(deleting: false);
-    if (!canEdit || !mounted) return;
     controller.noteFocusNode.unfocus();
     await controller.saveNoteOnFocusLost();
     final opened = await controller.editOrder();

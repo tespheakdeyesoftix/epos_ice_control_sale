@@ -606,7 +606,7 @@ void main() {
     expect(sentRequest.bodyFields['station_name'], 'Cashier 01');
   });
 
-  test('ស្វែងរកបុងសម្រាប់កែប្រែតាម keyword', () async {
+  test('loads a server-validated Sale for editing', () async {
     late http.Request sentRequest;
     final client = MockClient((request) async {
       sentRequest = request;
@@ -629,18 +629,18 @@ void main() {
       client: client,
     );
 
-    final sale = await service.searchBillForEdit(
-      keyword: ' QR-SO-SEARCH-0001 ',
-      outlet: ' ទឹកកកដើម ',
+    final sale = await service.getSaleForEdit(
+      name: ' SO-SEARCH-0001 ',
+      stationName: ' Cashier 01 ',
     );
 
     expect(sentRequest.method, 'GET');
     expect(
       sentRequest.url.path,
-      '/api/method/ice_control.api.v1.sale.search_bill_for_edit',
+      '/api/method/ice_control.selling.doctype.sale.sale.get_sale_for_edit',
     );
-    expect(sentRequest.url.queryParameters['keyword'], 'QR-SO-SEARCH-0001');
-    expect(sentRequest.url.queryParameters['outlet'], 'ទឹកកកដើម');
+    expect(sentRequest.url.queryParameters['name'], 'SO-SEARCH-0001');
+    expect(sentRequest.url.queryParameters['station_name'], 'Cashier 01');
     expect(sale.name, 'SO-SEARCH-0001');
     expect(sale.saleStatus, 'Closed');
   });

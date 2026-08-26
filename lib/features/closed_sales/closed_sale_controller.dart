@@ -417,10 +417,6 @@ class ClosedSaleController extends GetxController {
         'សូមរក្សាទុកការលក់បច្ចុប្បន្នជាមុនសិន មុននឹងកែបុងដែលបានបិទ។',
         indicator: 'orange',
       );
-    } on SaleEditBlockedException catch (error) {
-      _showMessage(error.message, indicator: 'orange');
-    } on SaleOrderNotClosedException {
-      _showMessage('បុងនេះមិនមែនជាបុងដែលបានបិទទៀតទេ។');
     } on FrappeServerMessageException {
       // The shared API client already displayed the server message.
     } on Exception {
