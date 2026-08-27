@@ -39,6 +39,7 @@ class ClosedSaleListScreen extends GetView<ClosedSaleController> {
       initialDate: start
           ? controller.startDatePickerInitial
           : controller.endDatePickerInitial,
+      firstDate: controller.minimumPostingDate,
     );
     if (selected == null || !context.mounted) return;
     if (start) {

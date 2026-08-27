@@ -13,6 +13,7 @@ Future<ClosedSale?> showGlobalSearchDialog(
   BuildContext context, {
   required SaleService saleService,
   required String Function() outletProvider,
+  int Function()? saleListViewDaysProvider,
   Future<bool> Function(ClosedSale sale)? onEdit,
   GlobalSearchController? controller,
 }) async {
@@ -22,6 +23,7 @@ Future<ClosedSale?> showGlobalSearchDialog(
     builder: (_) => GlobalSearchDialog(
       saleService: saleService,
       outletProvider: outletProvider,
+      saleListViewDaysProvider: saleListViewDaysProvider,
       onEdit: onEdit,
       controller: controller,
     ),
@@ -35,12 +37,14 @@ class GlobalSearchDialog extends StatefulWidget {
     super.key,
     required this.saleService,
     required this.outletProvider,
+    this.saleListViewDaysProvider,
     this.onEdit,
     this.controller,
   });
 
   final SaleService saleService;
   final String Function() outletProvider;
+  final int Function()? saleListViewDaysProvider;
   final Future<bool> Function(ClosedSale sale)? onEdit;
   final GlobalSearchController? controller;
 
@@ -62,6 +66,7 @@ class _GlobalSearchDialogState extends State<GlobalSearchDialog> {
         GlobalSearchController(
           saleService: widget.saleService,
           outletProvider: widget.outletProvider,
+          saleListViewDaysProvider: widget.saleListViewDaysProvider,
         );
     controller.addListener(_rebuild);
     unawaited(controller.ensureLoaded());

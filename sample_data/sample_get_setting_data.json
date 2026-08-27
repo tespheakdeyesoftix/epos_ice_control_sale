@@ -14,6 +14,7 @@
     "modified_by": "Administrator",
     "name": "Business Information",
     "owner": "Administrator",
+    "number_of_day_seller_can_view_sale_list":7,
     "phone_number_1": "0125457774",
     "photo": "/files/hhklogo.jpg",
     "property_code": "P0001",

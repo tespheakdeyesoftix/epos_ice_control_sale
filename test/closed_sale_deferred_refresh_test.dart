@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:ice_control_sale/app/app_setting.dart';
+import 'package:ice_control_sale/app/app_setting_controller.dart';
 import 'package:ice_control_sale/features/closed_sales/closed_sale_controller.dart';
 import 'package:ice_control_sale/features/navigation/app_destination.dart';
 import 'package:ice_control_sale/features/navigation/app_shell_controller.dart';
@@ -15,9 +17,13 @@ void main() {
   test('updates badge immediately but defers the closed-sale list', () async {
     var saleListRequests = 0;
     var countRequests = 0;
+    List<dynamic>? saleListFilters;
     final client = MockClient((request) async {
       if (request.url.path == '/api/resource/Sale') {
         saleListRequests++;
+        saleListFilters =
+            jsonDecode(request.url.queryParameters['filters']!)
+                as List<dynamic>;
         return _jsonResponse({'data': <dynamic>[]});
       }
       if (request.url.path.endsWith('frappe.desk.reportview.get_count')) {
@@ -33,16 +39,28 @@ void main() {
       saleService: SaleService(baseUri, client: client),
       outletName: 'Main Outlet',
       stationName: 'Cashier 01',
+      appSettingController: AppSettingController(
+        stationName: 'Cashier 01',
+        initialSetting: const AppSetting(
+          raw: {},
+          numberOfDaySellerCanViewSaleList: 7,
+        ),
+      ),
     );
     final shellController = AppShellController(sellController: sellController);
     final closedSaleController = ClosedSaleController(
       sellController: sellController,
       appShellController: shellController,
+      nowProvider: () => DateTime(2026, 8, 27),
     );
     closedSaleController.onInit();
     addTearDown(closedSaleController.onClose);
 
     await _waitUntil(() => saleListRequests == 1 && countRequests == 2);
+    expect(
+      saleListFilters,
+      contains(equals(['posting_date', '>=', '2026-08-21'])),
+    );
 
     sellController.closedSaleRevision.value++;
     await _waitUntil(() => countRequests == 3);
@@ -51,9 +69,9 @@ void main() {
     await shellController.navigateTo(
       AppDestination.closedSales,
       resolveUnfinishedSale: () async => true,
-      );
-      await _waitUntil(() => saleListRequests == 2);
-      expect(countRequests, 4);
+    );
+    await _waitUntil(() => saleListRequests == 2);
+    expect(countRequests, 4);
   });
 }
 

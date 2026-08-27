@@ -45,4 +45,36 @@ void main() {
     await tester.pumpAndSettle();
     expect(result, DateTime(2026, 8, 15));
   });
+
+  testWidgets('respects a configured earliest selectable date', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light,
+        home: Scaffold(
+          body: Builder(
+            builder: (context) => FilledButton(
+              onPressed: () => showDialog<DateTime>(
+                context: context,
+                builder: (_) => SelectDateDialogWidget(
+                  initialDate: DateTime(2026, 8, 1),
+                  firstDate: DateTime(2026, 8, 21),
+                  today: DateTime(2026, 8, 27),
+                ),
+              ),
+              child: const Text('Open limited picker'),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('Open limited picker'));
+    await tester.pumpAndSettle();
+
+    final calendar = tester.widget<CalendarDatePicker>(
+      find.byType(CalendarDatePicker),
+    );
+    expect(calendar.firstDate, DateTime(2026, 8, 21));
+    expect(calendar.initialDate, DateTime(2026, 8, 21));
+  });
 }

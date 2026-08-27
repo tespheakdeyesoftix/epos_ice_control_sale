@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../../app/app_setting.dart';
 import '../../services/sale_service.dart';
 import '../closed_sales/closed_sale.dart';
 
@@ -10,11 +11,15 @@ class GlobalSearchController extends ChangeNotifier {
     required this.saleService,
     required this.outletProvider,
     this.debounceDuration = const Duration(seconds: 1),
+    this.saleListViewDaysProvider,
+    this.nowProvider,
   });
 
   final SaleService saleService;
   final String Function() outletProvider;
   final Duration debounceDuration;
+  final int Function()? saleListViewDaysProvider;
+  final DateTime Function()? nowProvider;
 
   final searchController = TextEditingController();
   final searchFocusNode = FocusNode();
@@ -36,12 +41,28 @@ class GlobalSearchController extends ChangeNotifier {
   bool _disposed = false;
   bool _hasLoaded = false;
   String? _loadedOutlet;
+  String? _loadedMinimumPostingDate;
+
+  DateTime? get minimumPostingDate => minimumSaleListPostingDate(
+    saleListViewDaysProvider?.call() ?? 0,
+    today: nowProvider?.call(),
+  );
+
+  String get minimumPostingDateFilter {
+    final date = minimumPostingDate;
+    return date == null ? '' : _apiDate(date);
+  }
 
   Future<void> loadInitial() => searchNow();
 
   Future<void> ensureLoaded() {
     final outlet = outletProvider().trim();
-    if (_hasLoaded && _loadedOutlet == outlet) return Future<void>.value();
+    final minimumDate = minimumPostingDateFilter;
+    if (_hasLoaded &&
+        _loadedOutlet == outlet &&
+        _loadedMinimumPostingDate == minimumDate) {
+      return Future<void>.value();
+    }
     if (_loadedOutlet != null && _loadedOutlet != outlet) {
       searchController.clear();
       _results = const [];
@@ -85,6 +106,7 @@ class GlobalSearchController extends ChangeNotifier {
     final requestId = ++_requestId;
     final submittedQuery = query;
     final submittedOutlet = outletProvider().trim();
+    final submittedMinimumPostingDate = minimumPostingDateFilter;
     _isLoading = true;
     _errorMessage = null;
     _notify();
@@ -92,6 +114,7 @@ class GlobalSearchController extends ChangeNotifier {
       final page = await saleService.getClosedSales(
         outlet: submittedOutlet,
         search: submittedQuery,
+        startDate: submittedMinimumPostingDate,
         sortField: 'modified',
         sortAscending: false,
         limit: submittedQuery.isEmpty ? 10 : 20,
@@ -99,10 +122,12 @@ class GlobalSearchController extends ChangeNotifier {
       if (!_isCurrent(requestId)) return;
       _results = page.items;
       _loadedOutlet = submittedOutlet;
+      _loadedMinimumPostingDate = submittedMinimumPostingDate;
       _hasLoaded = true;
     } on Exception {
       if (!_isCurrent(requestId)) return;
       _loadedOutlet = submittedOutlet;
+      _loadedMinimumPostingDate = submittedMinimumPostingDate;
       _hasLoaded = true;
       _errorMessage = submittedQuery.isEmpty
           ? 'មិនអាចទាញយកវិក្កយបត្រលក់ថ្មីៗបានទេ។'
@@ -130,4 +155,10 @@ class GlobalSearchController extends ChangeNotifier {
     searchFocusNode.dispose();
     super.dispose();
   }
+}
+
+String _apiDate(DateTime date) {
+  final month = date.month.toString().padLeft(2, '0');
+  final day = date.day.toString().padLeft(2, '0');
+  return '${date.year}-$month-$day';
 }

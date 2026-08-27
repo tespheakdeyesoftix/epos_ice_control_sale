@@ -19,6 +19,12 @@ class AppShellController extends GetxController {
       GlobalSearchController(
         saleService: sellController.saleService,
         outletProvider: () => sellController.activeOutletName,
+        saleListViewDaysProvider: () =>
+            sellController
+                .appSettingController
+                ?.current
+                ?.numberOfDaySellerCanViewSaleList ??
+            0,
       );
 
   Future<ClosedSale?> findScannedBill(String documentName) async {

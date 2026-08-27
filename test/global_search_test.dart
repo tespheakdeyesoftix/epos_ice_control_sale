@@ -14,6 +14,8 @@ void main() {
     final controller = GlobalSearchController(
       saleService: service,
       outletProvider: () => 'OUTLET-2',
+      saleListViewDaysProvider: () => 7,
+      nowProvider: () => DateTime(2026, 8, 27),
     );
     addTearDown(controller.dispose);
 
@@ -22,6 +24,7 @@ void main() {
     expect(service.calls, hasLength(1));
     expect(service.calls.single.outlet, 'OUTLET-2');
     expect(service.calls.single.search, isEmpty);
+    expect(service.calls.single.startDate, '2026-08-21');
     expect(service.calls.single.sortField, 'modified');
     expect(service.calls.single.sortAscending, isFalse);
     expect(service.calls.single.limit, 10);
@@ -197,6 +200,7 @@ class _SearchCall {
   const _SearchCall({
     required this.outlet,
     required this.search,
+    required this.startDate,
     required this.sortField,
     required this.sortAscending,
     required this.limit,
@@ -204,6 +208,7 @@ class _SearchCall {
 
   final String outlet;
   final String search;
+  final String startDate;
   final String sortField;
   final bool sortAscending;
   final int limit;
@@ -239,6 +244,7 @@ class _FakeSaleService extends SaleService {
     final call = _SearchCall(
       outlet: outlet,
       search: search,
+      startDate: startDate,
       sortField: sortField,
       sortAscending: sortAscending,
       limit: limit,

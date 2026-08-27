@@ -20,10 +20,14 @@ class AppSetting {
     this.exchangeRate = 1,
     this.defaultPrintTemplate = '',
     this.paymentTypes = const [],
+    this.numberOfDaySellerCanViewSaleList = 0,
   });
 
   factory AppSetting.fromJson(Map<String, dynamic> json) {
     final paymentRows = json['payment_types'];
+    final configuredSaleListDays = toDoubleValue(
+      json['number_of_day_seller_can_view_sale_list'],
+    ).toInt();
     return AppSetting(
       raw: Map.unmodifiable(json),
       businessNameEn: textValue(json['business_name_en']),
@@ -52,6 +56,9 @@ class AppSetting {
                 )
                 .toList(growable: false)
           : const [],
+      numberOfDaySellerCanViewSaleList: configuredSaleListDays > 0
+          ? configuredSaleListDays
+          : 0,
     );
   }
 
@@ -73,4 +80,12 @@ class AppSetting {
   final double exchangeRate;
   final String defaultPrintTemplate;
   final List<Map<String, dynamic>> paymentTypes;
+  final int numberOfDaySellerCanViewSaleList;
+}
+
+DateTime? minimumSaleListPostingDate(int numberOfDays, {DateTime? today}) {
+  if (numberOfDays <= 0) return null;
+  final now = today ?? DateTime.now();
+  final currentDate = DateTime(now.year, now.month, now.day);
+  return currentDate.subtract(Duration(days: numberOfDays - 1));
 }

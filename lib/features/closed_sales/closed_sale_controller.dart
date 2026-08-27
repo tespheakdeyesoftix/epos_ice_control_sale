@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../app/app_setting.dart';
 import '../../services/frappe_response_handler.dart';
 import '../navigation/app_destination.dart';
 import '../navigation/app_shell_controller.dart';
@@ -30,7 +31,9 @@ class ClosedSaleController extends GetxController {
     required this.sellController,
     required this.appShellController,
     SharedPreferences? preferences,
-  }) : _preferences = preferences {
+    DateTime Function()? nowProvider,
+  }) : _preferences = preferences,
+       _nowProvider = nowProvider ?? DateTime.now {
     final savedField = preferences?.getString(sortFieldPreferenceKey);
     final initialField = ClosedSaleSortField.values.firstWhere(
       (field) => field.apiField == savedField,
@@ -47,6 +50,7 @@ class ClosedSaleController extends GetxController {
   final SellController sellController;
   final AppShellController appShellController;
   final SharedPreferences? _preferences;
+  final DateTime Function() _nowProvider;
 
   final scrollController = ScrollController();
   final pinnedColumnScrollController = ScrollController();
@@ -96,11 +100,39 @@ class ClosedSaleController extends GetxController {
   int _lastLoadedClosedSaleRevision = -1;
   int _lastLoadedTodayCountRevision = -1;
 
+  DateTime? get minimumPostingDate => minimumSaleListPostingDate(
+    sellController
+            .appSettingController
+            ?.current
+            ?.numberOfDaySellerCanViewSaleList ??
+        0,
+    today: _nowProvider(),
+  );
+
+  DateTime? get effectiveStartDate {
+    final selectedDate = startDate.value;
+    final minimumDate = minimumPostingDate;
+    if (selectedDate == null) return minimumDate;
+    if (minimumDate != null && selectedDate.isBefore(minimumDate)) {
+      return minimumDate;
+    }
+    return DateUtils.dateOnly(selectedDate);
+  }
+
+  DateTime _clampToAllowedDate(DateTime value) {
+    final selectedDate = DateUtils.dateOnly(value);
+    final minimumDate = minimumPostingDate;
+    if (minimumDate != null && selectedDate.isBefore(minimumDate)) {
+      return minimumDate;
+    }
+    return selectedDate;
+  }
+
   DateTime get startDatePickerInitial =>
-      startDate.value ?? endDate.value ?? DateTime.now();
+      _clampToAllowedDate(startDate.value ?? endDate.value ?? _nowProvider());
 
   DateTime get endDatePickerInitial =>
-      endDate.value ?? startDate.value ?? DateTime.now();
+      _clampToAllowedDate(endDate.value ?? startDate.value ?? _nowProvider());
 
   @override
   void onInit() {
@@ -168,7 +200,9 @@ class ClosedSaleController extends GetxController {
       final page = await sellController.saleService.getClosedSales(
         outlet: sellController.activeOutletName,
         search: searchController.text,
-        startDate: startDate.value == null ? '' : _apiDate(startDate.value!),
+        startDate: effectiveStartDate == null
+            ? ''
+            : _apiDate(effectiveStartDate!),
         endDate: endDate.value == null ? '' : _apiDate(endDate.value!),
         sortField: sortField.value.apiField,
         sortAscending: sortAscending.value,
@@ -258,7 +292,9 @@ class ClosedSaleController extends GetxController {
       final count = await sellController.saleService.getClosedSaleCount(
         outlet: sellController.activeOutletName,
         search: searchController.text,
-        startDate: startDate.value == null ? '' : _apiDate(startDate.value!),
+        startDate: effectiveStartDate == null
+            ? ''
+            : _apiDate(effectiveStartDate!),
         endDate: endDate.value == null ? '' : _apiDate(endDate.value!),
         customer: customerFilter.value,
         driver: driverFilter.value,
@@ -292,17 +328,19 @@ class ClosedSaleController extends GetxController {
   }
 
   Future<void> setStartDate(DateTime value) async {
-    startDate.value = value;
-    if (endDate.value != null && endDate.value!.isBefore(value)) {
-      endDate.value = value;
+    final allowedDate = _clampToAllowedDate(value);
+    startDate.value = allowedDate;
+    if (endDate.value != null && endDate.value!.isBefore(allowedDate)) {
+      endDate.value = allowedDate;
     }
     await refreshList();
   }
 
   Future<void> setEndDate(DateTime value) async {
-    endDate.value = value;
-    if (startDate.value != null && startDate.value!.isAfter(value)) {
-      startDate.value = value;
+    final allowedDate = _clampToAllowedDate(value);
+    endDate.value = allowedDate;
+    if (startDate.value != null && startDate.value!.isAfter(allowedDate)) {
+      startDate.value = allowedDate;
     }
     await refreshList();
   }

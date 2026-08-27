@@ -482,6 +482,12 @@ class _TopBarState extends State<_TopBar> with WindowListener {
       context,
       saleService: controller.saleService,
       outletProvider: () => controller.activeOutletName,
+      saleListViewDaysProvider: () =>
+          controller
+              .appSettingController
+              ?.current
+              ?.numberOfDaySellerCanViewSaleList ??
+          0,
       onEdit: (sale) => _editClosedOrder(sale.name),
     );
     if (sale != null && mounted) await _editClosedOrder(sale.name);

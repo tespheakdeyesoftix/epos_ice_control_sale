@@ -3,10 +3,16 @@ import 'package:flutter/material.dart';
 Future<DateTime?> showSelectDateDialog(
   BuildContext context, {
   required DateTime initialDate,
+  DateTime? firstDate,
+  DateTime? lastDate,
 }) {
   return showDialog<DateTime>(
     context: context,
-    builder: (_) => SelectDateDialogWidget(initialDate: initialDate),
+    builder: (_) => SelectDateDialogWidget(
+      initialDate: initialDate,
+      firstDate: firstDate,
+      lastDate: lastDate,
+    ),
   );
 }
 
@@ -15,12 +21,16 @@ class SelectDateDialogWidget extends StatefulWidget {
     super.key,
     required this.initialDate,
     this.today,
+    this.firstDate,
+    this.lastDate,
   });
 
   final DateTime initialDate;
 
   /// Optional fixed current date for deterministic tests.
   final DateTime? today;
+  final DateTime? firstDate;
+  final DateTime? lastDate;
 
   @override
   State<SelectDateDialogWidget> createState() => _SelectDateDialogWidgetState();
@@ -36,8 +46,16 @@ class _SelectDateDialogWidgetState extends State<SelectDateDialogWidget> {
   void initState() {
     super.initState();
     _today = DateUtils.dateOnly(widget.today ?? DateTime.now());
-    _firstDate = DateTime(1900, 1, 1);
-    _lastDate = _today.add(const Duration(days: 1));
+    final configuredLastDate = DateUtils.dateOnly(
+      widget.lastDate ?? _today.add(const Duration(days: 1)),
+    );
+    final configuredFirstDate = DateUtils.dateOnly(
+      widget.firstDate ?? DateTime(1900, 1, 1),
+    );
+    _lastDate = configuredLastDate;
+    _firstDate = configuredFirstDate.isAfter(_lastDate)
+        ? _lastDate
+        : configuredFirstDate;
     final initialDate = DateUtils.dateOnly(widget.initialDate);
     _selectedDate = initialDate.isBefore(_firstDate)
         ? _firstDate
