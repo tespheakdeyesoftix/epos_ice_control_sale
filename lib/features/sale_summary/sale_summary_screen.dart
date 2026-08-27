@@ -3,6 +3,8 @@ import 'package:get/get.dart';
 
 import '../../app/session_outlet_controller.dart';
 import '../../app/app_setting_controller.dart';
+import '../../services/frappe_response_handler.dart';
+import '../../shared/select_outlet_dialog_widget.dart';
 import '../../shared/welcome_card_widget.dart';
 import '../closed_sales/closed_sale_controller.dart';
 import '../closed_sales/sale_detail_sreen.dart';
@@ -11,6 +13,7 @@ import '../navigation/app_destination.dart';
 import '../navigation/app_shell_controller.dart';
 import '../pending_sales/widgets/pending_sale_view_dialog_widget.dart';
 import '../sell/widgets/pending_order_list_dialog_widget.dart';
+import '../sell/sell_controller.dart';
 import 'sale_summary_controller.dart';
 import 'widgets/recent_order_widget.dart';
 import 'widgets/sale_summary_kpi_widget.dart';
@@ -18,6 +21,57 @@ import 'widgets/sale_product_summary_widget.dart';
 
 class SaleSummaryScreen extends StatelessWidget {
   const SaleSummaryScreen({super.key});
+
+  Future<void> _changeOutlet(
+    BuildContext context, {
+    required AppShellController shell,
+  }) async {
+    final sell = shell.sellController;
+    if (!sell.isSaleEmpty) {
+      const error = OutletChangeBlockedException();
+      FrappeResponseHandler.show(
+        FrappeServerMessage(message: error.message, indicator: 'orange'),
+      );
+      return;
+    }
+
+    final selected = await showSelectOutletDialog(
+      context,
+      outlets: sell.availableOutlets,
+      selectedOutlet: sell.activeOutletName,
+    );
+    if (selected == null || !context.mounted) return;
+
+    try {
+      await sell.changeOutlet(selected);
+      FrappeResponseHandler.show(
+        FrappeServerMessage(
+          message: 'បានប្តូរកន្លែងលក់ទៅ $selected ដោយជោគជ័យ។',
+          indicator: 'green',
+        ),
+      );
+    } on OutletChangeBlockedException catch (error) {
+      FrappeResponseHandler.show(
+        FrappeServerMessage(message: error.message, indicator: 'orange'),
+      );
+    } on OutletChangeInProgressException {
+      FrappeResponseHandler.show(
+        const FrappeServerMessage(
+          message: 'កំពុងផ្ទុកទិន្នន័យកន្លែងលក់ សូមរង់ចាំ។',
+          indicator: 'orange',
+        ),
+      );
+    } on FrappeServerMessageException {
+      // The shared API client already displayed the server message.
+    } on Exception {
+      FrappeResponseHandler.show(
+        const FrappeServerMessage(
+          message: 'មិនអាចប្តូរកន្លែងលក់បានទេ។',
+          indicator: 'red',
+        ),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -70,6 +124,12 @@ class SaleSummaryScreen extends StatelessWidget {
                     userImageUrl: login.currentUserImageUrl.value,
                     outletName: outletSession.currentOutlet.value,
                     stationName: login.stationName,
+                    onOutletTap:
+                        shell.sellController.canChangeOutlet &&
+                            !shell.sellController.isChangingOutlet.value &&
+                            !shell.sellController.isLoading.value
+                        ? () => _changeOutlet(context, shell: shell)
+                        : null,
                     onCreateOrder: () {
                       shell.sellController.startNewSale();
                       shell.navigateTo(

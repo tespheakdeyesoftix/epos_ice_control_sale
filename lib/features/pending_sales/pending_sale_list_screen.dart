@@ -16,6 +16,7 @@ class PendingSaleListScreen extends GetView<AppShellController> {
     final sell = controller.sellController;
     return Obx(
       () => PendingOrderListDialogWidget(
+        key: ValueKey('pending-sale-list-${sell.activeOutletName}'),
         saleService: sell.saleService,
         outlet: sell.activeOutletName,
         embedded: true,

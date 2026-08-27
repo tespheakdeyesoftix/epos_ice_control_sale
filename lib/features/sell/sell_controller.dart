@@ -79,6 +79,7 @@ class SellController extends GetxController {
   final saleDataRevision = 0.obs;
   final isLoadingPendingOrders = false.obs;
   int _customerSelectionRequest = 0;
+  int _pendingOrderCountRequest = 0;
 
   List<Product> get filteredProducts => _filteredProducts;
   List<String> get productCategories => _productCategories;
@@ -126,16 +127,20 @@ class SellController extends GetxController {
   }
 
   Future<void> loadPendingOrderCount() async {
-    if (isLoadingPendingOrders.value) return;
+    final request = ++_pendingOrderCountRequest;
+    final outlet = activeOutletName;
     isLoadingPendingOrders.value = true;
     try {
-      pendingOrderCount.value = await saleService.getTotalPendingOrder(
-        activeOutletName,
-      );
+      final count = await saleService.getTotalPendingOrder(outlet);
+      if (request == _pendingOrderCountRequest && outlet == activeOutletName) {
+        pendingOrderCount.value = count;
+      }
     } on Exception {
       // Keep the last known count when the server cannot be reached.
     } finally {
-      isLoadingPendingOrders.value = false;
+      if (request == _pendingOrderCountRequest) {
+        isLoadingPendingOrders.value = false;
+      }
     }
   }
 
@@ -179,11 +184,14 @@ class SellController extends GetxController {
     try {
       final outletProducts = await productService.getProducts(normalized);
       await appSettingController?.load(outlet: normalized);
-      sessionOutletController?.commitOutlet(normalized);
       products.assignAll(outletProducts);
       if (!productCategories.contains(selectedProductCategory.value)) {
         selectedProductCategory.value = '';
       }
+      saleDataRevision.value++;
+      sessionOutletController?.commitOutlet(normalized);
+      closedSaleRevision.value++;
+      await loadPendingOrderCount();
     } finally {
       isLoading.value = false;
       isChangingOutlet.value = false;

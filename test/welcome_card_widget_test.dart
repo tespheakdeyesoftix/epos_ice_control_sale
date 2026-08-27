@@ -4,9 +4,18 @@ import 'package:ice_control_sale/shared/welcome_card_widget.dart';
 
 void main() {
   testWidgets('shows Khmer greeting and workplace information', (tester) async {
-    await tester.pumpWidget(MaterialApp(home: Scaffold(body: WelcomeCardWidget(
-      userName: 'សុខ ដារ៉ា', outletName: 'សាខាទី១', stationName: 'Cashier 01', now: DateTime(2026, 8, 20, 9),
-    ))));
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: WelcomeCardWidget(
+            userName: 'សុខ ដារ៉ា',
+            outletName: 'សាខាទី១',
+            stationName: 'Cashier 01',
+            now: DateTime(2026, 8, 20, 9),
+          ),
+        ),
+      ),
+    );
     expect(find.textContaining('អរុណសួស្តី'), findsOneWidget);
     expect(find.text('សុខ ដារ៉ា'), findsOneWidget);
     expect(find.text('សាខាទី១'), findsOneWidget);
@@ -14,9 +23,16 @@ void main() {
   });
 
   testWidgets('uses afternoon and evening Khmer greetings', (tester) async {
-    Future<void> pumpAt(int hour) => tester.pumpWidget(MaterialApp(home: WelcomeCardWidget(
-      userName: 'User', outletName: 'Outlet', stationName: 'Station', now: DateTime(2026, 8, 20, hour),
-    )));
+    Future<void> pumpAt(int hour) => tester.pumpWidget(
+      MaterialApp(
+        home: WelcomeCardWidget(
+          userName: 'User',
+          outletName: 'Outlet',
+          stationName: 'Station',
+          now: DateTime(2026, 8, 20, hour),
+        ),
+      ),
+    );
     await pumpAt(14);
     expect(find.textContaining('ទិវាសួស្តី'), findsOneWidget);
     await pumpAt(20);
@@ -47,5 +63,27 @@ void main() {
     expect(find.text('Phnom Penh'), findsOneWidget);
     expect(find.text('012 345 678'), findsOneWidget);
     expect(find.byKey(const ValueKey('welcome-business-logo')), findsOneWidget);
+  });
+
+  testWidgets('current outlet invokes its callback when enabled', (
+    tester,
+  ) async {
+    var taps = 0;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: WelcomeCardWidget(
+            userName: 'User',
+            outletName: 'Main Outlet',
+            stationName: 'Cashier 01',
+            onOutletTap: () => taps++,
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.byKey(const ValueKey('current-outlet-pill')));
+
+    expect(taps, 1);
   });
 }

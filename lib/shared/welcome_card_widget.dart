@@ -12,6 +12,7 @@ class WelcomeCardWidget extends StatelessWidget {
     this.userImageUrl = '',
     this.now,
     this.onCreateOrder,
+    this.onOutletTap,
     this.businessNameKh = '',
     this.businessNameEn = '',
     this.businessAddress = '',
@@ -25,6 +26,7 @@ class WelcomeCardWidget extends StatelessWidget {
   final String stationName;
   final DateTime? now;
   final VoidCallback? onCreateOrder;
+  final VoidCallback? onOutletTap;
   final String businessNameKh;
   final String businessNameEn;
   final String businessAddress;
@@ -98,6 +100,7 @@ class WelcomeCardWidget extends StatelessWidget {
                     outletName: outletName,
                     stationName: stationName,
                     onCreateOrder: onCreateOrder,
+                    onOutletTap: onOutletTap,
                   );
                   return Padding(
                     padding: EdgeInsets.all(compact ? 24 : 36),
@@ -320,10 +323,12 @@ class _WorkplaceDetails extends StatelessWidget {
     required this.outletName,
     required this.stationName,
     required this.onCreateOrder,
+    required this.onOutletTap,
   });
   final String outletName;
   final String stationName;
   final VoidCallback? onCreateOrder;
+  final VoidCallback? onOutletTap;
 
   @override
   Widget build(BuildContext context) => Column(
@@ -335,11 +340,13 @@ class _WorkplaceDetails extends StatelessWidget {
         runSpacing: 10,
         children: [
           _InfoPill(
+            key: const ValueKey('current-outlet-pill'),
             icon: Icons.storefront_outlined,
             label: 'កន្លែងលក់',
             value: outletName.trim().isEmpty
                 ? 'មិនបានកំណត់'
                 : outletName.trim(),
+            onTap: onOutletTap,
           ),
           _InfoPill(
             icon: Icons.point_of_sale_outlined,
@@ -376,20 +383,23 @@ class _WorkplaceDetails extends StatelessWidget {
 
 class _InfoPill extends StatelessWidget {
   const _InfoPill({
+    super.key,
     required this.icon,
     required this.label,
     required this.value,
     this.width,
+    this.onTap,
   });
   final IconData icon;
   final String label;
   final String value;
   final double? width;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final foreground = Theme.of(context).colorScheme.onPrimary;
-    return Container(
+    final content = Container(
       width: width,
       constraints: const BoxConstraints(maxWidth: 250),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
@@ -429,7 +439,21 @@ class _InfoPill extends StatelessWidget {
               ],
             ),
           ),
+          if (onTap != null) ...[
+            const SizedBox(width: 8),
+            Icon(Icons.swap_horiz_rounded, color: foreground, size: 18),
+          ],
         ],
+      ),
+    );
+    if (onTap == null) return content;
+    return Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(14),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(14),
+        child: content,
       ),
     );
   }

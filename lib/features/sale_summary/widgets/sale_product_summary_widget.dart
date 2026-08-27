@@ -18,6 +18,7 @@ class SaleProductSummaryWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
+    final compact = MediaQuery.sizeOf(context).width <= 1024;
     return Material(
       key: const ValueKey('daily-sale-product-summary'),
       color: colors.surface,
@@ -39,6 +40,7 @@ class SaleProductSummaryWidget extends StatelessWidget {
                   child: Text(
                     'សង្ខេបការលក់តាមទំនិញប្រចាំថ្ងៃ',
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontSize: compact ? 16 : null,
                       fontWeight: FontWeight.w700,
                     ),
                   ),

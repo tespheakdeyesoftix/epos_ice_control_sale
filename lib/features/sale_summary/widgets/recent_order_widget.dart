@@ -109,6 +109,7 @@ class _Header extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
+    final compact = MediaQuery.sizeOf(context).width <= 1024;
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 16, 12, 12),
       child: Row(
@@ -118,9 +119,10 @@ class _Header extends StatelessWidget {
           Expanded(
             child: Text(
               'ការលក់ដែលបានបិទថ្មីៗ',
-              style: Theme.of(
-                context,
-              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                fontSize: compact ? 16 : null,
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ),
           IconButton(

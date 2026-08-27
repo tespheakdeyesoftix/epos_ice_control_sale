@@ -65,6 +65,9 @@ void main() {
           headers: {'content-type': 'application/json; charset=utf-8'},
         );
       }
+      if (request.url.path.endsWith('get_total_pending_order')) {
+        return http.Response(jsonEncode({'message': 7}), 200);
+      }
       return http.Response('{}', 200);
     });
     final outletSession =
@@ -93,6 +96,9 @@ void main() {
     expect(requestedOutlets, ['កន្លែងលក់ទី២']);
     expect(requestedSettingOutlets, ['កន្លែងលក់ទី២']);
     expect(controller.activeOutletName, 'កន្លែងលក់ទី២');
+    expect(controller.pendingOrderCount.value, 7);
+    expect(controller.closedSaleRevision.value, 1);
+    expect(controller.saleDataRevision.value, 1);
     expect(controller.products.single.name, 'ទំនិញ កន្លែងលក់ទី២');
     expect(controller.currentSale.outlet, 'កន្លែងលក់ទី២');
     expect(controller.currentSale.stockLocation, 'ឃ្លាំងថ្មី');
