@@ -1,8 +1,36 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:ice_control_sale/features/sell/payment_type.dart';
 import 'package:ice_control_sale/features/sell/sale.dart';
 import 'package:ice_control_sale/features/sell/sale_product.dart';
 
 void main() {
+  test('Sale serializes one selected payment with converted input amount', () {
+    const paymentType = PaymentType(
+      name: 'Cash USD',
+      currency: 'USD',
+      exchangeRate: 4000,
+    );
+    final payment = SalePayment.fromPaymentType(
+      paymentType,
+      totalAmount: 40000,
+    );
+    final sale = Sale(
+      outlet: 'Main',
+      saleProducts: const [],
+      payments: [payment],
+    );
+
+    expect(payment.inputAmount, 10);
+    expect(sale.toJson()['payments'], [
+      {
+        'payment_type': 'Cash USD',
+        'currency': 'USD',
+        'exchange_rate': 4000.0,
+        'input_amount': 10.0,
+      },
+    ]);
+  });
+
   test('Sale preserves booking number and note', () {
     final sale = Sale.fromJson({
       'outlet': 'Main',

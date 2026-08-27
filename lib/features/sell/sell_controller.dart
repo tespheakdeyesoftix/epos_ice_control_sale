@@ -11,6 +11,7 @@ import '../../services/sale_service.dart';
 import 'customer.dart';
 import 'customer_free_product.dart';
 import 'customer_product_price.dart';
+import 'payment_type.dart';
 import 'product.dart';
 import 'sale.dart';
 import 'sale_product.dart';
@@ -65,6 +66,7 @@ class SellController extends GetxController {
   final referenceNumber = ''.obs;
   final bookingNumber = ''.obs;
   final saleNote = ''.obs;
+  final payments = <SalePayment>[].obs;
   final isSaving = false.obs;
   final isPrinting = false.obs;
   final isDeletingSale = false.obs;
@@ -289,6 +291,13 @@ class SellController extends GetxController {
     if (!canUsePosPayment) {
       throw const PosPaymentPermissionException();
     }
+  }
+
+  void selectPaymentType(PaymentType paymentType) {
+    if (!paymentType.isValid) throw const PaymentTypeValidationException();
+    payments.assign(
+      SalePayment.fromPaymentType(paymentType, totalAmount: grandTotal),
+    );
   }
 
   void validateDeleteBillPermission() {
@@ -580,5 +589,6 @@ class SellController extends GetxController {
     referenceNumber.value = '';
     bookingNumber.value = '';
     saleNote.value = '';
+    payments.clear();
   }
 }

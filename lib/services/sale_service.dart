@@ -6,6 +6,7 @@ import '../app/api_endpoint.dart';
 import 'doctype_data_source.dart';
 import '../features/closed_sales/closed_sale.dart';
 import '../features/sell/pending_order.dart';
+import '../features/sell/payment_type.dart';
 import '../features/sell/sale.dart';
 
 class PendingOrderPage {
@@ -164,6 +165,32 @@ class SaleService implements DoctypeDataSource {
   @override
   final Uri baseUri;
   final http.Client _client;
+
+  Future<List<PaymentType>> getPaymentTypes() async {
+    final response = await _client
+        .get(
+          baseUri.resolve(ApiEndpoint.paymentTypes),
+          headers: const {'Accept': 'application/json'},
+        )
+        .timeout(const Duration(seconds: 20));
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw SaleServiceException(response.statusCode);
+    }
+
+    dynamic payload = jsonDecode(response.body);
+    if (payload is Map && payload.containsKey('message')) {
+      payload = payload['message'];
+    }
+    if (payload is String) payload = jsonDecode(payload);
+    if (payload is Map) {
+      payload = payload['data'] ?? payload['payment_types'];
+    }
+    final rows = payload is List ? payload : const [];
+    return rows
+        .whereType<Map>()
+        .map((row) => PaymentType.fromJson(Map<String, dynamic>.from(row)))
+        .toList(growable: false);
+  }
 
   @override
   Future<Map<String, dynamic>> getDoctypeMeta(String doctype) async {

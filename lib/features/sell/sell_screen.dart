@@ -21,6 +21,7 @@ import '../pending_sales/widgets/pending_sale_view_dialog_widget.dart';
 import 'customer.dart';
 import 'sell_controller.dart';
 import 'widgets/order_product_list_widget.dart';
+import 'widgets/payment_dialog_widget.dart';
 import 'widgets/pending_order_badge_widget.dart';
 import 'widgets/pending_order_list_dialog_widget.dart';
 import 'widgets/edit_sale_order_widget.dart';
@@ -33,6 +34,48 @@ import 'widgets/select_product_unit_dialog_widget.dart';
 
 extension on BuildContext {
   ColorScheme get colors => Theme.of(this).colorScheme;
+}
+
+Future<bool> _showCloseSaleConfirmation(BuildContext context) async {
+  final confirmed = await showDialog<bool>(
+    context: context,
+    builder: (dialogContext) => AlertDialog(
+      title: const Text('បញ្ជាក់ការរក្សាទុក'),
+      content: const Text('តើអ្នកប្រាកដថាចង់រក្សាទុកការលក់នេះមែនទេ?'),
+      actionsPadding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(dialogContext).pop(false),
+          style: TextButton.styleFrom(
+            minimumSize: const Size(110, 56),
+            padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 16),
+            textStyle: const TextStyle(
+              fontFamily: AppTheme.fontFamily,
+              fontSize: 17,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          child: const Text('បោះបង់'),
+        ),
+        FilledButton.icon(
+          key: const ValueKey('confirm-save-order'),
+          onPressed: () => Navigator.of(dialogContext).pop(true),
+          style: FilledButton.styleFrom(
+            minimumSize: const Size(170, 56),
+            padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
+            textStyle: const TextStyle(
+              fontFamily: AppTheme.fontFamily,
+              fontSize: 17,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          icon: const Icon(Icons.save_outlined, size: 24),
+          label: const Text('រក្សាទុក'),
+        ),
+      ],
+    ),
+  );
+  return confirmed == true;
 }
 
 void _showCustomerChangePermissionDenied() {
@@ -1494,12 +1537,133 @@ class _BottomBar extends StatelessWidget {
 
   final SellController controller;
 
-  void _requestPayment() {
+  Future<void> _requestPayment(BuildContext context) async {
     try {
       controller.requestPayment();
     } on PosPaymentPermissionException {
       _showPosPaymentPermissionDenied();
+      return;
     }
+
+    if (!await _ensureCustomer(context) || !context.mounted) return;
+    final result = await showPaymentDialog(
+      context,
+      service: controller.saleService,
+      totalAmount: controller.grandTotal,
+    );
+    if (result == null || !context.mounted) return;
+    try {
+      controller.selectPaymentType(result.paymentType);
+    } on PaymentTypeValidationException {
+      FrappeResponseHandler.show(
+        const FrappeServerMessage(
+          message: 'ប្រភេទការទូទាត់មិនត្រឹមត្រូវទេ។',
+          indicator: 'red',
+        ),
+      );
+      return;
+    }
+
+    if (result.action == PaymentDialogAction.paymentAndPrint) {
+      await _paymentAndPrint(context);
+    } else {
+      await _completePayment(context);
+    }
+  }
+
+  Future<bool> _ensureCustomer(BuildContext context) async {
+    if (controller.hasSelectedCustomer) return true;
+    final selectNow = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        key: const ValueKey('payment-missing-customer-dialog'),
+        icon: const Icon(Icons.person_search_outlined),
+        title: const Text('មិនទាន់ជ្រើសរើសអតិថិជន'),
+        content: const Text(
+          'ការលក់នេះមិនទាន់មានអតិថិជនទេ។ តើអ្នកចង់ជ្រើសរើសអតិថិជនឥឡូវនេះទេ?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('បោះបង់'),
+          ),
+          FilledButton.icon(
+            key: const ValueKey('payment-select-customer-now'),
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            icon: const Icon(Icons.person_add_alt_1_outlined),
+            label: const Text('ជ្រើសរើសអតិថិជន'),
+          ),
+        ],
+      ),
+    );
+    if (selectNow != true || !context.mounted) return false;
+    if (!controller.canChangeCustomer) {
+      _showCustomerChangePermissionDenied();
+      return false;
+    }
+    final customer = await showSelectCustomerDialog(
+      context,
+      customerService: controller.customerService,
+      selectionType: CustomerSelectionType.customer,
+    );
+    if (customer == null || !context.mounted) return false;
+    try {
+      final selection = await controller.selectCustomer(customer);
+      if (!context.mounted) return false;
+      await showCustomerFreeProductInfoDialog(
+        context,
+        evaluations: selection.freeProductEvaluations,
+      );
+      return context.mounted;
+    } on CustomerChangePermissionException {
+      _showCustomerChangePermissionDenied();
+      return false;
+    }
+  }
+
+  Future<void> _completePayment(BuildContext context) async {
+    final confirmed = await _showCloseSaleConfirmation(context);
+    if (!confirmed || !context.mounted) return;
+
+    try {
+      final savedOrder = await controller.saveOrder();
+      controller.startNewSale();
+      if (!context.mounted) return;
+      await showSaveOrderSuccessDialog(context, savedOrder: savedOrder);
+    } on FrappeServerMessageException {
+      // The shared API client already displayed the server message.
+    } on Exception {
+      FrappeResponseHandler.show(
+        const FrappeServerMessage(
+          message: 'មិនអាចទូទាត់ការលក់បានទេ។ សូមព្យាយាមម្តងទៀត។',
+          indicator: 'red',
+        ),
+      );
+    }
+  }
+
+  Future<void> _paymentAndPrint(BuildContext context) async {
+    final login = Get.isRegistered<LoginController>()
+        ? Get.find<LoginController>()
+        : null;
+    final session = login?.currentSession.value;
+    final sellerFallback = session?.fullName.trim().isNotEmpty == true
+        ? session!.fullName.trim()
+        : (session?.user.trim().isNotEmpty == true
+              ? session!.user.trim()
+              : login?.currentUsername.value.trim() ?? '');
+    final printService = Get.isRegistered<ReceiptPrintService>()
+        ? Get.find<ReceiptPrintService>()
+        : Get.put(ReceiptPrintService());
+    await showCloseAndPrintFlow(
+      context,
+      sellController: controller,
+      printService: printService,
+      business:
+          controller.appSettingController?.current ??
+          const AppSetting(raw: <String, dynamic>{}),
+      sellerFallback: sellerFallback,
+    );
   }
 
   Future<void> _deleteSale(BuildContext context) async {
@@ -1655,9 +1819,12 @@ class _BottomBar extends StatelessWidget {
               width: paymentButtonWidth,
               height: double.infinity,
               child: FilledButton.icon(
-                onPressed: controller.saleProducts.isEmpty
+                onPressed:
+                    controller.saleProducts.isEmpty ||
+                        controller.isSaving.value ||
+                        controller.isPrinting.value
                     ? null
-                    : _requestPayment,
+                    : () => _requestPayment(context),
                 icon: Icon(Icons.payments_outlined),
                 label: const Text(
                   'ទូទាត់ប្រាក់',

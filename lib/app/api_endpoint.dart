@@ -151,6 +151,10 @@ abstract final class ApiEndpoint {
   static const doctypeMeta =
       'api/method/ice_control.api.v1.utils.get_doctype_meta';
 
+  /// Loads payment types available for POS payment.
+  static const paymentTypes =
+      'api/method/ice_control.api.v1.utils.get_payment_types';
+
   /// Builds a Frappe resource-list endpoint for any DocType.
   static String resource(String doctype) =>
       'api/resource/${Uri.encodeComponent(doctype)}';

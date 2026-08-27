@@ -53,6 +53,7 @@ extension SellControllerMethods on SellController {
       referenceNumber: referenceNumber.value,
       bookingNumber: bookingNumber.value,
       note: saleNote.value,
+      payments: List.unmodifiable(payments),
       saleProducts: List.unmodifiable(saleProducts),
       customer: customer?.name ?? '',
       customerName: customer?.displayName ?? '',
@@ -97,6 +98,7 @@ extension SellControllerMethods on SellController {
           referenceNumber.value.trim().isNotEmpty ||
           bookingNumber.value.trim().isNotEmpty ||
           saleNote.value.trim().isNotEmpty ||
+          payments.isNotEmpty ||
           postingDate.value != _dateOnly(DateTime.now()));
   bool get _isSaleDirty {
     final originalSale = openedSale.value;
@@ -131,6 +133,9 @@ extension SellControllerMethods on SellController {
     'reference_number': sale.referenceNumber.trim(),
     'booking_number': sale.bookingNumber.trim(),
     'note': sale.note.trim(),
+    'payments': sale.payments
+        .map((payment) => payment.toJson())
+        .toList(growable: false),
     'customer': sale.customer.trim(),
     'driver': sale.driver.trim(),
     'plate_number': sale.plateNumber.trim(),
@@ -185,6 +190,7 @@ extension SellControllerMethods on SellController {
     referenceNumber.value = sale.referenceNumber;
     bookingNumber.value = sale.bookingNumber;
     saleNote.value = sale.note;
+    payments.assignAll(sale.payments);
     saleProducts.assignAll(sale.saleProducts);
     selectedCustomer.value = sale.customer.isEmpty
         ? null
@@ -249,6 +255,10 @@ class PosPaymentPermissionException implements Exception {
   const PosPaymentPermissionException();
 
   String get message => 'អ្នកមិនមានសិទ្ធិធ្វើការទូទាត់ប្រាក់ទេ។';
+}
+
+class PaymentTypeValidationException implements Exception {
+  const PaymentTypeValidationException();
 }
 
 class DeleteBillPermissionException implements Exception {

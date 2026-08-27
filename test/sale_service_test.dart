@@ -8,6 +8,34 @@ import 'package:ice_control_sale/features/sell/sale_product.dart';
 import 'package:ice_control_sale/services/sale_service.dart';
 
 void main() {
+  test('loads payment types from the payment type API', () async {
+    late Uri requestedUri;
+    final service = SaleService(
+      Uri.parse('https://ice.test/'),
+      client: MockClient((request) async {
+        requestedUri = request.url;
+        return http.Response(
+          jsonEncode({
+            'message': [
+              {'name': 'Cash USD', 'currency': 'USD', 'exchange_rate': 4000},
+            ],
+          }),
+          200,
+        );
+      }),
+    );
+
+    final paymentTypes = await service.getPaymentTypes();
+
+    expect(
+      requestedUri.path,
+      '/api/method/ice_control.api.v1.utils.get_payment_types',
+    );
+    expect(paymentTypes.single.name, 'Cash USD');
+    expect(paymentTypes.single.currency, 'USD');
+    expect(paymentTypes.single.exchangeRate, 4000);
+  });
+
   test('ទាញ Sale document និង sale_products សម្រាប់កែប្រែ', () async {
     late http.Request sentRequest;
     final client = MockClient((request) async {

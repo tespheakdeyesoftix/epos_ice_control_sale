@@ -1,4 +1,5 @@
 import '../../utils/helpers.dart';
+import 'payment_type.dart';
 import 'sale_product.dart';
 
 class Sale {
@@ -29,6 +30,7 @@ class Sale {
     this.saleStatus = 'Draft',
     this.parentBillNumber = '',
     this.note = '',
+    this.payments = const [],
     this.totalPayment = 0,
     this.totalWriteOff = 0,
     this.totalSplitBill = 0,
@@ -41,6 +43,7 @@ class Sale {
 
   factory Sale.fromJson(Map<String, dynamic> json) {
     final productRows = json['sale_products'];
+    final paymentRows = json['payments'];
     return Sale(
       name: textValue(json['name']),
       doctype: textValue(json['doctype']).isEmpty
@@ -85,6 +88,14 @@ class Sale {
                 .toList(growable: false)
           : const [],
       note: textValue(json['note']),
+      payments: paymentRows is List
+          ? paymentRows
+                .whereType<Map>()
+                .map(
+                  (row) => SalePayment.fromJson(Map<String, dynamic>.from(row)),
+                )
+                .toList(growable: false)
+          : const [],
       totalPayment: toDoubleValue(json['total_payment']),
       totalWriteOff: toDoubleValue(json['total_write_off']),
       totalSplitBill: toDoubleValue(json['total_split_bill']).toInt(),
@@ -126,6 +137,7 @@ class Sale {
   final String parentBillNumber;
   final List<SaleProduct> saleProducts;
   final String note;
+  final List<SalePayment> payments;
   final double totalPayment;
   final double totalWriteOff;
   final int totalSplitBill;
@@ -178,6 +190,7 @@ class Sale {
       'parent_bill_number': parentBillNumber,
       'sale_products': saleProducts.map((item) => item.toJson()).toList(),
       'note': note,
+      'payments': payments.map((payment) => payment.toJson()).toList(),
       'total_quantity': totalQuantity,
       'total_free': totalFree,
       'total_quantity_return': totalQuantityReturn,
