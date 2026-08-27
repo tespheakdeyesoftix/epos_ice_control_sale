@@ -1281,6 +1281,10 @@ class _CheckoutPanel extends StatelessWidget {
                       maxLength: 50,
                       inputKey: const ValueKey('plate-number-input'),
                       confirmButtonKey: const ValueKey('confirm-plate-number'),
+                      userKey: Get.find<LoginController>().localStorageUserKey,
+                      presetKey: 'driver_plate_number::${driver.name}',
+                      savedValuesTitle: 'ស្លាកលេខដែលបានរក្សាទុក',
+                      allowDeletingSavedValues: true,
                     );
                     if (value != null) controller.updatePlateNumber(value);
                   },
