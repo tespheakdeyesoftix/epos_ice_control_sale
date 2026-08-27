@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../app/app_theme.dart';
 import '../../../utils/helpers.dart';
 import '../../closed_sales/closed_sale.dart';
 
@@ -193,6 +194,7 @@ class SaleSearchResultCard extends StatelessWidget {
                         textStyle: const TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w700,
+                          fontFamily: AppTheme.fontFamily,
                         ),
                       ),
                     ),

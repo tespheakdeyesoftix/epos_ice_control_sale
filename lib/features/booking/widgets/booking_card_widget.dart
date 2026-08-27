@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../app/app_theme.dart';
 import '../../../utils/helpers.dart';
 import '../booking.dart';
 
@@ -26,7 +27,7 @@ class BookingCardWidget extends StatelessWidget {
           ? colors.primaryContainer.withValues(alpha: .35)
           : colors.surface,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
         side: BorderSide(
           color: isToday
               ? colors.primary.withValues(alpha: .45)
@@ -37,7 +38,7 @@ class BookingCardWidget extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(12),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -50,7 +51,8 @@ class BookingCardWidget extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         color: colors.primary,
-                        fontWeight: FontWeight.w900,
+                        fontFamily: AppTheme.fontFamily,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
                   ),
@@ -68,44 +70,45 @@ class BookingCardWidget extends StatelessWidget {
                         'ថ្ងៃនេះ',
                         style: TextStyle(
                           color: colors.onPrimary,
+                          fontFamily: AppTheme.fontFamily,
                           fontSize: 11,
-                          fontWeight: FontWeight.w800,
+                          fontWeight: FontWeight.w700,
                         ),
                       ),
                     ),
                   const SizedBox(width: 4),
                   Icon(
                     Icons.chevron_right_rounded,
+                    size: 20,
                     color: colors.onSurfaceVariant,
                   ),
                 ],
               ),
-              const SizedBox(height: 11),
+              const SizedBox(height: 7),
               _CardLine(
                 icon: Icons.person_outline_rounded,
                 text: _fallback(booking.customerName),
               ),
-              const SizedBox(height: 7),
+              const SizedBox(height: 5),
               _CardLine(
                 icon: Icons.celebration_outlined,
                 text: _fallback(booking.bookingEvent),
               ),
-              const SizedBox(height: 7),
+              const SizedBox(height: 5),
               _CardLine(
                 icon: Icons.local_shipping_outlined,
                 text: formatDate(booking.deliveryDate),
               ),
               if (booking.productsDescription.isNotEmpty) ...[
-                const SizedBox(height: 7),
+                const SizedBox(height: 5),
                 _CardLine(
                   icon: Icons.inventory_2_outlined,
                   text: booking.productsDescription,
-                  maxLines: 3,
                 ),
               ],
               const Spacer(),
               Divider(height: 1, color: colors.outlineVariant),
-              const SizedBox(height: 11),
+              const SizedBox(height: 7),
               Row(
                 children: [
                   if (booking.phoneNumber.isNotEmpty) ...[
@@ -129,7 +132,8 @@ class BookingCardWidget extends StatelessWidget {
                     '${formatMoney(booking.totalAmount)} រៀល',
                     style: TextStyle(
                       color: colors.primary,
-                      fontWeight: FontWeight.w900,
+                      fontFamily: AppTheme.fontFamily,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
                 ],
@@ -143,26 +147,20 @@ class BookingCardWidget extends StatelessWidget {
 }
 
 class _CardLine extends StatelessWidget {
-  const _CardLine({required this.icon, required this.text, this.maxLines = 1});
+  const _CardLine({required this.icon, required this.text});
 
   final IconData icon;
   final String text;
-  final int maxLines;
 
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, size: 18, color: colors.onSurfaceVariant),
-        const SizedBox(width: 8),
+        Icon(icon, size: 16, color: colors.onSurfaceVariant),
+        const SizedBox(width: 6),
         Expanded(
-          child: Text(
-            text,
-            maxLines: maxLines,
-            overflow: TextOverflow.ellipsis,
-          ),
+          child: Text(text, maxLines: 1, overflow: TextOverflow.ellipsis),
         ),
       ],
     );

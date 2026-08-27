@@ -97,6 +97,28 @@ void main() {
     expect(booking.totalQuantity, 50);
   });
 
+  test('counts today delivery bookings through reportViewCount', () async {
+    late Uri requestedUri;
+    final service = BookingService(
+      Uri.parse('https://ice.test/'),
+      client: MockClient((request) async {
+        requestedUri = request.url;
+        return http.Response(jsonEncode({'message': 7}), 200);
+      }),
+    );
+
+    final count = await service.getTodayDeliveryCount();
+
+    expect(requestedUri.path, '/api/method/frappe.desk.reportview.get_count');
+    expect(requestedUri.queryParameters['doctype'], 'Booking');
+    expect(jsonDecode(requestedUri.queryParameters['filters']!), [
+      ['Booking', 'delivery_date', 'Timespan', 'today'],
+    ]);
+    expect(requestedUri.queryParameters['fields'], '[]');
+    expect(requestedUri.queryParameters['distinct'], 'false');
+    expect(count, 7);
+  });
+
   test('creates a Booking through the Frappe resource endpoint', () async {
     late http.Request sentRequest;
     final service = BookingService(

@@ -18,6 +18,7 @@ import '../closed_sales/closed_sale_list_screen.dart';
 import '../closed_sales/closed_sale_controller.dart';
 import '../closed_sales/sale_detail_sreen.dart';
 import '../booking/booking_list.dart';
+import '../booking/booking_controller.dart';
 import '../global_search/global_search_dialog.dart';
 import '../global_search/global_barcode_listener.dart';
 import '../login/login_controller.dart';
@@ -326,6 +327,9 @@ class AppShellScreen extends GetView<AppShellController> {
     final loginController = Get.find<LoginController>();
     final themeController = Get.find<ThemeController>();
     final closedSaleController = Get.find<ClosedSaleController>();
+    final bookingController = Get.isRegistered<BookingController>()
+        ? Get.find<BookingController>()
+        : null;
     final noteController = Get.isRegistered<NoteController>()
         ? Get.find<NoteController>()
         : null;
@@ -478,6 +482,11 @@ class AppShellScreen extends GetView<AppShellController> {
                                       closedCount: closedSaleController
                                           .todayClosedSaleCount
                                           .value,
+                                      bookingCount:
+                                          bookingController
+                                              ?.todayDeliveryCount
+                                              .value ??
+                                          0,
                                     ),
                                   ),
                                   label: Text(destination.label),
@@ -550,17 +559,20 @@ class _RailDestinationIcon extends StatelessWidget {
     required this.destination,
     required this.pendingCount,
     required this.closedCount,
+    required this.bookingCount,
   });
 
   final AppDestination destination;
   final int pendingCount;
   final int closedCount;
+  final int bookingCount;
 
   @override
   Widget build(BuildContext context) {
     final badgeCount = switch (destination) {
       AppDestination.pendingSales => pendingCount,
       AppDestination.closedSales => closedCount,
+      AppDestination.booking => bookingCount,
       _ => null,
     };
     if (badgeCount == null) {
@@ -568,9 +580,12 @@ class _RailDestinationIcon extends StatelessWidget {
     }
     final colors = Theme.of(context).colorScheme;
     final countLabel = badgeCount > 99 ? '99+' : badgeCount.toString();
-    final keyPrefix = destination == AppDestination.pendingSales
-        ? 'pending'
-        : 'closed-sale';
+    final keyPrefix = switch (destination) {
+      AppDestination.pendingSales => 'pending',
+      AppDestination.closedSales => 'closed-sale',
+      AppDestination.booking => 'booking',
+      _ => destination.name,
+    };
     return SizedBox(
       width: 34,
       height: 32,

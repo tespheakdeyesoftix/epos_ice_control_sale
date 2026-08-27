@@ -27,6 +27,41 @@ class FrappeServerMessageException implements Exception {
 }
 
 abstract final class FrappeResponseHandler {
+  static String plainText(String value) {
+    var text = value
+        .replaceAll(RegExp(r'<br\s*/?>', caseSensitive: false), '\n')
+        .replaceAll(RegExp(r'</(?:p|div|li)>', caseSensitive: false), '\n')
+        .replaceAll(RegExp(r'<[^>]*>', multiLine: true), '');
+    text = text.replaceAllMapped(RegExp(r'&(?:#x[0-9a-f]+|#[0-9]+|\w+);'), (
+      match,
+    ) {
+      final entity = match.group(0)!;
+      final lower = entity.toLowerCase();
+      const named = {
+        '&amp;': '&',
+        '&lt;': '<',
+        '&gt;': '>',
+        '&quot;': '"',
+        '&apos;': "'",
+        '&#39;': "'",
+        '&nbsp;': ' ',
+      };
+      final namedValue = named[lower];
+      if (namedValue != null) return namedValue;
+      if (!lower.startsWith('&#')) return entity;
+      final isHex = lower.startsWith('&#x');
+      final digits = lower.substring(isHex ? 3 : 2, lower.length - 1);
+      final codePoint = int.tryParse(digits, radix: isHex ? 16 : 10);
+      if (codePoint == null || codePoint > 0x10ffff) return entity;
+      return String.fromCharCode(codePoint);
+    });
+    return text
+        .replaceAll(RegExp(r'[ \t\f\v]+'), ' ')
+        .replaceAll(RegExp(r' *\n *'), '\n')
+        .replaceAll(RegExp(r'\n{3,}'), '\n\n')
+        .trim();
+  }
+
   static List<FrappeServerMessage> parse(String responseBody) {
     try {
       final response = jsonDecode(responseBody);
@@ -39,7 +74,7 @@ abstract final class FrappeResponseHandler {
         try {
           rawMessages = jsonDecode(rawMessages);
         } on FormatException {
-          return [FrappeServerMessage(message: rawMessages)];
+          return [FrappeServerMessage(message: plainText(rawMessages))];
         }
       }
 
@@ -50,7 +85,7 @@ abstract final class FrappeResponseHandler {
           try {
             row = jsonDecode(row);
           } on FormatException {
-            final message = row.trim();
+            final message = plainText(row);
             if (message.isNotEmpty) {
               messages.add(FrappeServerMessage(message: message));
             }
@@ -58,7 +93,7 @@ abstract final class FrappeResponseHandler {
           }
         }
         if (row is! Map) continue;
-        final message = row['message']?.toString().trim() ?? '';
+        final message = plainText(row['message']?.toString() ?? '');
         if (message.isEmpty) continue;
         messages.add(
           FrappeServerMessage(
@@ -95,10 +130,11 @@ abstract final class FrappeResponseHandler {
 
       Get.rawSnackbar(
         messageText: Text(
-          serverMessage.message,
+          plainText(serverMessage.message),
           style: TextStyle(
             color: presentation.foreground,
-            fontWeight: FontWeight.w600,
+            fontFamily: AppTheme.fontFamily,
+            fontWeight: FontWeight.w700,
           ),
         ),
         icon: Icon(presentation.icon, color: presentation.foreground),

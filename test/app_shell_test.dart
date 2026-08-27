@@ -11,6 +11,7 @@ import 'package:ice_control_sale/app/app_theme.dart';
 import 'package:ice_control_sale/app/session_outlet_controller.dart';
 import 'package:ice_control_sale/app/theme_controller.dart';
 import 'package:ice_control_sale/features/closed_sales/closed_sale_controller.dart';
+import 'package:ice_control_sale/features/booking/booking_controller.dart';
 import 'package:ice_control_sale/features/login/login_controller.dart';
 import 'package:ice_control_sale/features/navigation/app_destination.dart';
 import 'package:ice_control_sale/features/navigation/app_shell_controller.dart';
@@ -18,6 +19,7 @@ import 'package:ice_control_sale/features/navigation/app_shell_screen.dart';
 import 'package:ice_control_sale/features/report/report_controller.dart';
 import 'package:ice_control_sale/features/sell/sell_controller.dart';
 import 'package:ice_control_sale/services/customer_service.dart';
+import 'package:ice_control_sale/services/booking_service.dart';
 import 'package:ice_control_sale/services/frappe_response_handler.dart';
 import 'package:ice_control_sale/services/frappe_session_client.dart';
 import 'package:ice_control_sale/services/product_service.dart';
@@ -200,7 +202,6 @@ void main() {
           .data,
       '4',
     );
-
     await _tapDestination(tester, AppDestination.pendingSales);
     expect(
       find.byKey(const ValueKey('pending-order-list-screen')),
@@ -261,6 +262,18 @@ void main() {
     await tester.pumpAndSettle();
     expect(harness.shell.selectedDestination.value, AppDestination.sale);
     expect(harness.sell.openedSale.value?.name, 'SO-DRAFT-0001');
+  });
+
+  testWidgets('booking rail badge shows today delivery count', (tester) async {
+    await _pumpShell(tester);
+
+    expect(find.byKey(const ValueKey('booking-rail-badge')), findsOneWidget);
+    expect(
+      tester
+          .widget<Text>(find.byKey(const ValueKey('booking-rail-count')))
+          .data,
+      '3',
+    );
   });
 
   testWidgets('closed sales screen lists metadata and opens sale details', (
@@ -594,7 +607,12 @@ Future<_ShellHarness> _pumpShell(
       return _jsonResponse({'message': 1});
     }
     if (request.url.path == '/api/method/frappe.desk.reportview.get_count') {
-      return _jsonResponse({'message': 4});
+      return _jsonResponse({
+        'message': request.url.queryParameters['doctype'] == 'Booking' ? 3 : 4,
+      });
+    }
+    if (request.url.path == '/api/resource/Booking') {
+      return _jsonResponse({'data': const []});
     }
     if (request.url.path == '/api/resource/Sale') {
       final filters = request.url.queryParameters['filters'] ?? '';
@@ -749,6 +767,11 @@ Future<_ShellHarness> _pumpShell(
   Get.put<SellController>(sell);
   final shell = AppShellController(sellController: sell);
   Get.put<AppShellController>(shell);
+  Get.lazyPut<BookingController>(
+    () => BookingController(
+      service: BookingService(baseUri, client: sessionClient),
+    ),
+  );
   final outletController = SessionOutletController(
     configuredOutlet: 'áž‘áž¹áž€áž€áž€ážŠáž¾áž˜',
   );

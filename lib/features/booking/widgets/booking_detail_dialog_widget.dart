@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../../app/app_theme.dart';
+import '../../../features/closed_sales/closed_sale.dart';
 import '../../../services/booking_service.dart';
+import '../../../services/frappe_response_handler.dart';
+import '../../../services/sale_service.dart';
 import '../../../utils/helpers.dart';
 import '../booking.dart';
 import 'new_booking_dialog_widget.dart';
@@ -10,16 +14,22 @@ Future<void> showBookingDetailDialog(
   BuildContext context, {
   required Booking booking,
   required BookingService service,
+  SaleService? saleService,
+  String outlet = '',
   Future<void> Function()? onUpdated,
   Future<bool> Function(Booking booking)? onCreateSale,
+  Future<void> Function(ClosedSale sale)? onOpenSale,
 }) {
   return showDialog<void>(
     context: context,
     builder: (_) => BookingDetailDialogWidget(
       booking: booking,
       service: service,
+      saleService: saleService,
+      outlet: outlet,
       onUpdated: onUpdated,
       onCreateSale: onCreateSale,
+      onOpenSale: onOpenSale,
     ),
   );
 }
@@ -29,14 +39,20 @@ class BookingDetailDialogWidget extends StatefulWidget {
     super.key,
     required this.booking,
     required this.service,
+    this.saleService,
+    this.outlet = '',
     this.onUpdated,
     this.onCreateSale,
+    this.onOpenSale,
   });
 
   final Booking booking;
   final BookingService service;
+  final SaleService? saleService;
+  final String outlet;
   final Future<void> Function()? onUpdated;
   final Future<bool> Function(Booking booking)? onCreateSale;
+  final Future<void> Function(ClosedSale sale)? onOpenSale;
 
   @override
   State<BookingDetailDialogWidget> createState() =>
@@ -45,17 +61,56 @@ class BookingDetailDialogWidget extends StatefulWidget {
 
 class _BookingDetailDialogWidgetState extends State<BookingDetailDialogWidget> {
   late Future<Booking> _bookingFuture;
+  Future<List<ClosedSale>>? _relatedSalesFuture;
+  bool _isCheckingRelatedSales = false;
+  bool _hasIssuedSales = false;
   bool _isSaving = false;
 
   @override
   void initState() {
     super.initState();
     _bookingFuture = widget.service.getBooking(widget.booking.name);
+    _loadRelatedSales();
+  }
+
+  void _loadRelatedSales() {
+    final saleService = widget.saleService;
+    final outlet = widget.outlet.trim();
+    if (saleService == null || outlet.isEmpty) {
+      _relatedSalesFuture = null;
+      _isCheckingRelatedSales = false;
+      _hasIssuedSales = false;
+      return;
+    }
+
+    _isCheckingRelatedSales = true;
+    final request = saleService.getSalesForBooking(
+      outlet: outlet,
+      bookingNumber: widget.booking.name,
+    );
+    _relatedSalesFuture = request;
+    request.then(
+      (sales) {
+        if (!mounted || !identical(_relatedSalesFuture, request)) return;
+        setState(() {
+          _isCheckingRelatedSales = false;
+          _hasIssuedSales = sales.isNotEmpty;
+        });
+      },
+      onError: (_) {
+        if (!mounted || !identical(_relatedSalesFuture, request)) return;
+        setState(() {
+          _isCheckingRelatedSales = false;
+          _hasIssuedSales = false;
+        });
+      },
+    );
   }
 
   void _retry() {
     setState(() {
       _bookingFuture = widget.service.getBooking(widget.booking.name);
+      _loadRelatedSales();
     });
   }
 
@@ -136,6 +191,8 @@ class _BookingDetailDialogWidgetState extends State<BookingDetailDialogWidget> {
         errorMessage: 'មិនអាចលុបការកក់បានទេ',
       );
       Navigator.of(context).pop();
+    } on FrappeServerMessageException {
+      if (mounted) setState(() => _isSaving = false);
     } on Exception {
       if (!mounted) return;
       setState(() => _isSaving = false);
@@ -149,7 +206,13 @@ class _BookingDetailDialogWidgetState extends State<BookingDetailDialogWidget> {
 
   Future<void> _createSale(Booking booking) async {
     final callback = widget.onCreateSale;
-    if (callback == null || _isSaving) return;
+    if (callback == null ||
+        _isSaving ||
+        _isCheckingRelatedSales ||
+        _hasIssuedSales ||
+        !booking.isDeliveredOn(DateTime.now())) {
+      return;
+    }
     setState(() => _isSaving = true);
     try {
       final created = await callback(booking);
@@ -224,6 +287,10 @@ class _BookingDetailDialogWidgetState extends State<BookingDetailDialogWidget> {
               onCreateSale: widget.onCreateSale == null
                   ? null
                   : () => _createSale(snapshot.data!),
+              relatedSalesFuture: _relatedSalesFuture,
+              isCheckingRelatedSales: _isCheckingRelatedSales,
+              hasIssuedSales: _hasIssuedSales,
+              onOpenSale: widget.onOpenSale,
             );
           },
         ),
@@ -238,18 +305,27 @@ class _BookingDetailContent extends StatelessWidget {
     required this.isSaving,
     required this.onEdit,
     required this.onDelete,
+    required this.isCheckingRelatedSales,
+    required this.hasIssuedSales,
+    this.relatedSalesFuture,
     this.onCreateSale,
+    this.onOpenSale,
   });
 
   final Booking booking;
   final bool isSaving;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
+  final bool isCheckingRelatedSales;
+  final bool hasIssuedSales;
+  final Future<List<ClosedSale>>? relatedSalesFuture;
   final VoidCallback? onCreateSale;
+  final Future<void> Function(ClosedSale sale)? onOpenSale;
 
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
+    final canCreateSaleToday = booking.isDeliveredOn(DateTime.now());
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -287,11 +363,9 @@ class _BookingDetailContent extends StatelessWidget {
                   ],
                 ),
               ),
-              IconButton(
+              _TouchCloseButton(
                 key: const ValueKey('close-booking-detail'),
-                tooltip: 'បិទ',
                 onPressed: () => Navigator.of(context).pop(),
-                icon: const Icon(Icons.close_rounded),
               ),
             ],
           ),
@@ -303,6 +377,12 @@ class _BookingDetailContent extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                if (relatedSalesFuture != null) ...[
+                  _IssuedSalesCard(
+                    salesFuture: relatedSalesFuture!,
+                    onOpenSale: onOpenSale,
+                  ),
+                ],
                 Wrap(
                   spacing: 12,
                   runSpacing: 12,
@@ -386,7 +466,13 @@ class _BookingDetailContent extends StatelessWidget {
               if (onCreateSale != null) ...[
                 FilledButton.tonalIcon(
                   key: const ValueKey('create-sale-from-booking'),
-                  onPressed: isSaving ? null : onCreateSale,
+                  onPressed:
+                      isSaving ||
+                          isCheckingRelatedSales ||
+                          hasIssuedSales ||
+                          !canCreateSaleToday
+                      ? null
+                      : onCreateSale,
                   icon: const Icon(Icons.point_of_sale_rounded),
                   label: const Text('បង្កើតការលក់'),
                 ),
@@ -407,6 +493,111 @@ class _BookingDetailContent extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _TouchCloseButton extends StatelessWidget {
+  const _TouchCloseButton({super.key, required this.onPressed});
+
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = Theme.of(context).colorScheme.onSurfaceVariant;
+    return Tooltip(
+      message: 'បិទ',
+      child: Semantics(
+        button: true,
+        label: 'បិទ',
+        onTap: onPressed,
+        child: MouseRegion(
+          cursor: SystemMouseCursors.click,
+          child: Listener(
+            behavior: HitTestBehavior.opaque,
+            onPointerDown: (_) => onPressed(),
+            child: SizedBox.square(
+              dimension: 56,
+              child: Center(child: Icon(Icons.close_rounded, color: color)),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _IssuedSalesCard extends StatelessWidget {
+  const _IssuedSalesCard({required this.salesFuture, this.onOpenSale});
+
+  final Future<List<ClosedSale>> salesFuture;
+  final Future<void> Function(ClosedSale sale)? onOpenSale;
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<List<ClosedSale>>(
+      future: salesFuture,
+      builder: (context, snapshot) {
+        final sales = snapshot.data ?? const <ClosedSale>[];
+        if (snapshot.connectionState != ConnectionState.done ||
+            snapshot.hasError ||
+            sales.isEmpty) {
+          return const SizedBox.shrink();
+        }
+
+        final colors = Theme.of(context).colorScheme;
+        return Container(
+          key: const ValueKey('booking-issued-sales-card'),
+          margin: const EdgeInsets.only(bottom: 18),
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: colors.primaryContainer.withValues(alpha: .55),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: colors.primary.withValues(alpha: .35)),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(Icons.receipt_long_outlined, color: colors.primary),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'ការកក់នេះបានចេញការលក់រួចហើយ។ លេខវិក្កយបត្រ៖',
+                      style: TextStyle(
+                        color: colors.onPrimaryContainer,
+                        fontFamily: AppTheme.fontFamily,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        for (final sale in sales)
+                          OutlinedButton.icon(
+                            key: ValueKey('open-booking-sale-${sale.name}'),
+                            onPressed: onOpenSale == null
+                                ? null
+                                : () => onOpenSale!(sale),
+                            icon: const Icon(
+                              Icons.open_in_new_rounded,
+                              size: 16,
+                            ),
+                            label: Text(sale.name),
+                          ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

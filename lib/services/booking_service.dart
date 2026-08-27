@@ -137,6 +137,42 @@ class BookingService implements DoctypeDataSource {
     return bookings;
   }
 
+  Future<int> getTodayDeliveryCount() async {
+    final response = await _client
+        .get(
+          baseUri
+              .resolve(ApiEndpoint.reportViewCount)
+              .replace(
+                queryParameters: {
+                  'doctype': 'Booking',
+                  'filters': jsonEncode([
+                    ['Booking', 'delivery_date', 'Timespan', 'today'],
+                  ]),
+                  'fields': '[]',
+                  'distinct': 'false',
+                },
+              ),
+          headers: const {'Accept': 'application/json'},
+        )
+        .timeout(const Duration(seconds: 20));
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw BookingServiceException(response.statusCode);
+    }
+
+    dynamic payload = jsonDecode(response.body);
+    if (payload is Map && payload.containsKey('message')) {
+      payload = payload['message'];
+    }
+    if (payload is Map && payload.containsKey('count')) {
+      payload = payload['count'];
+    }
+    final count = payload is num
+        ? payload.toInt()
+        : int.tryParse(payload?.toString().trim() ?? '');
+    if (count == null) throw const BookingServiceException(200);
+    return count < 0 ? 0 : count;
+  }
+
   Future<Booking> getBooking(String name) async {
     final endpoint = baseUri.resolve(ApiEndpoint.booking(name));
     final response = await _client

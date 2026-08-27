@@ -14,7 +14,9 @@ class BookingController extends GetxController {
   final searchController = TextEditingController();
   final searchQuery = ''.obs;
   final isLoading = false.obs;
+  final isLoadingTodayDeliveryCount = false.obs;
   final isSavingBooking = false.obs;
+  final todayDeliveryCount = 0.obs;
   final errorMessage = RxnString();
 
   Timer? _searchDebounce;
@@ -56,9 +58,24 @@ class BookingController extends GetxController {
     _load();
   }
 
-  Future<void> load() {
+  Future<void> load() async {
     _searchDebounce?.cancel();
-    return _load(search: searchQuery.value.trim());
+    await Future.wait([
+      _load(search: searchQuery.value.trim()),
+      loadTodayDeliveryCount(),
+    ]);
+  }
+
+  Future<void> loadTodayDeliveryCount() async {
+    if (isLoadingTodayDeliveryCount.value) return;
+    isLoadingTodayDeliveryCount.value = true;
+    try {
+      todayDeliveryCount.value = await service.getTodayDeliveryCount();
+    } on Exception {
+      // Keep the last successful badge count when refreshing fails.
+    } finally {
+      isLoadingTodayDeliveryCount.value = false;
+    }
   }
 
   Future<bool> createBooking(Map<String, dynamic> data) async {

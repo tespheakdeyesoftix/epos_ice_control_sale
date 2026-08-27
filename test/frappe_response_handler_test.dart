@@ -45,6 +45,33 @@ void main() {
     expect(messages.single.indicator, isEmpty);
   });
 
+  test('converts linked Frappe errors to readable plain text', () {
+    final responseBody = jsonEncode({
+      '_server_messages': jsonEncode([
+        jsonEncode({
+          'message':
+              'Cannot delete or cancel because Booking '
+              '<a href="https://example.test/booking/BK2026-0002" '
+              'rel="noopener noreferrer">BK2026-0002</a> is linked with '
+              'Sale <a href="https://example.test/sale/SO2026-0249" '
+              'rel="noopener noreferrer">SO2026-0249</a> &amp; cannot be removed.',
+          'indicator': 'red',
+          'raise_exception': 1,
+        }),
+      ]),
+    });
+
+    final messages = FrappeResponseHandler.parse(responseBody);
+
+    expect(
+      messages.single.message,
+      'Cannot delete or cancel because Booking BK2026-0002 is linked with '
+      'Sale SO2026-0249 & cannot be removed.',
+    );
+    expect(messages.single.message, isNot(contains('<a')));
+    expect(messages.single.message, isNot(contains('href=')));
+  });
+
   test(
     'session client handles messages globally and preserves response',
     () async {

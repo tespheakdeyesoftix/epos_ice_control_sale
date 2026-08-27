@@ -643,6 +643,37 @@ class SaleService implements DoctypeDataSource {
     return null;
   }
 
+  Future<List<ClosedSale>> getSalesForBooking({
+    required String outlet,
+    required String bookingNumber,
+  }) async {
+    final normalizedOutlet = outlet.trim();
+    final normalizedBookingNumber = bookingNumber.trim();
+    if (normalizedOutlet.isEmpty || normalizedBookingNumber.isEmpty) {
+      return const [];
+    }
+
+    final rows = await getDoctypeRows(
+      doctype: 'Sale',
+      fields: _closedSaleFields,
+      filters: [
+        ['outlet', '=', normalizedOutlet],
+        ['booking_number', '=', normalizedBookingNumber],
+        [
+          'sale_status',
+          'in',
+          ['Closed', 'Draft'],
+        ],
+      ],
+      orderBy: 'creation desc',
+      limit: 200,
+    );
+    return rows
+        .map(ClosedSale.fromJson)
+        .where((sale) => sale.name.isNotEmpty)
+        .toList(growable: false);
+  }
+
   Future<List<ClosedSale>> getSplitBills({
     required String parentBillNumber,
   }) async {

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../closed_sales/sale_detail_sreen.dart';
 import 'booking.dart';
 import 'booking_controller.dart';
 import '../navigation/app_destination.dart';
@@ -56,12 +57,18 @@ class BookingListScreen extends StatelessWidget {
     Booking booking,
     BookingController controller,
   ) {
+    final sell = Get.isRegistered<AppShellController>()
+        ? Get.find<AppShellController>().sellController
+        : null;
     showBookingDetailDialog(
       context,
       booking: booking,
       service: controller.service,
+      saleService: sell?.saleService,
+      outlet: sell?.activeOutletName ?? '',
       onUpdated: controller.load,
       onCreateSale: (booking) => _createSaleFromBooking(context, booking),
+      onOpenSale: (sale) => showSaleDetail(context, sale: sale),
     );
   }
 
@@ -273,9 +280,9 @@ class BookingListScreen extends StatelessWidget {
                       return SliverGrid(
                         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                           crossAxisCount: columns,
-                          mainAxisSpacing: 14,
-                          crossAxisSpacing: 14,
-                          mainAxisExtent: 270,
+                          mainAxisSpacing: 10,
+                          crossAxisSpacing: 10,
+                          mainAxisExtent: 190,
                         ),
                         delegate: SliverChildBuilderDelegate(
                           (context, index) => BookingCardWidget(
@@ -478,22 +485,37 @@ class _TodaySection extends StatelessWidget {
         ),
       );
     }
-    return SizedBox(
-      height: 270,
-      child: ListView.separated(
-        padding: const EdgeInsets.symmetric(horizontal: 24),
-        scrollDirection: Axis.horizontal,
-        itemCount: bookings.length,
-        separatorBuilder: (_, _) => const SizedBox(width: 14),
-        itemBuilder: (context, index) => SizedBox(
-          width: 360,
-          child: BookingCardWidget(
-            booking: bookings[index],
-            isToday: true,
-            onTap: () => onTap(bookings[index]),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        const horizontalPadding = 24.0;
+        const spacing = 10.0;
+        final availableWidth = constraints.maxWidth - (horizontalPadding * 2);
+        final columns = availableWidth >= 1200
+            ? 3
+            : availableWidth >= 720
+            ? 2
+            : 1;
+        final cardWidth =
+            (availableWidth - (spacing * (columns - 1))) / columns;
+
+        return SizedBox(
+          height: 190,
+          child: ListView.separated(
+            padding: const EdgeInsets.symmetric(horizontal: horizontalPadding),
+            scrollDirection: Axis.horizontal,
+            itemCount: bookings.length,
+            separatorBuilder: (_, _) => const SizedBox(width: spacing),
+            itemBuilder: (context, index) => SizedBox(
+              width: cardWidth,
+              child: BookingCardWidget(
+                booking: bookings[index],
+                isToday: true,
+                onTap: () => onTap(bookings[index]),
+              ),
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }

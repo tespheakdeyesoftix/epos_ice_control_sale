@@ -711,4 +711,50 @@ void main() {
     expect(sentRequest.url.queryParameters['limit_page_length'], '1');
     expect(sale?.name, 'SO-SCAN-0001');
   });
+
+  test('lists Draft and Closed Sales issued from a booking', () async {
+    late http.Request sentRequest;
+    final service = SaleService(
+      Uri.parse('https://ice.test/'),
+      client: MockClient((request) async {
+        sentRequest = request;
+        return http.Response(
+          jsonEncode({
+            'data': [
+              {
+                'name': 'SALE-0002',
+                'posting_date': '2026-08-27',
+                'sale_status': 'Draft',
+              },
+              {
+                'name': 'SALE-0001',
+                'posting_date': '2026-08-26',
+                'sale_status': 'Closed',
+              },
+            ],
+          }),
+          200,
+        );
+      }),
+    );
+
+    final sales = await service.getSalesForBooking(
+      outlet: ' Main Outlet ',
+      bookingNumber: ' BK-0001 ',
+    );
+
+    final filters = jsonDecode(sentRequest.url.queryParameters['filters']!);
+    expect(sentRequest.url.path, '/api/resource/Sale');
+    expect(filters, [
+      ['outlet', '=', 'Main Outlet'],
+      ['booking_number', '=', 'BK-0001'],
+      [
+        'sale_status',
+        'in',
+        ['Closed', 'Draft'],
+      ],
+    ]);
+    expect(sentRequest.url.queryParameters['order_by'], 'creation desc');
+    expect(sales.map((sale) => sale.name), ['SALE-0002', 'SALE-0001']);
+  });
 }

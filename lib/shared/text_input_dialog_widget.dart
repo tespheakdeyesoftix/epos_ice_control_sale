@@ -1,4 +1,7 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 
 import '../services/note_preset_repository.dart';
 
@@ -84,6 +87,7 @@ class TextInputDialogWidget extends StatefulWidget {
 
 class _TextInputDialogWidgetState extends State<TextInputDialogWidget> {
   late final TextEditingController _controller;
+  late final FocusNode _inputFocusNode;
   NotePresetRepository? _presetRepository;
   List<String> _presets = const [];
   bool _isLoadingPresets = false;
@@ -99,6 +103,7 @@ class _TextInputDialogWidgetState extends State<TextInputDialogWidget> {
   void initState() {
     super.initState();
     _controller = TextEditingController(text: widget.initialValue);
+    _inputFocusNode = FocusNode();
     if (_hasRememberedValues) {
       _presetRepository =
           widget.presetRepository ?? GetStorageNotePresetRepository();
@@ -109,8 +114,53 @@ class _TextInputDialogWidgetState extends State<TextInputDialogWidget> {
 
   @override
   void dispose() {
+    _inputFocusNode.dispose();
     _controller.dispose();
     super.dispose();
+  }
+
+  Future<void> _openWindowsKeyboard() async {
+    _inputFocusNode.requestFocus();
+
+    try {
+      // Prefer the classic OSK. On some Windows 11 PCs TabTip starts in the
+      // background without presenting a keyboard window.
+      final windowsDirectory = Platform.environment['WINDIR'];
+      if (windowsDirectory != null) {
+        final classicKeyboard = File('$windowsDirectory\\System32\\osk.exe');
+        if (classicKeyboard.existsSync()) {
+          await Process.start('explorer.exe', [
+            classicKeyboard.path,
+          ], mode: ProcessStartMode.detached);
+          return;
+        }
+      }
+
+      // Fall back to the Windows touch keyboard when OSK is unavailable.
+      final commonProgramFiles = Platform.environment['COMMONPROGRAMFILES'];
+      if (commonProgramFiles != null) {
+        final touchKeyboard = File(
+          '$commonProgramFiles\\microsoft shared\\ink\\TabTip.exe',
+        );
+        if (touchKeyboard.existsSync()) {
+          await Process.start('explorer.exe', [
+            touchKeyboard.path,
+          ], mode: ProcessStartMode.detached);
+          return;
+        }
+      }
+
+      throw FileSystemException(
+        'Windows virtual keyboard was not found',
+        windowsDirectory,
+      );
+    } on Exception {
+      if (!mounted) return;
+      Get.rawSnackbar(
+        message: 'មិនអាចបើកក្ដារចុចលើអេក្រង់បានទេ',
+        snackPosition: SnackPosition.BOTTOM,
+      );
+    }
   }
 
   Future<void> _loadPresets() async {
@@ -174,6 +224,7 @@ class _TextInputDialogWidgetState extends State<TextInputDialogWidget> {
     return TextField(
       key: widget.inputKey ?? const ValueKey('text-input-dialog-input'),
       controller: _controller,
+      focusNode: _inputFocusNode,
       autofocus: true,
       enabled: !_isSaving,
       maxLength: widget.maxLength,
@@ -187,6 +238,14 @@ class _TextInputDialogWidgetState extends State<TextInputDialogWidget> {
         labelText: widget.labelText ?? widget.title,
         hintText: widget.hintText,
         prefixIcon: _isSingleLine ? Icon(widget.icon) : null,
+        suffixIcon: Platform.isWindows
+            ? IconButton(
+                key: const ValueKey('open-windows-virtual-keyboard'),
+                onPressed: _isSaving ? null : _openWindowsKeyboard,
+                tooltip: 'បើកក្ដារចុចលើអេក្រង់',
+                icon: const Icon(Icons.keyboard_rounded),
+              )
+            : null,
         alignLabelWithHint: !_isSingleLine,
       ),
     );
