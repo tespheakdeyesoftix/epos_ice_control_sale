@@ -87,6 +87,10 @@ void main() {
     await tester.pumpAndSettle();
     expect(requestedUri?.path, '/api/resource/Product');
     expect(requestedUri?.queryParameters.containsKey('outlet'), isFalse);
+    expect(
+      jsonDecode(requestedUri!.queryParameters['fields']!),
+      contains('allow_sum_qty'),
+    );
     await tester.tap(find.byKey(const ValueKey('select-booking-product-P-01')));
     await tester.pumpAndSettle();
     expect(selected?.code, 'P-01');
@@ -139,6 +143,15 @@ void main() {
 
     final price = find.byKey(const ValueKey('booking-product-price-P-01'));
     await tester.ensureVisible(price);
+    expect(
+      tester
+          .widget<EditableText>(
+            find.descendant(of: price, matching: find.byType(EditableText)),
+          )
+          .controller
+          .text,
+      '0',
+    );
     await tester.enterText(price, '10,000');
     await tester.pump();
 

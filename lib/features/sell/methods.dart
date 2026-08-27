@@ -51,6 +51,7 @@ extension SellControllerMethods on SellController {
       seller: savedSale?.seller ?? '',
       postingDate: postingDate.value,
       referenceNumber: referenceNumber.value,
+      bookingNumber: bookingNumber.value,
       note: saleNote.value,
       saleProducts: List.unmodifiable(saleProducts),
       customer: customer?.name ?? '',
@@ -94,6 +95,7 @@ extension SellControllerMethods on SellController {
           selectedDriver.value != null ||
           plateNumber.value.trim().isNotEmpty ||
           referenceNumber.value.trim().isNotEmpty ||
+          bookingNumber.value.trim().isNotEmpty ||
           saleNote.value.trim().isNotEmpty ||
           postingDate.value != _dateOnly(DateTime.now()));
   bool get _isSaleDirty {
@@ -127,6 +129,7 @@ extension SellControllerMethods on SellController {
       sale.postingDate ?? DateTime.now(),
     ).toIso8601String(),
     'reference_number': sale.referenceNumber.trim(),
+    'booking_number': sale.bookingNumber.trim(),
     'note': sale.note.trim(),
     'customer': sale.customer.trim(),
     'driver': sale.driver.trim(),
@@ -180,6 +183,7 @@ extension SellControllerMethods on SellController {
     openedSale.value = sale;
     postingDate.value = sale.postingDate ?? _dateOnly(DateTime.now());
     referenceNumber.value = sale.referenceNumber;
+    bookingNumber.value = sale.bookingNumber;
     saleNote.value = sale.note;
     saleProducts.assignAll(sale.saleProducts);
     selectedCustomer.value = sale.customer.isEmpty

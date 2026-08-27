@@ -85,10 +85,15 @@ class _NewBookingDialogWidgetState extends State<NewBookingDialogWidget> {
 
   Future<void> _selectDeliveryDate() async {
     final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final existingDate = _deliveryDate;
+    final firstDate = existingDate != null && existingDate.isBefore(today)
+        ? existingDate
+        : today;
     final value = await showDatePicker(
       context: context,
       initialDate: _deliveryDate ?? now,
-      firstDate: DateTime(now.year, now.month, now.day),
+      firstDate: firstDate,
       lastDate: DateTime(now.year + 10, 12, 31),
     );
     if (value != null && mounted) setState(() => _deliveryDate = value);
@@ -380,7 +385,9 @@ class _NewBookingDialogWidgetState extends State<NewBookingDialogWidget> {
 }
 
 class _BookingProductDraft {
-  _BookingProductDraft(this.product) : quantity = 1, price = product.price;
+  _BookingProductDraft(this.product)
+    : quantity = 1,
+      price = product.allowSumQuantity ? product.price : 0;
 
   _BookingProductDraft.fromBookingProduct(BookingProduct bookingProduct)
     : product = Product(
@@ -588,6 +595,7 @@ class _BookingProductSelectorDialogState
         'price',
         'color',
         'photo',
+        'allow_sum_qty',
         'default_sale_transaction_type',
       ],
       filters: const [

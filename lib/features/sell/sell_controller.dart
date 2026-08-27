@@ -63,6 +63,7 @@ class SellController extends GetxController {
   final plateNumber = ''.obs;
   final postingDate = _dateOnly(DateTime.now()).obs;
   final referenceNumber = ''.obs;
+  final bookingNumber = ''.obs;
   final saleNote = ''.obs;
   final isSaving = false.obs;
   final isPrinting = false.obs;
@@ -276,6 +277,10 @@ class SellController extends GetxController {
     referenceNumber.value = value.trim();
   }
 
+  void updateBookingNumber(String value) {
+    bookingNumber.value = value.trim();
+  }
+
   void updateSaleNote(String value) {
     saleNote.value = value.trim();
   }
@@ -298,7 +303,11 @@ class SellController extends GetxController {
         item.unit.trim() == product.unit.trim(),
   );
 
-  AddProductResult addProduct(Product product, {double quantity = 1}) {
+  AddProductResult addProduct(
+    Product product, {
+    double quantity = 1,
+    double? price,
+  }) {
     if (quantity <= 0 || hasProduct(product)) {
       return const AddProductResult(added: false);
     }
@@ -314,6 +323,9 @@ class SellController extends GetxController {
     var nextProduct = saleProduct.isBorrow || customerPrice == null
         ? saleProduct
         : saleProduct.copyWith(price: customerPrice.price);
+    if (price != null && !nextProduct.isBorrow) {
+      nextProduct = nextProduct.copyWith(price: price, productPrice: price);
+    }
     final evaluation = _evaluateCustomerFreeProduct(nextProduct);
     if (evaluation?.wasApplied ?? false) {
       nextProduct = nextProduct.copyWith(
@@ -566,6 +578,7 @@ class SellController extends GetxController {
     plateNumber.value = '';
     postingDate.value = _dateOnly(DateTime.now());
     referenceNumber.value = '';
+    bookingNumber.value = '';
     saleNote.value = '';
   }
 }

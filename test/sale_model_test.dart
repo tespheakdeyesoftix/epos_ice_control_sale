@@ -3,6 +3,20 @@ import 'package:ice_control_sale/features/sell/sale.dart';
 import 'package:ice_control_sale/features/sell/sale_product.dart';
 
 void main() {
+  test('Sale preserves booking number and note', () {
+    final sale = Sale.fromJson({
+      'outlet': 'Main',
+      'booking_number': 'BK2026-0001',
+      'note': 'Deliver before noon',
+      'sale_products': const [],
+    });
+
+    expect(sale.bookingNumber, 'BK2026-0001');
+    expect(sale.note, 'Deliver before noon');
+    expect(sale.toJson()['booking_number'], 'BK2026-0001');
+    expect(sale.toJson()['note'], 'Deliver before noon');
+  });
+
   test('SaleProduct preserves persisted child row name', () {
     final item = SaleProduct.fromJson({
       'name': 'SALE-PRODUCT-ROW-001',

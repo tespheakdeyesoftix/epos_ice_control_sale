@@ -77,7 +77,20 @@ void main() {
                     'name': 'BK2026-0002',
                     'delivery_date': deliveryDate,
                     'customer_name': 'Sokha',
-                    'booking_products': const [],
+                    'phone_number': '012345678',
+                    'booking_event': 'Wedding',
+                    'address': 'Phnom Penh',
+                    'note': 'Call first',
+                    'booking_products': const [
+                      {
+                        'product_code': 'P-01',
+                        'product_name': 'Ice',
+                        'unit': 'Bag',
+                        'quantity': 50,
+                        'price': 10000,
+                        'transaction_type': 'Sale',
+                      },
+                    ],
                   }
                 : [
                     {
@@ -103,6 +116,41 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('ព័ត៌មានលម្អិតការកក់'), findsOneWidget);
+    expect(find.byKey(const ValueKey('booking-detail-note')), findsOneWidget);
+    expect(find.text('Call first'), findsOneWidget);
+    expect(find.byKey(const ValueKey('delete-booking')), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('delete-booking')));
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('delete-booking-confirmation')),
+      findsOneWidget,
+    );
+    await tester.tap(find.byKey(const ValueKey('cancel-delete-booking')));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('edit-booking')));
+    await tester.pumpAndSettle();
+    expect(find.text('កែប្រែការកក់'), findsOneWidget);
+    expect(
+      tester
+          .widget<TextFormField>(
+            find.byKey(const ValueKey('new-booking-customer-name')),
+          )
+          .controller
+          ?.text,
+      'Sokha',
+    );
+    expect(
+      tester
+          .widget<TextFormField>(
+            find.byKey(const ValueKey('new-booking-phone-number')),
+          )
+          .controller
+          ?.text,
+      '012345678',
+    );
+    expect(find.byKey(const ValueKey('booking-product-P-01')), findsOneWidget);
   });
 
   testWidgets('new booking FAB opens the customer details dialog', (
@@ -131,6 +179,38 @@ void main() {
       find.byKey(const ValueKey('new-booking-phone-number')),
       findsOneWidget,
     );
+  });
+
+  testWidgets('today delivery is not duplicated in all bookings', (
+    tester,
+  ) async {
+    final today = DateTime.now();
+    final deliveryDate =
+        '${today.year}-${today.month.toString().padLeft(2, '0')}-'
+        '${today.day.toString().padLeft(2, '0')}';
+    final service = BookingService(
+      Uri.parse('https://ice.test/'),
+      client: MockClient(
+        (_) async => http.Response(
+          jsonEncode({
+            'data': [
+              {
+                'name': 'BK-TODAY',
+                'delivery_date': deliveryDate,
+                'customer_name': 'Today Customer',
+              },
+            ],
+          }),
+          200,
+        ),
+      ),
+    );
+    Get.put(BookingController(service: service));
+
+    await tester.pumpWidget(const GetMaterialApp(home: BookingListScreen()));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('booking-card-BK-TODAY')), findsOneWidget);
   });
 
   testWidgets('searches bookings by number, phone, and customer', (

@@ -10,6 +10,7 @@ class Sale {
     this.namingSeries = 'SO.YYYY.-.####',
     this.postingDate,
     this.referenceNumber = '',
+    this.bookingNumber = '',
     this.stockLocation = '',
     this.seller = '',
     this.customer = '',
@@ -50,6 +51,7 @@ class Sale {
           : textValue(json['naming_series']),
       postingDate: DateTime.tryParse(textValue(json['posting_date'])),
       referenceNumber: textValue(json['reference_number']),
+      bookingNumber: textValue(json['booking_number']),
       outlet: textValue(json['outlet']),
       stockLocation: textValue(json['stock_location']),
       seller: textValue(json['seller']),
@@ -103,6 +105,7 @@ class Sale {
   final String namingSeries;
   final DateTime? postingDate;
   final String referenceNumber;
+  final String bookingNumber;
   final String outlet;
   final String stockLocation;
   final String seller;
@@ -154,6 +157,7 @@ class Sale {
       'naming_series': namingSeries,
       'posting_date': _dateOnly(date),
       'reference_number': referenceNumber,
+      'booking_number': bookingNumber,
       'outlet': outlet,
       'stock_location': stockLocation,
       'seller': seller,

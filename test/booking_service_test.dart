@@ -135,6 +135,52 @@ void main() {
     expect(saved.name, 'BK2026-0002');
   });
 
+  test('updates an encoded Booking resource with PUT', () async {
+    late http.Request sentRequest;
+    final service = BookingService(
+      Uri.parse('https://ice.test/'),
+      client: MockClient((request) async {
+        sentRequest = request;
+        return http.Response(
+          jsonEncode({
+            'data': {
+              'name': 'BK2026/0002',
+              'booking_event': 'Wedding',
+              'phone_number': '012345678',
+            },
+          }),
+          200,
+        );
+      }),
+    );
+
+    final saved = await service.updateBooking('BK2026/0002', {
+      'booking_event': 'Wedding',
+      'phone_number': '012345678',
+    });
+
+    expect(sentRequest.method, 'PUT');
+    expect(sentRequest.url.path, '/api/resource/Booking/BK2026%2F0002');
+    expect(jsonDecode(sentRequest.body)['booking_event'], 'Wedding');
+    expect(saved.name, 'BK2026/0002');
+  });
+
+  test('deletes an encoded Booking resource with DELETE', () async {
+    late http.Request sentRequest;
+    final service = BookingService(
+      Uri.parse('https://ice.test/'),
+      client: MockClient((request) async {
+        sentRequest = request;
+        return http.Response('{}', 202);
+      }),
+    );
+
+    await service.deleteBooking('BK2026/0002');
+
+    expect(sentRequest.method, 'DELETE');
+    expect(sentRequest.url.path, '/api/resource/Booking/BK2026%2F0002');
+  });
+
   test('recognizes delivery dates using calendar date only', () {
     final booking = Booking.fromJson({
       'name': 'BK2026-0001',

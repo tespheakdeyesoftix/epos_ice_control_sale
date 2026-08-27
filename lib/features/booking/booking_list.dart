@@ -3,8 +3,11 @@ import 'package:get/get.dart';
 
 import 'booking.dart';
 import 'booking_controller.dart';
+import '../navigation/app_destination.dart';
+import '../navigation/app_shell_controller.dart';
 import 'widgets/booking_card_widget.dart';
 import 'widgets/booking_detail_dialog_widget.dart';
+import 'widgets/booking_to_sale_dialog_widget.dart';
 import 'widgets/new_booking_dialog_widget.dart';
 import 'widgets/search_input_widget.dart';
 
@@ -58,6 +61,108 @@ class BookingListScreen extends StatelessWidget {
       booking: booking,
       service: controller.service,
       onUpdated: controller.load,
+      onCreateSale: (booking) => _createSaleFromBooking(context, booking),
+    );
+  }
+
+  Future<bool> _createSaleFromBooking(
+    BuildContext context,
+    Booking booking,
+  ) async {
+    if (!Get.isRegistered<AppShellController>()) {
+      _showBookingToast(context, 'មិនអាចបើកផ្ទាំងការលក់បានទេ', success: false);
+      return false;
+    }
+    final shell = Get.find<AppShellController>();
+    final sell = shell.sellController;
+    await sell.loadProducts();
+    if (!context.mounted) return false;
+
+    final selected = await showBookingToSaleProductDialog(
+      context,
+      bookingProducts: booking.products,
+      outletProducts: sell.products.toList(growable: false),
+      outletName: sell.activeOutletName,
+    );
+    if (selected == null || selected.isEmpty || !context.mounted) return false;
+
+    if (sell.isSaleDirty) {
+      final replace = await _confirmReplaceCurrentSale(context);
+      if (!replace || !context.mounted) return false;
+    }
+
+    sell.startNewSale();
+    sell.updateBookingNumber(booking.name);
+    if (booking.note.trim().isNotEmpty) {
+      sell.updateSaleNote(booking.note);
+    }
+    for (final selection in selected) {
+      sell.addProduct(
+        selection.outletProduct,
+        quantity: selection.bookingProduct.quantity,
+        price: selection.bookingProduct.price,
+      );
+    }
+    await shell.navigateTo(
+      AppDestination.sale,
+      resolveUnfinishedSale: () async => true,
+    );
+    return true;
+  }
+
+  Future<bool> _confirmReplaceCurrentSale(BuildContext context) async {
+    return await showDialog<bool>(
+          context: context,
+          builder: (dialogContext) => AlertDialog(
+            key: const ValueKey('replace-sale-from-booking-confirmation'),
+            icon: const Icon(Icons.warning_amber_rounded),
+            title: const Text('ជំនួសការលក់បច្ចុប្បន្ន?'),
+            content: const Text(
+              'ការលក់បច្ចុប្បន្នមានទិន្នន័យ។ តើអ្នកចង់លុបទិន្នន័យនោះ ហើយបង្កើតការលក់ពីការកក់នេះមែនទេ?',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(false),
+                child: const Text('បោះបង់'),
+              ),
+              FilledButton(
+                key: const ValueKey('confirm-replace-sale-from-booking'),
+                onPressed: () => Navigator.of(dialogContext).pop(true),
+                child: const Text('ជំនួស'),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+  }
+
+  void _showBookingToast(
+    BuildContext context,
+    String message, {
+    required bool success,
+  }) {
+    final colors = Theme.of(context).colorScheme;
+    Get.rawSnackbar(
+      messageText: Text(
+        message,
+        style: TextStyle(
+          color: success ? colors.onPrimary : colors.onError,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+      icon: Icon(
+        success
+            ? Icons.check_circle_outline_rounded
+            : Icons.error_outline_rounded,
+        color: success ? colors.onPrimary : colors.onError,
+      ),
+      snackPosition: SnackPosition.TOP,
+      snackStyle: SnackStyle.FLOATING,
+      maxWidth: 540,
+      margin: const EdgeInsets.only(top: 18),
+      borderRadius: 12,
+      backgroundColor: success ? colors.primary : colors.error,
+      duration: const Duration(seconds: 4),
     );
   }
 
@@ -104,7 +209,10 @@ class BookingListScreen extends StatelessWidget {
           }
 
           final today = controller.todayDeliveries;
-          final all = controller.filteredBookings;
+          final now = DateTime.now();
+          final all = controller.filteredBookings
+              .where((booking) => !booking.isDeliveredOn(now))
+              .toList(growable: false);
           return CustomScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
             slivers: [

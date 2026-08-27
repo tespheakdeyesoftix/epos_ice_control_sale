@@ -11,6 +11,7 @@ Future<void> showBookingDetailDialog(
   required Booking booking,
   required BookingService service,
   Future<void> Function()? onUpdated,
+  Future<bool> Function(Booking booking)? onCreateSale,
 }) {
   return showDialog<void>(
     context: context,
@@ -18,6 +19,7 @@ Future<void> showBookingDetailDialog(
       booking: booking,
       service: service,
       onUpdated: onUpdated,
+      onCreateSale: onCreateSale,
     ),
   );
 }
@@ -28,11 +30,13 @@ class BookingDetailDialogWidget extends StatefulWidget {
     required this.booking,
     required this.service,
     this.onUpdated,
+    this.onCreateSale,
   });
 
   final Booking booking;
   final BookingService service;
   final Future<void> Function()? onUpdated;
+  final Future<bool> Function(Booking booking)? onCreateSale;
 
   @override
   State<BookingDetailDialogWidget> createState() =>
@@ -69,19 +73,101 @@ class _BookingDetailDialogWidgetState extends State<BookingDetailDialogWidget> {
       await widget.onUpdated?.call();
       if (!mounted) return;
       setState(() => _bookingFuture = Future.value(refreshed));
-      _showToast(success: true);
+      _showToast(
+        success: true,
+        successMessage: 'បានកែប្រែការកក់ដោយជោគជ័យ',
+        errorMessage: 'មិនអាចកែប្រែការកក់បានទេ',
+      );
     } on Exception {
-      if (mounted) _showToast(success: false);
+      if (mounted) {
+        _showToast(
+          success: false,
+          successMessage: 'បានកែប្រែការកក់ដោយជោគជ័យ',
+          errorMessage: 'មិនអាចកែប្រែការកក់បានទេ',
+        );
+      }
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }
   }
 
-  void _showToast({required bool success}) {
+  Future<void> _delete(Booking booking) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        key: const ValueKey('delete-booking-confirmation'),
+        icon: Icon(
+          Icons.warning_amber_rounded,
+          color: Theme.of(dialogContext).colorScheme.error,
+        ),
+        title: const Text('លុបការកក់?'),
+        content: Text(
+          'តើអ្នកពិតជាចង់លុបការកក់ ${booking.name} មែនទេ? សកម្មភាពនេះមិនអាចត្រឡប់វិញបានទេ។',
+        ),
+        actions: [
+          TextButton(
+            key: const ValueKey('cancel-delete-booking'),
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('បោះបង់'),
+          ),
+          FilledButton.icon(
+            key: const ValueKey('confirm-delete-booking'),
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(dialogContext).colorScheme.error,
+              foregroundColor: Theme.of(dialogContext).colorScheme.onError,
+            ),
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            icon: const Icon(Icons.delete_outline_rounded),
+            label: const Text('លុប'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    setState(() => _isSaving = true);
+    try {
+      await widget.service.deleteBooking(booking.name);
+      await widget.onUpdated?.call();
+      if (!mounted) return;
+      _showToast(
+        success: true,
+        successMessage: 'បានលុបការកក់ដោយជោគជ័យ',
+        errorMessage: 'មិនអាចលុបការកក់បានទេ',
+      );
+      Navigator.of(context).pop();
+    } on Exception {
+      if (!mounted) return;
+      setState(() => _isSaving = false);
+      _showToast(
+        success: false,
+        successMessage: 'បានលុបការកក់ដោយជោគជ័យ',
+        errorMessage: 'មិនអាចលុបការកក់បានទេ',
+      );
+    }
+  }
+
+  Future<void> _createSale(Booking booking) async {
+    final callback = widget.onCreateSale;
+    if (callback == null || _isSaving) return;
+    setState(() => _isSaving = true);
+    try {
+      final created = await callback(booking);
+      if (created && mounted) Navigator.of(context).pop();
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
+    }
+  }
+
+  void _showToast({
+    required bool success,
+    required String successMessage,
+    required String errorMessage,
+  }) {
     final colors = Theme.of(context).colorScheme;
     Get.rawSnackbar(
       messageText: Text(
-        success ? 'បានកែប្រែការកក់ដោយជោគជ័យ' : 'មិនអាចកែប្រែការកក់បានទេ',
+        success ? successMessage : errorMessage,
         style: TextStyle(
           color: success ? colors.onPrimary : colors.onError,
           fontWeight: FontWeight.w600,
@@ -134,6 +220,10 @@ class _BookingDetailDialogWidgetState extends State<BookingDetailDialogWidget> {
               booking: snapshot.data!,
               isSaving: _isSaving,
               onEdit: () => _edit(snapshot.data!),
+              onDelete: () => _delete(snapshot.data!),
+              onCreateSale: widget.onCreateSale == null
+                  ? null
+                  : () => _createSale(snapshot.data!),
             );
           },
         ),
@@ -147,11 +237,15 @@ class _BookingDetailContent extends StatelessWidget {
     required this.booking,
     required this.isSaving,
     required this.onEdit,
+    required this.onDelete,
+    this.onCreateSale,
   });
 
   final Booking booking;
   final bool isSaving;
   final VoidCallback onEdit;
+  final VoidCallback onDelete;
+  final VoidCallback? onCreateSale;
 
   @override
   Widget build(BuildContext context) {
@@ -193,18 +287,6 @@ class _BookingDetailContent extends StatelessWidget {
                   ],
                 ),
               ),
-              FilledButton.tonalIcon(
-                key: const ValueKey('edit-booking'),
-                onPressed: isSaving ? null : onEdit,
-                icon: isSaving
-                    ? const SizedBox.square(
-                        dimension: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.edit_outlined),
-                label: const Text('កែប្រែ'),
-              ),
-              const SizedBox(width: 6),
               IconButton(
                 key: const ValueKey('close-booking-detail'),
                 tooltip: 'បិទ',
@@ -262,6 +344,10 @@ class _BookingDetailContent extends StatelessWidget {
                   const SizedBox(height: 18),
                   _AddressCard(address: booking.address),
                 ],
+                if (booking.note.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  _NoteCard(note: booking.note),
+                ],
                 const SizedBox(height: 24),
                 Text(
                   'ផលិតផល (${booking.products.length})',
@@ -278,6 +364,46 @@ class _BookingDetailContent extends StatelessWidget {
                   ),
               ],
             ),
+          ),
+        ),
+        Divider(height: 1, color: colors.outlineVariant),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              OutlinedButton.icon(
+                key: const ValueKey('delete-booking'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: colors.error,
+                  side: BorderSide(color: colors.error),
+                ),
+                onPressed: isSaving ? null : onDelete,
+                icon: const Icon(Icons.delete_outline_rounded),
+                label: const Text('លុប'),
+              ),
+              const SizedBox(width: 10),
+              if (onCreateSale != null) ...[
+                FilledButton.tonalIcon(
+                  key: const ValueKey('create-sale-from-booking'),
+                  onPressed: isSaving ? null : onCreateSale,
+                  icon: const Icon(Icons.point_of_sale_rounded),
+                  label: const Text('បង្កើតការលក់'),
+                ),
+                const SizedBox(width: 10),
+              ],
+              FilledButton.icon(
+                key: const ValueKey('edit-booking'),
+                onPressed: isSaving ? null : onEdit,
+                icon: isSaving
+                    ? const SizedBox.square(
+                        dimension: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.edit_outlined),
+                label: const Text('កែប្រែ'),
+              ),
+            ],
           ),
         ),
       ],
@@ -363,6 +489,48 @@ class _AddressCard extends StatelessWidget {
           Icon(Icons.location_on_outlined, color: colors.onSecondaryContainer),
           const SizedBox(width: 10),
           Expanded(child: Text(address)),
+        ],
+      ),
+    );
+  }
+}
+
+class _NoteCard extends StatelessWidget {
+  const _NoteCard({required this.note});
+
+  final String note;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Container(
+      key: const ValueKey('booking-detail-note'),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: colors.tertiaryContainer.withValues(alpha: .45),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.notes_rounded, color: colors.onTertiaryContainer),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'កំណត់ចំណាំ',
+                  style: TextStyle(
+                    color: colors.onTertiaryContainer,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(note),
+              ],
+            ),
+          ),
         ],
       ),
     );

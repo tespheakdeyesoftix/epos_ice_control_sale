@@ -211,6 +211,18 @@ class BookingService implements DoctypeDataSource {
     if (saved.name.isEmpty) throw const BookingServiceException(200);
     return saved;
   }
+
+  Future<void> deleteBooking(String name) async {
+    final response = await _client
+        .delete(
+          baseUri.resolve(ApiEndpoint.booking(name)),
+          headers: const {'Accept': 'application/json'},
+        )
+        .timeout(const Duration(seconds: 30));
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw BookingServiceException(response.statusCode);
+    }
+  }
 }
 
 class BookingServiceException implements Exception {
