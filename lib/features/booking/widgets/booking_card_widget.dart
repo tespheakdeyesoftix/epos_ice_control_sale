@@ -95,6 +95,14 @@ class BookingCardWidget extends StatelessWidget {
                 icon: Icons.local_shipping_outlined,
                 text: formatDate(booking.deliveryDate),
               ),
+              if (booking.productsDescription.isNotEmpty) ...[
+                const SizedBox(height: 7),
+                _CardLine(
+                  icon: Icons.inventory_2_outlined,
+                  text: booking.productsDescription,
+                  maxLines: 3,
+                ),
+              ],
               const Spacer(),
               Divider(height: 1, color: colors.outlineVariant),
               const SizedBox(height: 11),
@@ -135,20 +143,26 @@ class BookingCardWidget extends StatelessWidget {
 }
 
 class _CardLine extends StatelessWidget {
-  const _CardLine({required this.icon, required this.text});
+  const _CardLine({required this.icon, required this.text, this.maxLines = 1});
 
   final IconData icon;
   final String text;
+  final int maxLines;
 
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Icon(icon, size: 18, color: colors.onSurfaceVariant),
         const SizedBox(width: 8),
         Expanded(
-          child: Text(text, maxLines: 1, overflow: TextOverflow.ellipsis),
+          child: Text(
+            text,
+            maxLines: maxLines,
+            overflow: TextOverflow.ellipsis,
+          ),
         ),
       ],
     );

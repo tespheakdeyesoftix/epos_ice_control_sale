@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 import '../app/api_endpoint.dart';
+import 'doctype_data_source.dart';
 import '../features/closed_sales/closed_sale.dart';
 import '../features/sell/pending_order.dart';
 import '../features/sell/sale.dart';
@@ -157,12 +158,14 @@ class PendingOrderWarningInfo {
   }
 }
 
-class SaleService {
+class SaleService implements DoctypeDataSource {
   SaleService(this.baseUri, {required http.Client client}) : _client = client;
 
+  @override
   final Uri baseUri;
   final http.Client _client;
 
+  @override
   Future<Map<String, dynamic>> getDoctypeMeta(String doctype) async {
     final response = await _client
         .get(
@@ -186,6 +189,7 @@ class SaleService {
     return Map<String, dynamic>.from(payload);
   }
 
+  @override
   Future<List<Map<String, dynamic>>> getDoctypeRows({
     required String doctype,
     required List<String> fields,

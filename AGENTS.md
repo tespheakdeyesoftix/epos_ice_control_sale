@@ -5,3 +5,8 @@
 
 - Translate **Outlet** into Khmer as **កន្លែងលក់**.
 - Do not use **សាខា** as the Khmer translation for **Outlet**.
+
+# UI notifications
+
+- Use GetX toast notifications (`Get.rawSnackbar`) for all transient toast messages.
+- Do not use `ScaffoldMessenger` or Flutter `SnackBar` for toast messages.

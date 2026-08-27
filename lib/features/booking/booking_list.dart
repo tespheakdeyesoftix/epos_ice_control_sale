@@ -5,10 +5,48 @@ import 'booking.dart';
 import 'booking_controller.dart';
 import 'widgets/booking_card_widget.dart';
 import 'widgets/booking_detail_dialog_widget.dart';
+import 'widgets/new_booking_dialog_widget.dart';
 import 'widgets/search_input_widget.dart';
 
 class BookingListScreen extends StatelessWidget {
   const BookingListScreen({super.key});
+
+  Future<void> _openNewBooking(
+    BuildContext context,
+    BookingController controller,
+  ) async {
+    final data = await showNewBookingDialog(
+      context,
+      dataSource: controller.service,
+    );
+    if (data == null || !context.mounted) return;
+    final saved = await controller.createBooking(data);
+    final toastContext = Get.context;
+    if (toastContext == null || !toastContext.mounted) return;
+    final colors = Theme.of(toastContext).colorScheme;
+    Get.rawSnackbar(
+      messageText: Text(
+        saved ? 'បានបង្កើតការកក់ដោយជោគជ័យ' : 'មិនអាចបង្កើតការកក់បានទេ',
+        style: TextStyle(
+          color: saved ? colors.onPrimary : colors.onError,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+      icon: Icon(
+        saved
+            ? Icons.check_circle_outline_rounded
+            : Icons.error_outline_rounded,
+        color: saved ? colors.onPrimary : colors.onError,
+      ),
+      snackPosition: SnackPosition.TOP,
+      snackStyle: SnackStyle.FLOATING,
+      maxWidth: 540,
+      margin: const EdgeInsets.only(top: 18),
+      borderRadius: 12,
+      backgroundColor: saved ? colors.primary : colors.error,
+      duration: const Duration(seconds: 4),
+    );
+  }
 
   void _openDetail(
     BuildContext context,
@@ -19,6 +57,7 @@ class BookingListScreen extends StatelessWidget {
       context,
       booking: booking,
       service: controller.service,
+      onUpdated: controller.load,
     );
   }
 
@@ -35,6 +74,22 @@ class BookingListScreen extends StatelessWidget {
     return Scaffold(
       key: const ValueKey('booking-list-screen'),
       backgroundColor: colors.surfaceContainerLow,
+      floatingActionButton: Obx(
+        () => FloatingActionButton.extended(
+          key: const ValueKey('new-booking-fab'),
+          tooltip: 'បង្កើតការកក់ថ្មី',
+          onPressed: controller.isSavingBooking.value
+              ? null
+              : () => _openNewBooking(context, controller),
+          icon: controller.isSavingBooking.value
+              ? const SizedBox.square(
+                  dimension: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Icon(Icons.add_rounded),
+          label: const Text('ការកក់ថ្មី'),
+        ),
+      ),
       body: RefreshIndicator(
         onRefresh: controller.load,
         child: Obx(() {
@@ -112,7 +167,7 @@ class BookingListScreen extends StatelessWidget {
                           crossAxisCount: columns,
                           mainAxisSpacing: 14,
                           crossAxisSpacing: 14,
-                          mainAxisExtent: 222,
+                          mainAxisExtent: 270,
                         ),
                         delegate: SliverChildBuilderDelegate(
                           (context, index) => BookingCardWidget(
@@ -316,7 +371,7 @@ class _TodaySection extends StatelessWidget {
       );
     }
     return SizedBox(
-      height: 222,
+      height: 270,
       child: ListView.separated(
         padding: const EdgeInsets.symmetric(horizontal: 24),
         scrollDirection: Axis.horizontal,

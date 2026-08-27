@@ -1,18 +1,24 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 
 import '../../../services/booking_service.dart';
 import '../../../utils/helpers.dart';
 import '../booking.dart';
+import 'new_booking_dialog_widget.dart';
 
 Future<void> showBookingDetailDialog(
   BuildContext context, {
   required Booking booking,
   required BookingService service,
+  Future<void> Function()? onUpdated,
 }) {
   return showDialog<void>(
     context: context,
-    builder: (_) =>
-        BookingDetailDialogWidget(booking: booking, service: service),
+    builder: (_) => BookingDetailDialogWidget(
+      booking: booking,
+      service: service,
+      onUpdated: onUpdated,
+    ),
   );
 }
 
@@ -21,10 +27,12 @@ class BookingDetailDialogWidget extends StatefulWidget {
     super.key,
     required this.booking,
     required this.service,
+    this.onUpdated,
   });
 
   final Booking booking;
   final BookingService service;
+  final Future<void> Function()? onUpdated;
 
   @override
   State<BookingDetailDialogWidget> createState() =>
@@ -33,6 +41,7 @@ class BookingDetailDialogWidget extends StatefulWidget {
 
 class _BookingDetailDialogWidgetState extends State<BookingDetailDialogWidget> {
   late Future<Booking> _bookingFuture;
+  bool _isSaving = false;
 
   @override
   void initState() {
@@ -44,6 +53,54 @@ class _BookingDetailDialogWidgetState extends State<BookingDetailDialogWidget> {
     setState(() {
       _bookingFuture = widget.service.getBooking(widget.booking.name);
     });
+  }
+
+  Future<void> _edit(Booking booking) async {
+    final data = await showNewBookingDialog(
+      context,
+      dataSource: widget.service,
+      booking: booking,
+    );
+    if (data == null || !mounted) return;
+    setState(() => _isSaving = true);
+    try {
+      await widget.service.updateBooking(booking.name, data);
+      final refreshed = await widget.service.getBooking(booking.name);
+      await widget.onUpdated?.call();
+      if (!mounted) return;
+      setState(() => _bookingFuture = Future.value(refreshed));
+      _showToast(success: true);
+    } on Exception {
+      if (mounted) _showToast(success: false);
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
+    }
+  }
+
+  void _showToast({required bool success}) {
+    final colors = Theme.of(context).colorScheme;
+    Get.rawSnackbar(
+      messageText: Text(
+        success ? 'បានកែប្រែការកក់ដោយជោគជ័យ' : 'មិនអាចកែប្រែការកក់បានទេ',
+        style: TextStyle(
+          color: success ? colors.onPrimary : colors.onError,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+      icon: Icon(
+        success
+            ? Icons.check_circle_outline_rounded
+            : Icons.error_outline_rounded,
+        color: success ? colors.onPrimary : colors.onError,
+      ),
+      snackPosition: SnackPosition.TOP,
+      snackStyle: SnackStyle.FLOATING,
+      maxWidth: 540,
+      margin: const EdgeInsets.only(top: 18),
+      borderRadius: 12,
+      backgroundColor: success ? colors.primary : colors.error,
+      duration: const Duration(seconds: 4),
+    );
   }
 
   @override
@@ -73,7 +130,11 @@ class _BookingDetailDialogWidgetState extends State<BookingDetailDialogWidget> {
                 child: _ErrorContent(onRetry: _retry),
               );
             }
-            return _BookingDetailContent(booking: snapshot.data!);
+            return _BookingDetailContent(
+              booking: snapshot.data!,
+              isSaving: _isSaving,
+              onEdit: () => _edit(snapshot.data!),
+            );
           },
         ),
       ),
@@ -82,9 +143,15 @@ class _BookingDetailDialogWidgetState extends State<BookingDetailDialogWidget> {
 }
 
 class _BookingDetailContent extends StatelessWidget {
-  const _BookingDetailContent({required this.booking});
+  const _BookingDetailContent({
+    required this.booking,
+    required this.isSaving,
+    required this.onEdit,
+  });
 
   final Booking booking;
+  final bool isSaving;
+  final VoidCallback onEdit;
 
   @override
   Widget build(BuildContext context) {
@@ -126,6 +193,18 @@ class _BookingDetailContent extends StatelessWidget {
                   ],
                 ),
               ),
+              FilledButton.tonalIcon(
+                key: const ValueKey('edit-booking'),
+                onPressed: isSaving ? null : onEdit,
+                icon: isSaving
+                    ? const SizedBox.square(
+                        dimension: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.edit_outlined),
+                label: const Text('កែប្រែ'),
+              ),
+              const SizedBox(width: 6),
               IconButton(
                 key: const ValueKey('close-booking-detail'),
                 tooltip: 'បិទ',

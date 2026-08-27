@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
-import '../services/sale_service.dart';
+import '../services/doctype_data_source.dart';
 import 'network_image.dart';
 
 class SelectDataValue {
@@ -14,7 +14,7 @@ class SelectDataValue {
 
 Future<SelectDataValue?> showSelectDataDialog(
   BuildContext context, {
-  required SaleService dataSource,
+  required DoctypeDataSource dataSource,
   required String doctype,
   String? label,
   List<List<dynamic>> filters = const [],
@@ -39,7 +39,7 @@ class SelectDataDialogWidget extends StatefulWidget {
     this.filters = const [],
   });
 
-  final SaleService dataSource;
+  final DoctypeDataSource dataSource;
   final String doctype;
   final String? label;
   final List<List<dynamic>> filters;

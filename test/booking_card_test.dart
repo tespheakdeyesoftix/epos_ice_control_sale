@@ -22,6 +22,8 @@ void main() {
       'booking_event': 'កម្មវិធីការ',
       'customer_name': 'Dara',
       'phone_number': '012545976',
+      'booking_products_description':
+          'ទឹកកកដើមធំ - (50 ដើម)\nទឹកកកដើមតូច - (70 ដើម)',
       'total_amount': 75000,
     });
 
@@ -30,7 +32,7 @@ void main() {
         home: Scaffold(
           body: SizedBox(
             width: 380,
-            height: 222,
+            height: 270,
             child: BookingCardWidget(
               booking: booking,
               isToday: true,
@@ -46,6 +48,10 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('Dara'), findsOneWidget);
+    expect(
+      find.text('ទឹកកកដើមធំ - (50 ដើម)\nទឹកកកដើមតូច - (70 ដើម)'),
+      findsOneWidget,
+    );
     expect(find.text('75,000 រៀល'), findsOneWidget);
     expect(find.text('ថ្ងៃនេះ'), findsOneWidget);
 
@@ -97,6 +103,34 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('ព័ត៌មានលម្អិតការកក់'), findsOneWidget);
+  });
+
+  testWidgets('new booking FAB opens the customer details dialog', (
+    tester,
+  ) async {
+    final service = BookingService(
+      Uri.parse('https://ice.test/'),
+      client: MockClient(
+        (_) async => http.Response(jsonEncode({'data': const []}), 200),
+      ),
+    );
+    Get.put(BookingController(service: service));
+
+    await tester.pumpWidget(const GetMaterialApp(home: BookingListScreen()));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('new-booking-fab')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('new-booking-dialog')), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('new-booking-customer-name')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('new-booking-phone-number')),
+      findsOneWidget,
+    );
   });
 
   testWidgets('searches bookings by number, phone, and customer', (

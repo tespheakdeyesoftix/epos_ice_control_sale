@@ -41,6 +41,8 @@ class Booking {
     required this.customerName,
     required this.phoneNumber,
     required this.address,
+    required this.note,
+    required this.productsDescription,
     required this.totalAmount,
     required this.createdBy,
     required this.creation,
@@ -57,6 +59,8 @@ class Booking {
       customerName: textValue(json['customer_name']),
       phoneNumber: textValue(json['phone_number']),
       address: textValue(json['address']),
+      note: textValue(json['note']),
+      productsDescription: textValue(json['booking_products_description']),
       totalAmount: toDoubleValue(json['total_amount']),
       createdBy: textValue(json['created_by']).isEmpty
           ? textValue(json['owner'])
@@ -81,6 +85,8 @@ class Booking {
   final String customerName;
   final String phoneNumber;
   final String address;
+  final String note;
+  final String productsDescription;
   final double totalAmount;
   final String createdBy;
   final DateTime? creation;

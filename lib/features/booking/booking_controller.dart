@@ -14,6 +14,7 @@ class BookingController extends GetxController {
   final searchController = TextEditingController();
   final searchQuery = ''.obs;
   final isLoading = false.obs;
+  final isSavingBooking = false.obs;
   final errorMessage = RxnString();
 
   Timer? _searchDebounce;
@@ -58,6 +59,20 @@ class BookingController extends GetxController {
   Future<void> load() {
     _searchDebounce?.cancel();
     return _load(search: searchQuery.value.trim());
+  }
+
+  Future<bool> createBooking(Map<String, dynamic> data) async {
+    if (isSavingBooking.value) return false;
+    isSavingBooking.value = true;
+    try {
+      await service.createBooking(data);
+      await load();
+      return true;
+    } on Exception {
+      return false;
+    } finally {
+      isSavingBooking.value = false;
+    }
   }
 
   Future<void> _load({String search = ''}) async {

@@ -21,6 +21,7 @@ void main() {
                   'name': 'BK2026-0001',
                   'delivery_date': '2026-08-25',
                   'customer_name': 'Dara',
+                  'booking_products_description': 'Ice - (50 Bag)',
                   'total_amount': 75000,
                 },
               ],
@@ -40,6 +41,10 @@ void main() {
       contains('delivery_date'),
     );
     expect(
+      jsonDecode(requestedUri.queryParameters['fields']!),
+      contains('booking_products_description'),
+    );
+    expect(
       requestedUri.queryParameters['order_by'],
       'delivery_date asc, creation desc',
     );
@@ -49,6 +54,7 @@ void main() {
       ['customer_name', 'like', '%Dara%'],
     ]);
     expect(bookings.single.name, 'BK2026-0001');
+    expect(bookings.single.productsDescription, 'Ice - (50 Bag)');
     expect(bookings.single.totalAmount, 75000);
   });
 
@@ -89,6 +95,44 @@ void main() {
     expect(requestedUri.path, '/api/resource/Booking/BK2026%2F0001');
     expect(booking.products.single.productCode, '01');
     expect(booking.totalQuantity, 50);
+  });
+
+  test('creates a Booking through the Frappe resource endpoint', () async {
+    late http.Request sentRequest;
+    final service = BookingService(
+      Uri.parse('https://ice.test/'),
+      client: MockClient((request) async {
+        sentRequest = request;
+        return http.Response(
+          jsonEncode({
+            'data': {
+              'name': 'BK2026-0002',
+              'customer_name': 'Dara',
+              'phone_number': '012345678',
+            },
+          }),
+          201,
+        );
+      }),
+    );
+
+    final saved = await service.createBooking({
+      'delivery_date': '2026-08-30',
+      'booking_event': 'Wedding',
+      'customer_name': 'Dara',
+      'phone_number': '012345678',
+      'booking_products': [
+        {'product_code': '01', 'quantity': 2, 'price': 1500},
+      ],
+    });
+
+    expect(sentRequest.method, 'POST');
+    expect(sentRequest.url.path, '/api/resource/Booking');
+    expect(sentRequest.headers['content-type'], 'application/json');
+    final body = jsonDecode(sentRequest.body) as Map<String, dynamic>;
+    expect(body['booking_event'], 'Wedding');
+    expect(body['booking_products'], hasLength(1));
+    expect(saved.name, 'BK2026-0002');
   });
 
   test('recognizes delivery dates using calendar date only', () {
