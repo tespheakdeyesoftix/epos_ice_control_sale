@@ -303,9 +303,28 @@ class SellController extends GetxController {
 
   void selectPaymentType(PaymentType paymentType) {
     if (!paymentType.isValid) throw const PaymentTypeValidationException();
+    recalculateSummary();
     payments.assign(
       SalePayment.fromPaymentType(paymentType, totalAmount: grandTotal),
     );
+  }
+
+  /// Refreshes checkout totals using the latest product summary metadata.
+  ///
+  /// Older draft rows can omit `allow_sum_qty`, which makes their line amount
+  /// visible while excluding it from the Sale-level quantity and amount.
+  void recalculateSummary() {
+    final recalculatedProducts = saleProducts
+        .map((line) {
+          final product = productByCode(line.productCode);
+          if (product == null ||
+              product.allowSumQuantity == line.allowSumQuantity) {
+            return line;
+          }
+          return line.copyWith(allowSumQuantity: product.allowSumQuantity);
+        })
+        .toList(growable: false);
+    saleProducts.assignAll(recalculatedProducts);
   }
 
   void validateDeleteBillPermission() {
@@ -519,6 +538,7 @@ class SellController extends GetxController {
   }
 
   Future<Map<String, dynamic>> saveOrder() async {
+    recalculateSummary();
     if (saleProducts.isEmpty || !hasSelectedCustomer || isSaving.value) {
       throw const SaleValidationException();
     }

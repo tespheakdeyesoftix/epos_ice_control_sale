@@ -3,16 +3,24 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 import '../app/api_endpoint.dart';
-import 'doctype_data_source.dart';
 import '../features/closed_sales/closed_sale.dart';
-import '../features/sell/pending_order.dart';
+import '../features/sell/deleted_order.dart';
 import '../features/sell/payment_type.dart';
+import '../features/sell/pending_order.dart';
 import '../features/sell/sale.dart';
+import 'doctype_data_source.dart';
 
 class PendingOrderPage {
   const PendingOrderPage({required this.items, required this.hasMore});
 
   final List<PendingOrder> items;
+  final bool hasMore;
+}
+
+class DeletedOrderPage {
+  const DeletedOrderPage({required this.items, required this.hasMore});
+
+  final List<DeletedOrder> items;
   final bool hasMore;
 }
 
@@ -283,6 +291,12 @@ class SaleService implements DoctypeDataSource {
     'creation',
     'modified',
   ];
+  static const _deletedOrderFields = [
+    ..._closedSaleFields,
+    'deleted_note',
+    'deleted_by',
+    'deleted_date',
+  ];
   static const closedSaleSortFields = {
     'name',
     'posting_date',
@@ -534,6 +548,65 @@ class SaleService implements DoctypeDataSource {
         .where((order) => order.name.isNotEmpty)
         .toList(growable: false);
     return PendingOrderPage(items: orders, hasMore: rows.length == limit);
+  }
+
+  Future<DeletedOrderPage> getDeletedOrders({
+    required String outlet,
+    String search = '',
+    String postingDate = '',
+    int offset = 0,
+    int limit = pendingOrderPageSize,
+  }) async {
+    final filters = <List<dynamic>>[
+      ['sale_status', '=', 'Deleted'],
+      ['outlet', '=', outlet],
+      if (postingDate.trim().isNotEmpty)
+        ['posting_date', '=', postingDate.trim()],
+    ];
+    final queryParameters = <String, String>{
+      'fields': jsonEncode(_deletedOrderFields),
+      'filters': jsonEncode(filters),
+      'order_by': 'deleted_date desc, modified desc',
+      'limit_start': '$offset',
+      'limit_page_length': '$limit',
+    };
+    final trimmedSearch = search.trim();
+    if (trimmedSearch.isNotEmpty) {
+      queryParameters['or_filters'] = jsonEncode([
+        for (final field in const [
+          'name',
+          'customer_name',
+          'customer',
+          'phone_number',
+          'deleted_note',
+          'deleted_by',
+        ])
+          [field, 'like', '%$trimmedSearch%'],
+      ]);
+    }
+    final response = await _client
+        .get(
+          baseUri
+              .resolve(ApiEndpoint.sales)
+              .replace(queryParameters: queryParameters),
+          headers: const {'Accept': 'application/json'},
+        )
+        .timeout(const Duration(seconds: 30));
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw SaleServiceException(response.statusCode);
+    }
+
+    final payload = jsonDecode(response.body);
+    final rows = payload is Map && payload['data'] is List
+        ? payload['data'] as List<dynamic>
+        : const <dynamic>[];
+    final orders = rows
+        .whereType<Map>()
+        .map((row) => DeletedOrder.fromJson(Map<String, dynamic>.from(row)))
+        .where((order) => order.sale.name.isNotEmpty)
+        .toList(growable: false);
+    return DeletedOrderPage(items: orders, hasMore: rows.length == limit);
   }
 
   Future<ClosedSalePage> getClosedSales({

@@ -170,6 +170,60 @@ void main() {
     expect(filters[2], ['status', '=', 'Unpaid']);
   });
 
+  test('lists deleted sales with deletion metadata for the outlet', () async {
+    late http.Request sentRequest;
+    final service = SaleService(
+      Uri.parse('https://ice.test/'),
+      client: MockClient((request) async {
+        sentRequest = request;
+        return http.Response(
+          jsonEncode({
+            'data': [
+              {
+                'name': 'SALE-DELETED-1',
+                'posting_date': '2026-08-28',
+                'customer_name': 'Customer A',
+                'sale_status': 'Deleted',
+                'deleted_note': 'Duplicate bill',
+                'deleted_by': 'Cashier 1',
+                'deleted_date': '2026-08-28 11:30:00',
+                'total_sale_quantity': 3,
+                'total_amount': 45000,
+              },
+            ],
+          }),
+          200,
+        );
+      }),
+    );
+
+    final page = await service.getDeletedOrders(
+      outlet: 'Main Outlet',
+      search: 'Duplicate',
+      postingDate: '2026-08-28',
+    );
+
+    final filters = jsonDecode(sentRequest.url.queryParameters['filters']!);
+    final fields = jsonDecode(sentRequest.url.queryParameters['fields']!);
+    expect(sentRequest.url.path, '/api/resource/Sale');
+    expect(filters, [
+      ['sale_status', '=', 'Deleted'],
+      ['outlet', '=', 'Main Outlet'],
+      ['posting_date', '=', '2026-08-28'],
+    ]);
+    expect(fields, containsAll(['deleted_note', 'deleted_by', 'deleted_date']));
+    expect(
+      sentRequest.url.queryParameters['order_by'],
+      'deleted_date desc, modified desc',
+    );
+    expect(page.items.single.sale.name, 'SALE-DELETED-1');
+    expect(page.items.single.deleteNote, 'Duplicate bill');
+    expect(page.items.single.deletedBy, 'Cashier 1');
+    expect(page.items.single.deletedDate, DateTime(2026, 8, 28, 11, 30));
+    expect(page.items.single.sale.deletedBy, 'Cashier 1');
+    expect(page.items.single.sale.deleteNote, 'Duplicate bill');
+  });
+
   test('ទាញចំនួនការលក់ដែលបានផ្អាកតាមសាខា', () async {
     late http.Request sentRequest;
     final client = MockClient((request) async {

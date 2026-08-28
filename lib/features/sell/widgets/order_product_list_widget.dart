@@ -433,7 +433,7 @@ class _OrderProductLine extends StatelessWidget {
                               key: ValueKey(
                                 'order-product-name-${line.productCode}',
                               ),
-                              maxLines: 1,
+                              maxLines: 2,
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
                                 color: colors.onSurface,

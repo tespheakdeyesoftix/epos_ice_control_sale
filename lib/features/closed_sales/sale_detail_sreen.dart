@@ -13,6 +13,7 @@ import '../../services/receipt_print_service.dart';
 import '../../shared/note_dialog_widget.dart';
 import '../../shared/receipts/print_preview_receipt.dart';
 import '../../shared/text_input_dialog_widget.dart';
+import '../../utils/helpers.dart';
 import 'closed_sale.dart';
 import 'closed_sale_controller.dart';
 import 'sale_detail_controller.dart';
@@ -365,6 +366,8 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
                 final currencySymbol =
                     controller.appSettingController?.current?.currencySymbol ??
                     '';
+                final isDeleted =
+                    sale.saleStatus.trim().toLowerCase() == 'deleted';
                 return Stack(
                   children: [
                     RefreshIndicator(
@@ -389,6 +392,13 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
                                     crossAxisAlignment:
                                         CrossAxisAlignment.stretch,
                                     children: [
+                                      if (isDeleted) ...[
+                                        _DeletedSaleNoticeCard(
+                                          summary: widget.sale,
+                                          rawDocument: controller.rawDocument,
+                                        ),
+                                        const SizedBox(height: 12),
+                                      ],
                                       SaleInvoiceHeaderCard(
                                         sale: sale,
                                         rawDocument: controller.rawDocument,
@@ -402,7 +412,9 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
                                         onRefresh: controller.isLoading.value
                                             ? null
                                             : controller.load,
-                                        onReprint: controller.isPrinting.value
+                                        onReprint:
+                                            isDeleted ||
+                                                controller.isPrinting.value
                                             ? null
                                             : (copies) =>
                                                   controller.reprintReceipt(
@@ -410,24 +422,26 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
                                                   ),
                                         onEdit:
                                             controller.closedSaleController ==
-                                                null
+                                                    null ||
+                                                isDeleted
                                             ? null
                                             : _editOrder,
                                         onDelete:
                                             controller.closedSaleController ==
-                                                null
+                                                    null ||
+                                                isDeleted
                                             ? null
                                             : _deleteOrder,
-                                        onPreview: _showPrintPreview,
+                                        onPreview: isDeleted
+                                            ? null
+                                            : _showPrintPreview,
                                         onPaymentHistory:
                                             controller.saleService == null
                                             ? null
                                             : _showPaymentHistory,
                                         paymentHistoryCount:
                                             controller.paymentHistory.length,
-                                        onViewSplitBills:
-                                            sale.canSplitBill &&
-                                                sale.totalSplitBill > 0
+                                        onViewSplitBills: sale.canSplitBill
                                             ? _viewSplitBills
                                             : null,
                                         onEditReferenceNumber:
@@ -446,6 +460,7 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
                                         currencySymbol: currencySymbol,
                                         showDocumentHeader:
                                             !widget.isDialogPresentation,
+                                        showDeleteAction: !isDeleted,
                                       ),
                                       if (controller.errorMessage.value !=
                                           null) ...[
@@ -566,6 +581,107 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
   }
 }
 
+class _DeletedSaleNoticeCard extends StatelessWidget {
+  const _DeletedSaleNoticeCard({
+    required this.summary,
+    required this.rawDocument,
+  });
+
+  final ClosedSale summary;
+  final Map<String, dynamic> rawDocument;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final deletedBy = _firstValue([
+      rawDocument['deleted__by'],
+      rawDocument['deleted_by'],
+      summary.deletedBy,
+    ]);
+    final deleteNote = _firstValue([
+      rawDocument['delete_note'],
+      summary.deleteNote,
+    ]);
+    final deletedDate =
+        DateTime.tryParse(textValue(rawDocument['deleted_date'])) ??
+        summary.deletedDate;
+    final deletedDateLabel = deletedDate == null
+        ? 'មិនមានព័ត៌មាន'
+        : formatExactDateTime(deletedDate);
+
+    return Container(
+      key: const ValueKey('deleted-sale-notice-card'),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: colors.errorContainer.withValues(alpha: .68),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: colors.error.withValues(alpha: .35)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: colors.error.withValues(alpha: .12),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(Icons.delete_forever_outlined, color: colors.error),
+          ),
+          const SizedBox(width: 13),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'បុងនេះត្រូវបានលុបរួចហើយ',
+                  style: TextStyle(
+                    color: colors.onErrorContainer,
+                    fontFamily: AppTheme.fontFamily,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 16,
+                  ),
+                ),
+                const SizedBox(height: 5),
+                Text(
+                  'បានលុបដោយ ${deletedBy.isEmpty ? 'មិនមានព័ត៌មាន' : deletedBy} នៅ $deletedDateLabel',
+                  style: TextStyle(
+                    color: colors.onErrorContainer,
+                    fontFamily: AppTheme.fontFamily,
+                    fontWeight: FontWeight.w400,
+                    height: 1.5,
+                  ),
+                ),
+                if (deleteNote.isNotEmpty) ...[
+                  const SizedBox(height: 3),
+                  Text(
+                    'មូលហេតុលុប៖ $deleteNote',
+                    style: TextStyle(
+                      color: colors.onErrorContainer,
+                      fontFamily: AppTheme.fontFamily,
+                      fontWeight: FontWeight.w700,
+                      height: 1.5,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _firstValue(List<Object?> values) {
+    for (final value in values) {
+      final text = textValue(value).trim();
+      if (text.isNotEmpty) return text;
+    }
+    return '';
+  }
+}
+
 class _SaleDetailDialogTitleBar extends StatelessWidget {
   const _SaleDetailDialogTitleBar({
     required this.sale,
@@ -636,7 +752,7 @@ class _SaleDetailDialogTitleBar extends StatelessWidget {
                     onOpenParent: onOpenParentBill!,
                   ),
                 ],
-                if (sale.canSplitBill && sale.totalSplitBill > 0) ...[
+                if (sale.canSplitBill) ...[
                   const SizedBox(width: 9),
                   const _DialogMasterInvoicePill(),
                 ],

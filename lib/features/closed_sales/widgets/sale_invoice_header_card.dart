@@ -29,6 +29,7 @@ class SaleInvoiceHeaderCard extends StatelessWidget {
     required this.isRefreshing,
     required this.currencySymbol,
     this.showDocumentHeader = true,
+    this.showDeleteAction = true,
   });
 
   final Sale sale;
@@ -51,12 +52,13 @@ class SaleInvoiceHeaderCard extends StatelessWidget {
   final bool isRefreshing;
   final String currencySymbol;
   final bool showDocumentHeader;
+  final bool showDeleteAction;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
-    final isMasterInvoice = sale.canSplitBill && sale.totalSplitBill > 0;
+    final isMasterInvoice = sale.canSplitBill;
     final isDark = theme.brightness == Brightness.dark;
     final background = isDark
         ? const [Color(0xFF173A58), Color(0xFF1D3151)]
@@ -221,12 +223,13 @@ class SaleInvoiceHeaderCard extends StatelessWidget {
                   badgeColor: colors.error,
                   onPressed: onPaymentHistory,
                 ),
-                _ActionButton(
-                  icon: Icons.delete_outline_rounded,
-                  label: 'លុបការកុម្ម៉ង់',
-                  onPressed: onDelete,
-                  destructive: true,
-                ),
+                if (showDeleteAction)
+                  _ActionButton(
+                    icon: Icons.delete_outline_rounded,
+                    label: 'លុបការកុម្ម៉ង់',
+                    onPressed: onDelete,
+                    destructive: true,
+                  ),
               ],
             ),
           ],

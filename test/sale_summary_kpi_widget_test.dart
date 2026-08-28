@@ -97,9 +97,12 @@ void main() {
     expect(find.byKey(const ValueKey('deleted-orders-kpi')), findsOneWidget);
   });
 
-  testWidgets('invokes completed and pending KPI actions', (tester) async {
+  testWidgets('invokes completed, pending, and deleted KPI actions', (
+    tester,
+  ) async {
     var salesTapped = false;
     var pendingTapped = false;
+    var deletedTapped = false;
     await tester.pumpWidget(
       MaterialApp(
         theme: AppTheme.light,
@@ -120,6 +123,7 @@ void main() {
             isLoading: false,
             onSalesTap: () => salesTapped = true,
             onPendingTap: () => pendingTapped = true,
+            onDeletedTap: () => deletedTapped = true,
           ),
         ),
       ),
@@ -127,8 +131,10 @@ void main() {
 
     await tester.tap(find.byKey(const ValueKey('daily-sales-kpi')));
     await tester.tap(find.byKey(const ValueKey('pending-orders-kpi')));
+    await tester.tap(find.byKey(const ValueKey('deleted-orders-kpi')));
 
     expect(salesTapped, isTrue);
     expect(pendingTapped, isTrue);
+    expect(deletedTapped, isTrue);
   });
 }

@@ -13,6 +13,7 @@ import '../navigation/app_destination.dart';
 import '../navigation/app_shell_controller.dart';
 import '../pending_sales/widgets/pending_sale_view_dialog_widget.dart';
 import '../sell/widgets/pending_order_list_dialog_widget.dart';
+import '../sell/widgets/deleted_order_list_dialog_widget.dart';
 import '../sell/sell_controller.dart';
 import 'sale_summary_controller.dart';
 import 'widgets/recent_order_widget.dart';
@@ -171,6 +172,14 @@ class SaleSummaryScreen extends StatelessWidget {
                               resolveUnfinishedSale: () async => true,
                             );
                           },
+                        );
+                      },
+                      onDeletedTap: () {
+                        showDeletedOrderListDialog(
+                          context,
+                          saleService: shell.sellController.saleService,
+                          outlet: outletSession.currentOutlet.value,
+                          onView: (sale) => showSaleDetail(context, sale: sale),
                         );
                       },
                     ),

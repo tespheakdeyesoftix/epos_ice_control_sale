@@ -54,8 +54,8 @@
   "html_sale_split_bill_list",
   "hidden_tab_tab",
   "hidden_section_section",
-  "delete_note",
-  "deleted__by",
+  "deleted_note",
+  "deleted_by",
   "deleted_date",
   "column_break_fdmd",
   "total_split_bill",
@@ -331,12 +331,12 @@
    "label": "Hidden Section"
   },
   {
-   "fieldname": "delete_note",
+   "fieldname": "deleted_note",
    "fieldtype": "Data",
    "label": "Delete Note"
   },
   {
-   "fieldname": "deleted__by",
+   "fieldname": "deleted_by",
    "fieldtype": "Data",
    "label": "Deleted  By"
   },

@@ -1047,6 +1047,7 @@ class _CheckoutPanel extends StatelessWidget {
   final bool compact;
 
   Future<void> _closeAndPrint(BuildContext context) async {
+    controller.recalculateSummary();
     final login = Get.isRegistered<LoginController>()
         ? Get.find<LoginController>()
         : null;
@@ -1071,6 +1072,7 @@ class _CheckoutPanel extends StatelessWidget {
   }
 
   Future<void> _saveOrder(BuildContext context) async {
+    controller.recalculateSummary();
     if (!controller.hasSelectedCustomer) {
       final selectNow = await showDialog<bool>(
         context: context,
@@ -1548,6 +1550,7 @@ class _BottomBar extends StatelessWidget {
   final SellController controller;
 
   Future<void> _requestPayment(BuildContext context) async {
+    controller.recalculateSummary();
     try {
       controller.requestPayment();
     } on PosPaymentPermissionException {

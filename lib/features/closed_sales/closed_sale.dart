@@ -22,6 +22,9 @@ class ClosedSale {
     this.seller = '',
     this.creation,
     this.modified,
+    this.deletedDate,
+    this.deleteNote = '',
+    this.deletedBy = '',
   });
 
   factory ClosedSale.fromJson(Map<String, dynamic> json) {
@@ -46,6 +49,9 @@ class ClosedSale {
       seller: textValue(json['seller']),
       creation: DateTime.tryParse(textValue(json['creation'])),
       modified: DateTime.tryParse(textValue(json['modified'])),
+      deletedDate: DateTime.tryParse(textValue(json['deleted_date'])),
+      deleteNote: textValue(json['delete_note']),
+      deletedBy: textValue(json['deleted__by'] ?? json['deleted_by']),
     );
   }
 
@@ -69,4 +75,7 @@ class ClosedSale {
   final String seller;
   final DateTime? creation;
   final DateTime? modified;
+  final DateTime? deletedDate;
+  final String deleteNote;
+  final String deletedBy;
 }

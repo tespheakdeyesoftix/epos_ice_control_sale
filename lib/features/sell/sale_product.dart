@@ -153,6 +153,7 @@ class SaleProduct {
     double? splitQuantity,
     double? price,
     String? saleTransactionType,
+    bool? allowSumQuantity,
     String? note,
   }) {
     final nextSaleTransactionType =
@@ -173,7 +174,7 @@ class SaleProduct {
       unit: unit ?? this.unit,
       multiplier: multiplier ?? this.multiplier,
       revenueGroup: revenueGroup,
-      allowSumQuantity: allowSumQuantity,
+      allowSumQuantity: allowSumQuantity ?? this.allowSumQuantity,
       isInventoryProduct: isInventoryProduct,
       quantity: quantity ?? this.quantity,
       price: nextIsBorrow ? 0 : price ?? this.price,

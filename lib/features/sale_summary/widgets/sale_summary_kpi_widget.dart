@@ -14,6 +14,7 @@ class SaleSummaryKpiWidget extends StatelessWidget {
     this.onRetry,
     this.onSalesTap,
     this.onPendingTap,
+    this.onDeletedTap,
   });
 
   final DailySaleSummary? summary;
@@ -22,6 +23,7 @@ class SaleSummaryKpiWidget extends StatelessWidget {
   final VoidCallback? onRetry;
   final VoidCallback? onSalesTap;
   final VoidCallback? onPendingTap;
+  final VoidCallback? onDeletedTap;
 
   @override
   Widget build(BuildContext context) {
@@ -52,7 +54,7 @@ class SaleSummaryKpiWidget extends StatelessWidget {
           onTap: onSalesTap,
         );
         final pending = _PendingKpiCard(summary: data, onTap: onPendingTap);
-        final deleted = _DeletedKpiCard(summary: data);
+        final deleted = _DeletedKpiCard(summary: data, onTap: onDeletedTap);
         return wide
             ? Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -147,7 +149,7 @@ class _SalesKpiCard extends StatelessWidget {
                   key: const ValueKey('daily-sale-amount'),
                   style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                     color: colors.onSurface,
-                    fontWeight: FontWeight.w800,
+                    fontWeight: FontWeight.w700,
                     letterSpacing: -0.5,
                   ),
                 ),
@@ -235,7 +237,7 @@ class _PendingKpiCard extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
                     color: colors.onSurface,
-                    fontWeight: FontWeight.w800,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -270,74 +272,88 @@ class _PendingKpiCard extends StatelessWidget {
 }
 
 class _DeletedKpiCard extends StatelessWidget {
-  const _DeletedKpiCard({required this.summary});
+  const _DeletedKpiCard({required this.summary, required this.onTap});
 
   final DailySaleSummary summary;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     final accent = colors.error;
-    return Container(
+    return Material(
       key: const ValueKey('deleted-orders-kpi'),
-      constraints: const BoxConstraints(minHeight: 150),
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: colors.errorContainer.withValues(alpha: 0.42),
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: accent.withValues(alpha: 0.2)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              _IconBadge(icon: Icons.delete_outline_rounded, color: accent),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  'ការលក់ដែលបានលុប',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+        splashColor: accent.withValues(alpha: 0.16),
+        highlightColor: accent.withValues(alpha: 0.07),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 150),
+          child: Ink(
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
+              color: colors.errorContainer.withValues(alpha: 0.42),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: accent.withValues(alpha: 0.2)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    _IconBadge(
+                      icon: Icons.delete_outline_rounded,
+                      color: accent,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'ការលក់ដែលបានលុប',
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.w700),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 18),
+                Text(
+                  '${formatMoney(summary.totalDeletedAmount)} រៀល',
+                  key: const ValueKey('daily-deleted-amount'),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    color: colors.onSurface,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 18),
-          Text(
-            '${formatMoney(summary.totalDeletedAmount)} រៀល',
-            key: const ValueKey('daily-deleted-amount'),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-              color: colors.onSurface,
-              fontWeight: FontWeight.w800,
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 14,
+                  runSpacing: 6,
+                  children: [
+                    _KpiMetric(
+                      key: const ValueKey('daily-deleted-orders'),
+                      icon: Icons.receipt_long_outlined,
+                      value: '${summary.totalDeletedOrder} បុង',
+                      color: accent,
+                    ),
+                    _KpiMetric(
+                      key: const ValueKey('daily-deleted-quantity'),
+                      icon: Icons.inventory_2_outlined,
+                      value: _quantityWithUnit(
+                        summary.totalDeletedQuantity,
+                        summary.defaultUnit,
+                      ),
+                      color: accent,
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 14,
-            runSpacing: 6,
-            children: [
-              _KpiMetric(
-                key: const ValueKey('daily-deleted-orders'),
-                icon: Icons.receipt_long_outlined,
-                value: '${summary.totalDeletedOrder} បុង',
-                color: accent,
-              ),
-              _KpiMetric(
-                key: const ValueKey('daily-deleted-quantity'),
-                icon: Icons.inventory_2_outlined,
-                value: _quantityWithUnit(
-                  summary.totalDeletedQuantity,
-                  summary.defaultUnit,
-                ),
-                color: accent,
-              ),
-            ],
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -366,7 +382,7 @@ class _KpiMetric extends StatelessWidget {
         style: TextStyle(
           color: Theme.of(context).colorScheme.onSurfaceVariant,
           fontSize: 12,
-          fontWeight: FontWeight.w600,
+          fontWeight: FontWeight.w700,
         ),
       ),
     ],
