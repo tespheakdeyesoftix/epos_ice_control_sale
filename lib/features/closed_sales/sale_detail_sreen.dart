@@ -275,11 +275,13 @@ class _SaleDetailScreenState extends State<SaleDetailScreen> {
     final selected = await showSplitBillListDialog(
       context,
       saleService: service,
-      parentBillNumber: controller.displayedSale.name,
+      parentSale: controller.displayedSale,
       canShowPrice: controller.displayedSale.canShowPrice,
       currencySymbol:
           controller.appSettingController?.current?.currencySymbol ?? '',
     );
+    if (!mounted) return;
+    await controller.load();
     if (selected == null || !mounted) return;
     await Navigator.of(context).push<void>(
       MaterialPageRoute<void>(

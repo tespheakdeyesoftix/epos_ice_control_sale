@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../utils/helpers.dart';
 import '../closed_sales/sale_detail_sreen.dart';
 import 'booking.dart';
 import 'booking_controller.dart';
@@ -25,31 +26,11 @@ class BookingListScreen extends StatelessWidget {
     );
     if (data == null || !context.mounted) return;
     final saved = await controller.createBooking(data);
-    final toastContext = Get.context;
-    if (toastContext == null || !toastContext.mounted) return;
-    final colors = Theme.of(toastContext).colorScheme;
-    Get.rawSnackbar(
-      messageText: Text(
-        saved ? 'បានបង្កើតការកក់ដោយជោគជ័យ' : 'មិនអាចបង្កើតការកក់បានទេ',
-        style: TextStyle(
-          color: saved ? colors.onPrimary : colors.onError,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-      icon: Icon(
-        saved
-            ? Icons.check_circle_outline_rounded
-            : Icons.error_outline_rounded,
-        color: saved ? colors.onPrimary : colors.onError,
-      ),
-      snackPosition: SnackPosition.TOP,
-      snackStyle: SnackStyle.FLOATING,
-      maxWidth: 540,
-      margin: const EdgeInsets.only(top: 18),
-      borderRadius: 12,
-      backgroundColor: saved ? colors.primary : colors.error,
-      duration: const Duration(seconds: 4),
-    );
+    if (saved) {
+      showSuccess('បានបង្កើតការកក់ដោយជោគជ័យ');
+    } else {
+      showError('មិនអាចបង្កើតការកក់បានទេ');
+    }
   }
 
   void _openDetail(
@@ -77,7 +58,7 @@ class BookingListScreen extends StatelessWidget {
     Booking booking,
   ) async {
     if (!Get.isRegistered<AppShellController>()) {
-      _showBookingToast(context, 'មិនអាចបើកផ្ទាំងការលក់បានទេ', success: false);
+      showError('មិនអាចបើកផ្ទាំងការលក់បានទេ');
       return false;
     }
     final shell = Get.find<AppShellController>();
@@ -141,36 +122,6 @@ class BookingListScreen extends StatelessWidget {
           ),
         ) ??
         false;
-  }
-
-  void _showBookingToast(
-    BuildContext context,
-    String message, {
-    required bool success,
-  }) {
-    final colors = Theme.of(context).colorScheme;
-    Get.rawSnackbar(
-      messageText: Text(
-        message,
-        style: TextStyle(
-          color: success ? colors.onPrimary : colors.onError,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-      icon: Icon(
-        success
-            ? Icons.check_circle_outline_rounded
-            : Icons.error_outline_rounded,
-        color: success ? colors.onPrimary : colors.onError,
-      ),
-      snackPosition: SnackPosition.TOP,
-      snackStyle: SnackStyle.FLOATING,
-      maxWidth: 540,
-      margin: const EdgeInsets.only(top: 18),
-      borderRadius: 12,
-      backgroundColor: success ? colors.primary : colors.error,
-      duration: const Duration(seconds: 4),
-    );
   }
 
   @override

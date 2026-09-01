@@ -45,11 +45,7 @@ class _NoteReminderLauncherState extends State<NoteReminderLauncher> {
       );
     } on Exception {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('មិនអាចពិនិត្យការជូនដំណឹងកំណត់ចំណាំបានទេ។'),
-        ),
-      );
+      showError('មិនអាចពិនិត្យការជូនដំណឹងកំណត់ចំណាំបានទេ។');
     }
   }
 

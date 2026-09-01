@@ -14,6 +14,7 @@ import '../sell/widgets/customer_free_product_info_dialog.dart';
 import '../../shared/select_customer_dialog_widget.dart';
 import '../../shared/user_profile_widget.dart';
 import '../../shared/warning_pending_order_widget.dart';
+import '../../utils/helpers.dart';
 import '../closed_sales/closed_sale_list_screen.dart';
 import '../closed_sales/closed_sale_controller.dart';
 import '../closed_sales/sale_detail_sreen.dart';
@@ -68,21 +69,15 @@ class AppShellScreen extends GetView<AppShellController> {
       final sale = await controller.findScannedBill(documentName);
       if (!context.mounted) return;
       if (sale == null) {
-        Get.rawSnackbar(
-          message: 'រកមិនឃើញវិក្កយបត្រ $documentName នៅកន្លែងលក់បច្ចុប្បន្នទេ។',
-          snackPosition: SnackPosition.TOP,
-          duration: const Duration(seconds: 4),
+        showWarning(
+          'រកមិនឃើញវិក្កយបត្រ $documentName នៅកន្លែងលក់បច្ចុប្បន្នទេ។',
         );
         return;
       }
       await showSaleDetail(context, sale: sale);
     } on Exception {
       if (!context.mounted) return;
-      Get.rawSnackbar(
-        message: 'មិនអាចស្វែងរកវិក្កយបត្រ $documentName បានទេ។',
-        snackPosition: SnackPosition.TOP,
-        duration: const Duration(seconds: 4),
-      );
+      showError('មិនអាចស្វែងរកវិក្កយបត្រ $documentName បានទេ។');
     } finally {
       controller.finishScannedBillSearch();
     }
@@ -284,27 +279,13 @@ class AppShellScreen extends GetView<AppShellController> {
     } on FrappeServerMessageException {
       return false;
     } on Exception {
-      if (context.mounted) _showNavigationError(context);
+      if (context.mounted) _showNavigationError();
       return false;
     }
   }
 
-  void _showNavigationError(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    Get.rawSnackbar(
-      messageText: Text(
-        'មិនអាចរក្សាទុកការលក់បានទេ។ សូមព្យាយាមម្តងទៀត។',
-        style: TextStyle(color: colors.onError, fontWeight: FontWeight.w600),
-      ),
-      icon: Icon(Icons.error_outline_rounded, color: colors.onError),
-      snackPosition: SnackPosition.TOP,
-      snackStyle: SnackStyle.FLOATING,
-      maxWidth: 540,
-      margin: const EdgeInsets.only(top: 18),
-      borderRadius: 12,
-      backgroundColor: colors.error,
-      duration: const Duration(seconds: 4),
-    );
+  void _showNavigationError() {
+    showError('មិនអាចរក្សាទុកការលក់បានទេ។ សូមព្យាយាមម្តងទៀត។');
   }
 
   Widget _screenFor(AppDestination destination) {

@@ -2,12 +2,15 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:ice_control_sale/features/notes/note_reminder_launcher.dart';
 import 'package:ice_control_sale/services/note_service.dart';
 
 void main() {
+  tearDown(Get.reset);
+
   testWidgets('shows all due-today notes once for the shell lifetime', (
     tester,
   ) async {
@@ -31,7 +34,7 @@ void main() {
     );
 
     await tester.pumpWidget(
-      MaterialApp(
+      GetMaterialApp(
         home: Scaffold(
           body: NoteReminderLauncher(
             service: service,
@@ -61,7 +64,7 @@ void main() {
       client: MockClient((_) async => _response({}, statusCode: 500)),
     );
     await tester.pumpWidget(
-      MaterialApp(
+      GetMaterialApp(
         home: Scaffold(
           body: Stack(
             children: [
@@ -76,11 +79,17 @@ void main() {
         ),
       ),
     );
-    await tester.pumpAndSettle();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
 
     expect(find.text('Authenticated app'), findsOneWidget);
-    expect(find.byType(SnackBar), findsOneWidget);
+    expect(
+      find.text('មិនអាចពិនិត្យការជូនដំណឹងកំណត់ចំណាំបានទេ។'),
+      findsOneWidget,
+    );
     expect(find.byKey(const ValueKey('due-note-dialog')), findsNothing);
+    await tester.pump(const Duration(seconds: 5));
+    await tester.pumpAndSettle();
   });
 }
 

@@ -215,10 +215,8 @@ class SellScreen extends GetView<SellController> {
                                   } on ProductPriceChangePermissionException {
                                     _showProductPriceChangePermissionDenied();
                                   } on SaleProductUnitAlreadySelectedException {
-                                    Get.rawSnackbar(
-                                      message:
-                                          'ទំនិញ និងឯកតានេះត្រូវបានជ្រើសរើសរួចហើយ។',
-                                      snackPosition: SnackPosition.TOP,
+                                    showWarning(
+                                      'ទំនិញ និងឯកតានេះត្រូវបានជ្រើសរើសរួចហើយ។',
                                     );
                                   }
                                 }
@@ -525,46 +523,14 @@ class _TopBarState extends State<_TopBar> with WindowListener {
       await controller.openPendingOrder(name);
     } on PendingOrderOpenValidationException {
       if (!mounted) return;
-      Get.rawSnackbar(
-        messageText: Text(
-          'សូមរក្សាទុកការលក់បច្ចុប្បន្នជាមុនសិន មុននឹងបើកការលក់រង់ចាំ។',
-          style: TextStyle(
-            color: context.colors.onInverseSurface,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        icon: Icon(
-          Icons.info_outline_rounded,
-          color: context.colors.onInverseSurface,
-        ),
-        snackPosition: SnackPosition.TOP,
-        snackStyle: SnackStyle.FLOATING,
-        maxWidth: 620,
-        margin: const EdgeInsets.only(top: 18),
-        borderRadius: 12,
-        backgroundColor: context.colors.inverseSurface,
-        duration: const Duration(seconds: 4),
+      showWarning(
+        'សូមរក្សាទុកការលក់បច្ចុប្បន្នជាមុនសិន មុននឹងបើកការលក់រង់ចាំ។',
       );
     } on FrappeServerMessageException {
       // The shared API client already displayed the server message.
     } on Exception {
       if (!mounted) return;
-      Get.rawSnackbar(
-        messageText: Text(
-          'មិនអាចបើកការលក់រង់ចាំបានទេ។',
-          style: TextStyle(
-            color: context.colors.onError,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        snackPosition: SnackPosition.TOP,
-        snackStyle: SnackStyle.FLOATING,
-        maxWidth: 520,
-        margin: const EdgeInsets.only(top: 18),
-        borderRadius: 12,
-        backgroundColor: context.colors.error,
-        duration: const Duration(seconds: 4),
-      );
+      showError('មិនអាចបើកការលក់រង់ចាំបានទេ។');
     }
   }
 
@@ -930,25 +896,8 @@ class _ProductPanel extends StatelessWidget {
                         selectedProduct = unitProduct;
                       }
                       if (controller.hasProduct(selectedProduct)) {
-                        Get.rawSnackbar(
-                          messageText: Text(
-                            'ទំនិញ «${selectedProduct.name}» ត្រូវបានជ្រើសរើសរួចហើយ។',
-                            style: TextStyle(
-                              color: context.colors.onInverseSurface,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          icon: Icon(
-                            Icons.info_outline_rounded,
-                            color: context.colors.onInverseSurface,
-                          ),
-                          snackPosition: SnackPosition.TOP,
-                          snackStyle: SnackStyle.FLOATING,
-                          maxWidth: 520,
-                          margin: const EdgeInsets.only(top: 18),
-                          borderRadius: 12,
-                          backgroundColor: context.colors.inverseSurface,
-                          duration: const Duration(seconds: 3),
+                        showWarning(
+                          'ទំនិញ «${selectedProduct.name}» ត្រូវបានជ្រើសរើសរួចហើយ។',
                         );
                         return;
                       }
@@ -1174,23 +1123,7 @@ class _CheckoutPanel extends StatelessWidget {
       // The shared API client already displayed the server message.
     } on Exception {
       if (!context.mounted) return;
-      Get.rawSnackbar(
-        messageText: Text(
-          'មិនអាចរក្សាទុកការលក់បានទេ។ សូមព្យាយាមម្ដងទៀត។',
-          style: TextStyle(
-            color: context.colors.onError,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        icon: Icon(Icons.error_outline_rounded, color: context.colors.onError),
-        snackPosition: SnackPosition.TOP,
-        snackStyle: SnackStyle.FLOATING,
-        maxWidth: 520,
-        margin: const EdgeInsets.only(top: 18),
-        borderRadius: 12,
-        backgroundColor: context.colors.error,
-        duration: const Duration(seconds: 4),
-      );
+      showError('មិនអាចរក្សាទុកការលក់បានទេ។ សូមព្យាយាមម្ដងទៀត។');
     }
   }
 
@@ -1758,23 +1691,7 @@ class _BottomBar extends StatelessWidget {
       // The shared API client already displayed the server message.
     } on Exception {
       if (!context.mounted) return;
-      Get.rawSnackbar(
-        messageText: Text(
-          'មិនអាចដាក់ការលក់ក្នុងរង់ចាំបានទេ។ សូមព្យាយាមម្ដងទៀត។',
-          style: TextStyle(
-            color: context.colors.onError,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        icon: Icon(Icons.error_outline_rounded, color: context.colors.onError),
-        snackPosition: SnackPosition.TOP,
-        snackStyle: SnackStyle.FLOATING,
-        maxWidth: 520,
-        margin: const EdgeInsets.only(top: 18),
-        borderRadius: 12,
-        backgroundColor: context.colors.error,
-        duration: const Duration(seconds: 4),
-      );
+      showError('មិនអាចដាក់ការលក់ក្នុងរង់ចាំបានទេ។ សូមព្យាយាមម្ដងទៀត។');
     }
   }
 

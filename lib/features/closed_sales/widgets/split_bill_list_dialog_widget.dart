@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 
+import '../../../features/sell/sale.dart';
+import '../../../features/sell/sell_controller.dart';
+import '../../sell/widgets/new_split_bill_dialog_widget.dart';
 import '../../../services/frappe_response_handler.dart';
 import '../../../services/sale_service.dart';
 import '../../../utils/helpers.dart';
@@ -8,7 +12,7 @@ import '../closed_sale.dart';
 Future<ClosedSale?> showSplitBillListDialog(
   BuildContext context, {
   required SaleService saleService,
-  required String parentBillNumber,
+  required Sale parentSale,
   required bool canShowPrice,
   required String currencySymbol,
 }) {
@@ -16,7 +20,7 @@ Future<ClosedSale?> showSplitBillListDialog(
     context: context,
     builder: (_) => SplitBillListDialogWidget(
       saleService: saleService,
-      parentBillNumber: parentBillNumber,
+      parentSale: parentSale,
       canShowPrice: canShowPrice,
       currencySymbol: currencySymbol,
     ),
@@ -27,13 +31,13 @@ class SplitBillListDialogWidget extends StatefulWidget {
   const SplitBillListDialogWidget({
     super.key,
     required this.saleService,
-    required this.parentBillNumber,
+    required this.parentSale,
     required this.canShowPrice,
     required this.currencySymbol,
   });
 
   final SaleService saleService;
-  final String parentBillNumber;
+  final Sale parentSale;
   final bool canShowPrice;
   final String currencySymbol;
 
@@ -44,6 +48,7 @@ class SplitBillListDialogWidget extends StatefulWidget {
 
 class _SplitBillListDialogWidgetState extends State<SplitBillListDialogWidget> {
   final _searchController = TextEditingController();
+  late Sale _parentSale;
   List<ClosedSale> _bills = const [];
   bool _isLoading = true;
   String? _errorMessage;
@@ -68,6 +73,7 @@ class _SplitBillListDialogWidgetState extends State<SplitBillListDialogWidget> {
   @override
   void initState() {
     super.initState();
+    _parentSale = widget.parentSale;
     _searchController.addListener(_handleSearchChanged);
     _load();
   }
@@ -89,7 +95,7 @@ class _SplitBillListDialogWidgetState extends State<SplitBillListDialogWidget> {
     });
     try {
       final bills = await widget.saleService.getSplitBills(
-        parentBillNumber: widget.parentBillNumber,
+        parentBillNumber: _parentSale.name,
       );
       if (mounted) setState(() => _bills = bills);
     } on FrappeServerMessageException {
@@ -121,7 +127,7 @@ class _SplitBillListDialogWidgetState extends State<SplitBillListDialogWidget> {
               children: [
                 const Text('បញ្ជីបុងបំបែក'),
                 Text(
-                  widget.parentBillNumber,
+                  _parentSale.name,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: colors.onSurfaceVariant,
                   ),
@@ -160,36 +166,81 @@ class _SplitBillListDialogWidgetState extends State<SplitBillListDialogWidget> {
       content: SizedBox(
         width: 1080,
         height: 520,
-        child: Column(
+        child: Stack(
           children: [
-            Divider(height: 1, color: colors.outlineVariant),
-            _SplitBillTableHeader(currencySymbol: widget.currencySymbol),
-            Divider(height: 1, color: colors.outlineVariant),
-            Expanded(
-              child: _isLoading
-                  ? const Center(child: CircularProgressIndicator())
-                  : _errorMessage != null
-                  ? _LoadError(message: _errorMessage!, onRetry: _load)
-                  : bills.isEmpty
-                  ? _EmptySplitBills(
-                      hasSearch: _searchController.text.isNotEmpty,
-                    )
-                  : ListView.separated(
-                      itemCount: bills.length,
-                      separatorBuilder: (_, _) =>
-                          Divider(height: 1, color: colors.outlineVariant),
-                      itemBuilder: (context, index) => _SplitBillRow(
-                        bill: bills[index],
-                        canShowPrice: widget.canShowPrice,
-                        currencySymbol: widget.currencySymbol,
-                        onOpen: () => Navigator.pop(context, bills[index]),
-                      ),
-                    ),
+            Column(
+              children: [
+                Divider(height: 1, color: colors.outlineVariant),
+                _SplitBillTableHeader(currencySymbol: widget.currencySymbol),
+                Divider(height: 1, color: colors.outlineVariant),
+                Expanded(
+                  child: _isLoading
+                      ? const Center(child: CircularProgressIndicator())
+                      : _errorMessage != null
+                      ? _LoadError(message: _errorMessage!, onRetry: _load)
+                      : bills.isEmpty
+                      ? _EmptySplitBills(
+                          hasSearch: _searchController.text.isNotEmpty,
+                        )
+                      : ListView.separated(
+                          padding: const EdgeInsets.only(bottom: 88),
+                          itemCount: bills.length,
+                          separatorBuilder: (_, _) =>
+                              Divider(height: 1, color: colors.outlineVariant),
+                          itemBuilder: (context, index) => _SplitBillRow(
+                            bill: bills[index],
+                            canShowPrice: widget.canShowPrice,
+                            currencySymbol: widget.currencySymbol,
+                            onOpen: () => Navigator.pop(context, bills[index]),
+                          ),
+                        ),
+                ),
+              ],
+            ),
+            Positioned(
+              right: 20,
+              bottom: 18,
+              child: FloatingActionButton.extended(
+                key: const ValueKey('new-split-bill-button'),
+                onPressed: _openNewSplitBill,
+                icon: const Icon(Icons.call_split_rounded),
+                label: const Text('បុងបំបែកថ្មី'),
+              ),
             ),
           ],
         ),
       ),
     );
+  }
+
+  Future<void> _openNewSplitBill() async {
+    if (!Get.isRegistered<SellController>()) {
+      showError('មិនអាចបង្កើតបុងបំបែកបានទេ។');
+      return;
+    }
+    final sell = Get.find<SellController>();
+    await showNewSplitBillDialog(
+      context,
+      saleService: widget.saleService,
+      customerService: sell.customerService,
+      parentSale: _parentSale,
+      stationName: sell.stationName,
+      onSaved: () => _refreshAfterSplitSaved(sell),
+    );
+  }
+
+  Future<Sale?> _refreshAfterSplitSaved(SellController sell) async {
+    sell.closedSaleRevision.value++;
+    Sale? refreshedParent;
+    try {
+      final loadedParent = await widget.saleService.getSale(_parentSale.name);
+      refreshedParent = loadedParent;
+      if (mounted) setState(() => _parentSale = loadedParent);
+    } on Exception {
+      // The server still validates quantities if refreshing the parent fails.
+    }
+    await _load();
+    return refreshedParent;
   }
 }
 

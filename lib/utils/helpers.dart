@@ -1,4 +1,69 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+
+import '../app/app_theme.dart';
+
+void showSuccess(String message) {
+  final context = Get.overlayContext ?? Get.context;
+  if (context == null) return;
+  final colors = Theme.of(context).extension<AppSemanticColors>();
+  _showToast(
+    message,
+    backgroundColor: colors?.success ?? const Color(0xFF168A45),
+    foregroundColor: colors?.onSuccess ?? Colors.white,
+    icon: Icons.check_circle_outline_rounded,
+  );
+}
+
+void showWarning(String message) {
+  _showToast(
+    message,
+    backgroundColor: const Color(0xFFF79009),
+    foregroundColor: Colors.white,
+    icon: Icons.warning_amber_rounded,
+  );
+}
+
+void showError(String message) {
+  final context = Get.overlayContext ?? Get.context;
+  if (context == null) return;
+  final colors = Theme.of(context).colorScheme;
+  _showToast(
+    message,
+    backgroundColor: colors.error,
+    foregroundColor: colors.onError,
+    icon: Icons.error_outline_rounded,
+  );
+}
+
+void _showToast(
+  String message, {
+  required Color backgroundColor,
+  required Color foregroundColor,
+  required IconData icon,
+}) {
+  if (message.trim().isEmpty || (Get.overlayContext ?? Get.context) == null) {
+    return;
+  }
+  Get.rawSnackbar(
+    messageText: Text(
+      message,
+      style: TextStyle(
+        color: foregroundColor,
+        fontFamily: AppTheme.fontFamily,
+        fontWeight: FontWeight.w700,
+      ),
+    ),
+    icon: Icon(icon, color: foregroundColor),
+    snackPosition: SnackPosition.TOP,
+    snackStyle: SnackStyle.FLOATING,
+    maxWidth: 560,
+    margin: const EdgeInsets.fromLTRB(16, 18, 16, 0),
+    borderRadius: 12,
+    backgroundColor: backgroundColor,
+    duration: const Duration(seconds: 4),
+  );
+}
 
 String textValue(Object? value) => value?.toString().trim() ?? '';
 

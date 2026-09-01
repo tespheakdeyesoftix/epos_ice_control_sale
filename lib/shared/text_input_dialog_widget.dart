@@ -1,9 +1,9 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
 
 import '../services/note_preset_repository.dart';
+import '../utils/helpers.dart';
 
 Future<String?> showTextInputDialog(
   BuildContext context, {
@@ -156,10 +156,7 @@ class _TextInputDialogWidgetState extends State<TextInputDialogWidget> {
       );
     } on Exception {
       if (!mounted) return;
-      Get.rawSnackbar(
-        message: 'មិនអាចបើកក្ដារចុចលើអេក្រង់បានទេ',
-        snackPosition: SnackPosition.BOTTOM,
-      );
+      showError('មិនអាចបើកក្ដារចុចលើអេក្រង់បានទេ');
     }
   }
 

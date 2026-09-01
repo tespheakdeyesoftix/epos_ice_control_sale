@@ -28,12 +28,8 @@ class NoteAppScreen extends GetView<NoteController> {
       builder: (_) => NoteEditorDialog(controller: controller, note: note),
     );
     if (saved != true || !context.mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          note == null ? 'បានបង្កើតកំណត់ចំណាំ។' : 'បានរក្សាទុកកំណត់ចំណាំ។',
-        ),
-      ),
+    showSuccess(
+      note == null ? 'បានបង្កើតកំណត់ចំណាំ។' : 'បានរក្សាទុកកំណត់ចំណាំ។',
     );
   }
 
@@ -59,16 +55,7 @@ class NoteAppScreen extends GetView<NoteController> {
     if (confirmed != true) return;
     final success = await controller.deleteNote(note);
     if (!context.mounted || success) return;
-    _showFailure(context, 'មិនអាចលុបកំណត់ចំណាំបានទេ។');
-  }
-
-  void _showFailure(BuildContext context, String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Theme.of(context).colorScheme.error,
-      ),
-    );
+    showError('មិនអាចលុបកំណត់ចំណាំបានទេ។');
   }
 
   @override
@@ -179,7 +166,7 @@ class NoteAppScreen extends GetView<NoteController> {
                     controller: controller,
                     onEdit: (note) => _openEditor(context, note),
                     onDelete: (note) => _confirmDelete(context, note),
-                    onFailure: (message) => _showFailure(context, message),
+                    onFailure: showError,
                   ),
                 if (controller.visiblePinnedNotes.isNotEmpty &&
                     controller.visibleRegularNotes.isNotEmpty)
@@ -192,7 +179,7 @@ class NoteAppScreen extends GetView<NoteController> {
                     controller: controller,
                     onEdit: (note) => _openEditor(context, note),
                     onDelete: (note) => _confirmDelete(context, note),
-                    onFailure: (message) => _showFailure(context, message),
+                    onFailure: showError,
                   ),
                 if (controller.isLoadingMore.value)
                   const Padding(
@@ -662,14 +649,9 @@ class _NoteEditorDialogState extends State<NoteEditorDialog> {
       Navigator.of(context).pop(true);
     } else {
       setState(() => _saving = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            widget.controller.lastMutationError.value ??
-                'មិនអាចរក្សាទុកកំណត់ចំណាំបានទេ។',
-          ),
-          backgroundColor: Theme.of(context).colorScheme.error,
-        ),
+      showError(
+        widget.controller.lastMutationError.value ??
+            'មិនអាចរក្សាទុកកំណត់ចំណាំបានទេ។',
       );
     }
   }

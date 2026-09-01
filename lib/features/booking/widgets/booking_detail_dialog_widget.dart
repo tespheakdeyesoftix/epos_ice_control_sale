@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
 
 import '../../../app/app_theme.dart';
 import '../../../features/closed_sales/closed_sale.dart';
@@ -128,18 +127,10 @@ class _BookingDetailDialogWidgetState extends State<BookingDetailDialogWidget> {
       await widget.onUpdated?.call();
       if (!mounted) return;
       setState(() => _bookingFuture = Future.value(refreshed));
-      _showToast(
-        success: true,
-        successMessage: 'បានកែប្រែការកក់ដោយជោគជ័យ',
-        errorMessage: 'មិនអាចកែប្រែការកក់បានទេ',
-      );
+      showSuccess('បានកែប្រែការកក់ដោយជោគជ័យ');
     } on Exception {
       if (mounted) {
-        _showToast(
-          success: false,
-          successMessage: 'បានកែប្រែការកក់ដោយជោគជ័យ',
-          errorMessage: 'មិនអាចកែប្រែការកក់បានទេ',
-        );
+        showError('មិនអាចកែប្រែការកក់បានទេ');
       }
     } finally {
       if (mounted) setState(() => _isSaving = false);
@@ -185,22 +176,14 @@ class _BookingDetailDialogWidgetState extends State<BookingDetailDialogWidget> {
       await widget.service.deleteBooking(booking.name);
       await widget.onUpdated?.call();
       if (!mounted) return;
-      _showToast(
-        success: true,
-        successMessage: 'បានលុបការកក់ដោយជោគជ័យ',
-        errorMessage: 'មិនអាចលុបការកក់បានទេ',
-      );
+      showSuccess('បានលុបការកក់ដោយជោគជ័យ');
       Navigator.of(context).pop();
     } on FrappeServerMessageException {
       if (mounted) setState(() => _isSaving = false);
     } on Exception {
       if (!mounted) return;
       setState(() => _isSaving = false);
-      _showToast(
-        success: false,
-        successMessage: 'បានលុបការកក់ដោយជោគជ័យ',
-        errorMessage: 'មិនអាចលុបការកក់បានទេ',
-      );
+      showError('មិនអាចលុបការកក់បានទេ');
     }
   }
 
@@ -220,36 +203,6 @@ class _BookingDetailDialogWidgetState extends State<BookingDetailDialogWidget> {
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }
-  }
-
-  void _showToast({
-    required bool success,
-    required String successMessage,
-    required String errorMessage,
-  }) {
-    final colors = Theme.of(context).colorScheme;
-    Get.rawSnackbar(
-      messageText: Text(
-        success ? successMessage : errorMessage,
-        style: TextStyle(
-          color: success ? colors.onPrimary : colors.onError,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-      icon: Icon(
-        success
-            ? Icons.check_circle_outline_rounded
-            : Icons.error_outline_rounded,
-        color: success ? colors.onPrimary : colors.onError,
-      ),
-      snackPosition: SnackPosition.TOP,
-      snackStyle: SnackStyle.FLOATING,
-      maxWidth: 540,
-      margin: const EdgeInsets.only(top: 18),
-      borderRadius: 12,
-      backgroundColor: success ? colors.primary : colors.error,
-      duration: const Duration(seconds: 4),
-    );
   }
 
   @override

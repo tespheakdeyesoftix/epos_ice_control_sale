@@ -1,9 +1,8 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
 
-import '../app/app_theme.dart';
+import '../utils/helpers.dart';
 
 class FrappeServerMessage {
   const FrappeServerMessage({
@@ -118,90 +117,15 @@ abstract final class FrappeResponseHandler {
 
   static void show(FrappeServerMessage serverMessage) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final context = Get.context;
-      if (context == null) return;
-      final colors = Theme.of(context).colorScheme;
-      final semanticColors = AppSemanticColors.of(context);
-      final presentation = _presentation(
-        serverMessage.indicator,
-        colors,
-        semanticColors,
-      );
-
-      Get.rawSnackbar(
-        messageText: Text(
-          plainText(serverMessage.message),
-          style: TextStyle(
-            color: presentation.foreground,
-            fontFamily: AppTheme.fontFamily,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-        icon: Icon(presentation.icon, color: presentation.foreground),
-        snackPosition: SnackPosition.TOP,
-        snackStyle: SnackStyle.FLOATING,
-        maxWidth: 560,
-        margin: const EdgeInsets.only(top: 18),
-        borderRadius: 12,
-        backgroundColor: presentation.background,
-        duration: const Duration(seconds: 4),
-      );
+      final message = plainText(serverMessage.message);
+      switch (serverMessage.indicator.trim().toLowerCase()) {
+        case 'green':
+          showSuccess(message);
+        case 'red':
+          showError(message);
+        default:
+          showWarning(message);
+      }
     });
   }
-
-  static _ToastPresentation _presentation(
-    String indicator,
-    ColorScheme colors,
-    AppSemanticColors semanticColors,
-  ) {
-    return switch (indicator) {
-      'red' => _ToastPresentation(
-        background: colors.error,
-        foreground: colors.onError,
-        icon: Icons.error_outline_rounded,
-      ),
-      'green' => _ToastPresentation(
-        background: semanticColors.success,
-        foreground: semanticColors.onSuccess,
-        icon: Icons.check_circle_outline_rounded,
-      ),
-      'orange' => const _ToastPresentation(
-        background: Color(0xFFF79009),
-        foreground: Colors.white,
-        icon: Icons.warning_amber_rounded,
-      ),
-      'yellow' => const _ToastPresentation(
-        background: Color(0xFFFDB022),
-        foreground: Color(0xFF3B2A00),
-        icon: Icons.info_outline_rounded,
-      ),
-      'blue' => _ToastPresentation(
-        background: colors.primary,
-        foreground: colors.onPrimary,
-        icon: Icons.info_outline_rounded,
-      ),
-      'gray' || 'grey' => _ToastPresentation(
-        background: colors.onSurfaceVariant,
-        foreground: colors.surface,
-        icon: Icons.info_outline_rounded,
-      ),
-      _ => _ToastPresentation(
-        background: colors.inverseSurface,
-        foreground: colors.onInverseSurface,
-        icon: Icons.info_outline_rounded,
-      ),
-    };
-  }
-}
-
-class _ToastPresentation {
-  const _ToastPresentation({
-    required this.background,
-    required this.foreground,
-    required this.icon,
-  });
-
-  final Color background;
-  final Color foreground;
-  final IconData icon;
 }
